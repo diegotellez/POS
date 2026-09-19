@@ -1,0 +1,42 @@
+.shell-contenedor {
+  height: 100vh;
+}
+
+.shell-sidenav {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-logo {
+  font-weight: 900;
+  font-size: 20px;
+  padding: 20px;
+  letter-spacing: 1px;
+}
+
+.shell-item-activo {
+  background: rgba(0, 208, 132, 0.18);
+  border-left: 3px solid var(--pos-primary);
+}
+
+.shell-espaciador {
+  flex: 1 1 auto;
+}
+
+.shell-usuario {
+  margin-right: 12px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.shell-contenido {
+  padding: 20px;
+  background: var(--pos-bg-light);
+  min-height: calc(100vh - 64px);
+  box-sizing: border-box;
+}
+
+::ng-deep .mat-mdc-list-item.mdc-list-item {
+  color: #ffffff;
+}

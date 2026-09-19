@@ -1,0 +1,21 @@
+{
+  "name": "pos-backend",
+  "version": "1.0.0",
+  "description": "Backend del sistema POS local (Node.js + Express + SQLite)",
+  "main": "app.js",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "node-thermal-printer": "^4.6.1",
+    "pdfkit": "^0.20.2"
+  }
+}

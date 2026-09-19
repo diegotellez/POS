@@ -1,0 +1,44 @@
+<mat-card>
+  <h2>Categorías</h2>
+
+  <div class="form-nueva">
+    <mat-form-field appearance="outline">
+      <mat-label>Nueva categoría</mat-label>
+      <input matInput [(ngModel)]="nombreNueva" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Categoría padre (opcional)</mat-label>
+      <mat-select [(ngModel)]="padreNueva">
+        <mat-option [value]="null">Ninguna (categoría raíz)</mat-option>
+        @for (c of categorias(); track c.id) {
+          <mat-option [value]="c.id">{{ c.nombre }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" [disabled]="!nombreNueva.trim()" (click)="crear()">
+      <mat-icon>add</mat-icon>
+      Agregar
+    </button>
+  </div>
+
+  <mat-nav-list>
+    @for (padre of raiz; track padre.id) {
+      <div mat-subheader class="fila-categoria">
+        <span>{{ padre.nombre }}</span>
+        <button mat-icon-button (click)="eliminar(padre)">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </div>
+      @for (hija of hijas(padre.id); track hija.id) {
+        <div mat-list-item class="fila-categoria subcategoria">
+          <span>↳ {{ hija.nombre }}</span>
+          <button mat-icon-button (click)="eliminar(hija)">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+    }
+  </mat-nav-list>
+</mat-card>

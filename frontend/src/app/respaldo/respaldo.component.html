@@ -1,0 +1,35 @@
+<mat-card>
+  <h2>Respaldo de base de datos</h2>
+  <p class="pos-texto-cuerpo">
+    La base de datos "de trabajo" permanece siempre en su ruta local. Estas opciones solo
+    generan una <strong>copia de respaldo</strong> en el destino indicado.
+  </p>
+
+  <div class="seccion-respaldo">
+    <h3>Respaldar a USB</h3>
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Ruta de la unidad USB</mat-label>
+      <input matInput [(ngModel)]="rutaUSB" placeholder="Ej. D:\ o /media/usuario/USB" />
+    </mat-form-field>
+    <button mat-raised-button color="primary" [disabled]="!rutaUSB.trim()" (click)="respaldarUSB()">
+      <mat-icon>usb</mat-icon>
+      Respaldar a USB
+    </button>
+  </div>
+
+  <div class="seccion-respaldo">
+    <h3>Respaldar a Google Drive Desktop</h3>
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Carpeta local sincronizada con Drive</mat-label>
+      <input matInput [(ngModel)]="rutaDrive" placeholder="Ej. C:\Users\usuario\Google Drive\Respaldos" />
+    </mat-form-field>
+    <button mat-raised-button color="primary" [disabled]="!rutaDrive.trim()" (click)="respaldarDrive()">
+      <mat-icon>cloud_upload</mat-icon>
+      Respaldar a Drive
+    </button>
+  </div>
+
+  @if (ultimoDestino()) {
+    <p class="pos-texto-cuerpo">Último respaldo: {{ ultimoDestino() }}</p>
+  }
+</mat-card>

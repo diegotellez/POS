@@ -1,0 +1,34 @@
+<mat-sidenav-container class="shell-contenedor">
+  <mat-sidenav mode="side" opened class="pos-sidenav-oscuro shell-sidenav">
+    <div class="shell-logo">POS</div>
+    <mat-nav-list>
+      @for (item of menuVisible; track item.ruta) {
+        <a
+          mat-list-item
+          [routerLink]="item.ruta"
+          routerLinkActive="shell-item-activo"
+        >
+          <mat-icon matListItemIcon>{{ item.icono }}</mat-icon>
+          <span matListItemTitle>{{ item.etiqueta }}</span>
+        </a>
+      }
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="pos-toolbar-oscuro">
+      <span>Sistema de Punto de Venta</span>
+      <span class="shell-espaciador"></span>
+      @if (auth.usuario(); as usuario) {
+        <span class="shell-usuario">{{ usuario.nombreUsuario }} · {{ usuario.rol }}</span>
+      }
+      <button mat-icon-button (click)="salir()" aria-label="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </mat-toolbar>
+
+    <main class="shell-contenido">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

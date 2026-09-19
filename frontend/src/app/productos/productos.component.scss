@@ -1,0 +1,15 @@
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.campo-filtro {
+  width: 100%;
+  max-width: 400px;
+}
+
+.tabla-productos {
+  width: 100%;
+}

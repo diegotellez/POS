@@ -1,0 +1,89 @@
+<div class="venta-layout">
+  <!-- Columna izquierda: búsqueda / catálogo -->
+  <mat-card class="columna-productos">
+    <mat-form-field appearance="outline" class="campo-busqueda">
+      <mat-label>Buscar o escanear producto</mat-label>
+      <input
+        #busquedaInput
+        matInput
+        [(ngModel)]="termino"
+        (input)="buscar()"
+        (keydown)="onBusquedaKeydown($event)"
+        placeholder="Nombre, código de barras o código interno"
+        autofocus
+      />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    @if (!turnoActual()) {
+      <div class="aviso-turno">
+        <mat-icon class="pos-alerta">warning</mat-icon>
+        <span>No hay un turno de caja abierto.</span>
+        <button mat-button color="primary" (click)="irATurno()">Abrir turno</button>
+      </div>
+    }
+
+    <mat-nav-list class="lista-resultados">
+      @for (producto of resultados(); track producto.id) {
+        <button mat-list-item class="item-producto" (click)="agregarAlCarrito(producto)">
+          <div matListItemTitle>{{ producto.nombre }}</div>
+          <div matListItemLine class="pos-texto-cuerpo">
+            {{ producto.codigo_barras || producto.codigo_interno }} · Stock: {{ producto.stock }}
+          </div>
+          <div matListItemMeta class="precio-producto">${{ producto.precio_venta.toFixed(2) }}</div>
+        </button>
+      }
+      @if (termino && resultados().length === 0) {
+        <p class="pos-texto-cuerpo sin-resultados">No se encontraron productos.</p>
+      }
+    </mat-nav-list>
+  </mat-card>
+
+  <!-- Columna derecha: carrito / ticket en construcción -->
+  <mat-card class="columna-carrito">
+    <h2>Ticket</h2>
+
+    <div class="lista-carrito">
+      @for (item of carrito(); track item.productoId) {
+        <div class="item-carrito">
+          <div class="info-item">
+            <div>{{ item.nombre }}</div>
+            <div class="pos-texto-cuerpo">${{ item.precioUnitario.toFixed(2) }} c/u</div>
+          </div>
+          <div class="controles-cantidad">
+            <button mat-icon-button (click)="cambiarCantidad(item, -1)">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span>{{ item.cantidad }}</span>
+            <button mat-icon-button (click)="cambiarCantidad(item, 1)">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+          <div class="subtotal-item">${{ (item.precioUnitario * item.cantidad).toFixed(2) }}</div>
+          <button mat-icon-button (click)="quitarDelCarrito(item)" aria-label="Quitar">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+      @if (carrito().length === 0) {
+        <p class="pos-texto-cuerpo">Agrega productos para iniciar la venta.</p>
+      }
+    </div>
+
+    <div class="total-carrito">
+      <span>Total</span>
+      <span class="monto-total">${{ total().toFixed(2) }}</span>
+    </div>
+
+    <button
+      mat-raised-button
+      color="primary"
+      class="boton-confirmar pos-boton-pill"
+      [disabled]="carrito().length === 0 || procesando()"
+      (click)="confirmarVenta()"
+    >
+      <mat-icon>check_circle</mat-icon>
+      Confirmar venta
+    </button>
+  </mat-card>
+</div>

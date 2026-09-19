@@ -1,0 +1,53 @@
+<h2 mat-dialog-title>Registrar pago</h2>
+
+<mat-dialog-content>
+  <p class="total-venta">Total a pagar: <strong>${{ data.total.toFixed(2) }}</strong></p>
+
+  @for (pago of pagos(); track $index) {
+    <div class="fila-pago">
+      <mat-form-field appearance="outline" class="campo-metodo">
+        <mat-label>Método</mat-label>
+        <mat-select
+          [value]="pago.metodoPago"
+          (selectionChange)="actualizarMetodo($index, $event.value)"
+        >
+          @for (m of metodos; track m) {
+            <mat-option [value]="m">{{ m }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo-monto">
+        <mat-label>Monto</mat-label>
+        <input
+          matInput
+          type="number"
+          [value]="pago.monto"
+          (input)="actualizarMonto($index, $any($event.target).value)"
+        />
+      </mat-form-field>
+
+      @if (pagos().length > 1) {
+        <button mat-icon-button (click)="quitarPago($index)" aria-label="Quitar pago">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+  }
+
+  <button mat-button (click)="agregarPago()">
+    <mat-icon>add</mat-icon>
+    Agregar otro método de pago
+  </button>
+
+  <p [class.pos-alerta]="!cuadra()">
+    {{ cuadra() ? 'Los pagos cuadran con el total.' : 'Diferencia: $' + diferencia().toFixed(2) }}
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="!cuadra()" (click)="confirmar()">
+    Confirmar venta
+  </button>
+</mat-dialog-actions>

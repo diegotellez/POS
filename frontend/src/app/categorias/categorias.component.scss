@@ -1,0 +1,17 @@
+.form-nueva {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.fila-categoria {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subcategoria {
+  padding-left: 24px;
+}

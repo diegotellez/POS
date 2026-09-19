@@ -1,0 +1,53 @@
+<h2 mat-dialog-title>{{ esEdicion ? 'Editar producto' : 'Nuevo producto' }}</h2>
+
+<mat-dialog-content class="form-producto">
+  <mat-form-field appearance="outline">
+    <mat-label>Código de barras (opcional)</mat-label>
+    <input matInput [(ngModel)]="form.codigoBarras" [disabled]="esEdicion" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Nombre</mat-label>
+    <input matInput [(ngModel)]="form.nombre" required />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Descripción</mat-label>
+    <textarea matInput [(ngModel)]="form.descripcion" rows="2"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Categoría</mat-label>
+    <mat-select [(ngModel)]="form.categoriaId">
+      @for (c of categorias; track c.id) {
+        <mat-option [value]="c.id">{{ c.nombre }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <div class="fila-doble">
+    <mat-form-field appearance="outline">
+      <mat-label>Precio de venta</mat-label>
+      <input matInput type="number" [(ngModel)]="form.precioVenta" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Stock mínimo</mat-label>
+      <input matInput type="number" [(ngModel)]="form.stockMinimo" />
+    </mat-form-field>
+  </div>
+
+  @if (!esEdicion) {
+    <mat-form-field appearance="outline">
+      <mat-label>Stock inicial</mat-label>
+      <input matInput type="number" [(ngModel)]="form.stock" />
+    </mat-form-field>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+  <button mat-raised-button color="primary" [disabled]="!form.nombre.trim()" (click)="guardar()">
+    Guardar
+  </button>
+</mat-dialog-actions>

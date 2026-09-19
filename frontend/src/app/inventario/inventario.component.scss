@@ -1,0 +1,22 @@
+.alerta-stock-bajo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 87, 34, 0.08);
+  padding: 10px 14px;
+  border-radius: var(--pos-radius);
+  margin-bottom: 16px;
+}
+
+.form-inventario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 420px;
+  padding: 20px 4px;
+}
+
+.tabla-movimientos {
+  width: 100%;
+  margin-top: 12px;
+}

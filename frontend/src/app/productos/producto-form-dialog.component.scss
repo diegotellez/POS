@@ -1,0 +1,15 @@
+.form-producto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 360px;
+}
+
+.fila-doble {
+  display: flex;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+  }
+}

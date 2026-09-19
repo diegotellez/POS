@@ -1,0 +1,72 @@
+<mat-card>
+  <h2>Reporte consolidado de cierre de turno</h2>
+
+  <mat-form-field appearance="outline" class="campo-turno">
+    <mat-label>Turno</mat-label>
+    <mat-select [(ngModel)]="turnoSeleccionado" (selectionChange)="cargarReporte()">
+      @for (t of turnos(); track t.id) {
+        <mat-option [value]="t.id">
+          Turno #{{ t.id }} — {{ t.fecha_hora_apertura }} ({{ t.estado }})
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (reporte(); as r) {
+    <div class="grid-resumen">
+      <mat-card class="tarjeta-metric">
+        <span class="etiqueta">Total vendido</span>
+        <span class="valor">${{ r.totalVentas.toFixed(2) }}</span>
+      </mat-card>
+      <mat-card class="tarjeta-metric">
+        <span class="etiqueta">Cantidad de ventas</span>
+        <span class="valor">{{ r.cantidadVentas }}</span>
+      </mat-card>
+      <mat-card class="tarjeta-metric">
+        <span class="etiqueta">Diferencia de arqueo</span>
+        <span class="valor" [class.pos-alerta]="(r.arqueo.diferencia || 0) < 0">
+          {{ r.arqueo.diferencia !== null ? '$' + r.arqueo.diferencia.toFixed(2) : '—' }}
+        </span>
+      </mat-card>
+    </div>
+
+    <div class="secciones">
+      <div>
+        <h3>Desglose por método de pago</h3>
+        <ul>
+          @for (m of r.porMetodoPago; track m.metodo_pago) {
+            <li>{{ m.metodo_pago }}: ${{ m.total.toFixed(2) }}</li>
+          }
+        </ul>
+      </div>
+
+      <div>
+        <h3>Desglose por usuario</h3>
+        <ul>
+          @for (u of r.porUsuario; track u.nombre_usuario) {
+            <li>{{ u.nombre_usuario }}: ${{ u.total.toFixed(2) }} ({{ u.cantidad_ventas }} ventas)</li>
+          }
+        </ul>
+      </div>
+
+      <div>
+        <h3>Arqueo de caja</h3>
+        <p>Base inicial: ${{ r.arqueo.baseInicial.toFixed(2) }}</p>
+        <p>Ventas en efectivo: ${{ r.arqueo.efectivoVentas.toFixed(2) }}</p>
+        <p>Efectivo esperado: ${{ r.arqueo.efectivoEsperado.toFixed(2) }}</p>
+        <p>Efectivo contado: {{ r.arqueo.efectivoContado !== null ? '$' + r.arqueo.efectivoContado.toFixed(2) : '—' }}</p>
+      </div>
+    </div>
+
+    <div class="acciones-reporte">
+      <button mat-raised-button color="primary" (click)="descargarPDF()">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Exportar a PDF
+      </button>
+      <button mat-stroked-button (click)="enviarWhatsApp()">
+        <mat-icon>chat</mat-icon>
+        Enviar por WhatsApp
+      </button>
+    </div>
+  }
+</mat-card>

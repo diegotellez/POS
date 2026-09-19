@@ -1,0 +1,43 @@
+<div class="turno-contenedor">
+  <mat-card class="tarjeta-turno">
+    @if (turno(); as t) {
+      <h2>Turno abierto #{{ t.id }}</h2>
+      <p class="pos-texto-cuerpo">Apertura: {{ t.fecha_hora_apertura }}</p>
+      <p class="pos-texto-cuerpo">Base inicial: ${{ t.base_inicial_efectivo.toFixed(2) }}</p>
+
+      <h3>Cerrar turno (arqueo)</h3>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Efectivo contado</mat-label>
+        <input matInput type="number" [(ngModel)]="efectivoContado" />
+      </mat-form-field>
+      <button mat-raised-button color="primary" [disabled]="efectivoContado === null" (click)="cerrar()">
+        <mat-icon>lock</mat-icon>
+        Cerrar turno
+      </button>
+    } @else {
+      <h2>Abrir turno de caja</h2>
+      <p class="pos-texto-cuerpo">No hay un turno abierto. Registra la base inicial de efectivo.</p>
+      <mat-form-field appearance="outline" class="campo">
+        <mat-label>Base inicial de efectivo</mat-label>
+        <input matInput type="number" [(ngModel)]="baseInicial" />
+      </mat-form-field>
+      <button mat-raised-button color="primary" [disabled]="baseInicial === null" (click)="abrir()">
+        <mat-icon>lock_open</mat-icon>
+        Abrir turno
+      </button>
+    }
+
+    @if (turnoCerrado(); as c) {
+      <div class="resumen-cierre">
+        <h3>Resumen del cierre #{{ c.id }}</h3>
+        <p>Efectivo esperado: ${{ c.efectivoEsperado?.toFixed(2) }}</p>
+        <p>Efectivo contado: ${{ c.efectivo_contado?.toFixed(2) }}</p>
+        <p [class.pos-alerta]="(c.diferencia_arqueo || 0) < 0">
+          Diferencia: ${{ c.diferencia_arqueo?.toFixed(2) }}
+          {{ (c.diferencia_arqueo || 0) < 0 ? '(FALTANTE)' : (c.diferencia_arqueo || 0) > 0 ? '(SOBRANTE)' : '' }}
+        </p>
+        <a mat-button color="primary" [routerLink]="['/reportes']">Ver reporte completo</a>
+      </div>
+    }
+  </mat-card>
+</div>

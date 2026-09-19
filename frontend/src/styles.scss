@@ -1,0 +1,127 @@
+// Tema personalizado de Angular Material para el sistema POS.
+// Paleta basada en los valores exactos del template "Stocker" (ver prompt, sección 7):
+// primario #00D084, secundario oscuro #17303B, fondo claro #F8F8F8,
+// fondo/texto oscuro #111111, texto de cuerpo #787878, alerta #FF5722.
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+@function pos-generate-palette($color) {
+  @return (
+    50: mix(white, $color, 90%),
+    100: mix(white, $color, 80%),
+    200: mix(white, $color, 65%),
+    300: mix(white, $color, 45%),
+    400: mix(white, $color, 25%),
+    500: $color,
+    600: mix(black, $color, 8%),
+    700: mix(black, $color, 18%),
+    800: mix(black, $color, 28%),
+    900: mix(black, $color, 42%),
+    A100: mix(white, $color, 60%),
+    A200: mix(white, $color, 40%),
+    A400: mix(black, $color, 5%),
+    A700: mix(black, $color, 15%),
+    contrast: (
+      50: rgba(black, 0.87),
+      100: rgba(black, 0.87),
+      200: rgba(black, 0.87),
+      300: rgba(black, 0.87),
+      400: rgba(black, 0.87),
+      500: white,
+      600: white,
+      700: white,
+      800: white,
+      900: white,
+      A100: rgba(black, 0.87),
+      A200: rgba(black, 0.87),
+      A400: white,
+      A700: white,
+    ),
+  );
+}
+
+$pos-primary-palette: pos-generate-palette(#00d084);
+$pos-warn-palette: pos-generate-palette(#ff5722);
+
+$pos-primary: mat.m2-define-palette($pos-primary-palette, 500, 100, 700);
+$pos-warn: mat.m2-define-palette($pos-warn-palette, 500, 100, 700);
+
+$pos-theme: mat.m2-define-light-theme(
+  (
+    color: (
+      primary: $pos-primary,
+      accent: $pos-primary,
+      warn: $pos-warn,
+    ),
+    typography: mat.m2-define-typography-config(
+      $font-family: 'Inter, Roboto, "Helvetica Neue", sans-serif',
+    ),
+    density: 0,
+  )
+);
+
+:root {
+  @include mat.all-component-themes($pos-theme);
+
+  --pos-primary: #00d084;
+  --pos-secondary-dark: #17303b;
+  --pos-bg-light: #f8f8f8;
+  --pos-bg-dark: #111111;
+  --pos-text-body: #787878;
+  --pos-alert: #ff5722;
+  --pos-radius: 10px;
+  --pos-radius-pill: 30px;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
+  background: var(--pos-bg-light);
+  color: var(--pos-bg-dark);
+}
+
+.mat-mdc-card {
+  border-radius: var(--pos-radius) !important;
+}
+
+.mat-mdc-raised-button,
+.mat-mdc-unelevated-button {
+  border-radius: var(--pos-radius) !important;
+}
+
+.pos-boton-pill {
+  border-radius: var(--pos-radius-pill) !important;
+}
+
+.pos-toolbar-oscuro {
+  background: var(--pos-secondary-dark) !important;
+  color: #ffffff !important;
+}
+
+.pos-sidenav-oscuro {
+  background: var(--pos-secondary-dark) !important;
+  color: #ffffff !important;
+}
+
+.pos-texto-cuerpo {
+  color: var(--pos-text-body);
+}
+
+.pos-alerta {
+  color: var(--pos-alert) !important;
+}
+
+.pos-badge-alerta {
+  background: var(--pos-alert);
+  color: #ffffff;
+  border-radius: 100%;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}

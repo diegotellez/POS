@@ -1,0 +1,58 @@
+<mat-card>
+  <h2>Usuarios</h2>
+
+  <table mat-table [dataSource]="usuarios()" class="tabla-usuarios">
+    <ng-container matColumnDef="nombre_usuario">
+      <th mat-header-cell *matHeaderCellDef>Usuario</th>
+      <td mat-cell *matCellDef="let u">{{ u.nombre_usuario }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="rol">
+      <th mat-header-cell *matHeaderCellDef>Rol</th>
+      <td mat-cell *matCellDef="let u">{{ u.rol }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef>Activo</th>
+      <td mat-cell *matCellDef="let u">
+        <mat-slide-toggle
+          [checked]="!!u.activo"
+          (change)="cambiarEstado(u, $event.checked)"
+        ></mat-slide-toggle>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+  </table>
+
+  <h3>Nuevo usuario</h3>
+  <div class="form-usuario">
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre de usuario</mat-label>
+      <input matInput [(ngModel)]="nuevoNombre" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Contraseña</mat-label>
+      <input matInput type="password" [(ngModel)]="nuevaPassword" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Rol</mat-label>
+      <mat-select [(ngModel)]="nuevoRol">
+        <mat-option value="CAJERO">Cajero</mat-option>
+        <mat-option value="ADMINISTRADOR">Administrador</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="!nuevoNombre.trim() || !nuevaPassword"
+      (click)="crear()"
+    >
+      Crear usuario
+    </button>
+  </div>
+</mat-card>

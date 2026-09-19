@@ -1,0 +1,58 @@
+<mat-card>
+  <div class="encabezado">
+    <h2>Productos</h2>
+    <button mat-raised-button color="primary" (click)="nuevo()">
+      <mat-icon>add</mat-icon>
+      Nuevo producto
+    </button>
+  </div>
+
+  <mat-form-field appearance="outline" class="campo-filtro">
+    <mat-label>Filtrar por nombre o código</mat-label>
+    <input matInput [(ngModel)]="filtro" />
+  </mat-form-field>
+
+  <table mat-table [dataSource]="productosFiltrados" class="tabla-productos">
+    <ng-container matColumnDef="codigo">
+      <th mat-header-cell *matHeaderCellDef>Código</th>
+      <td mat-cell *matCellDef="let p">{{ p.codigo_barras || p.codigo_interno }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef>Nombre</th>
+      <td mat-cell *matCellDef="let p">{{ p.nombre }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="categoria_nombre">
+      <th mat-header-cell *matHeaderCellDef>Categoría</th>
+      <td mat-cell *matCellDef="let p">{{ p.categoria_nombre || '—' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="precio_venta">
+      <th mat-header-cell *matHeaderCellDef>Precio</th>
+      <td mat-cell *matCellDef="let p">${{ p.precio_venta.toFixed(2) }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="stock">
+      <th mat-header-cell *matHeaderCellDef>Stock</th>
+      <td mat-cell *matCellDef="let p" [class.pos-alerta]="p.stock <= p.stock_minimo">
+        {{ p.stock }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let p">
+        <button mat-icon-button (click)="editar(p)" aria-label="Editar">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button mat-icon-button (click)="eliminar(p)" aria-label="Desactivar">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnas"></tr>
+  </table>
+</mat-card>
