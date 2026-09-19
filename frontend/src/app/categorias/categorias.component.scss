@@ -15,3 +15,22 @@
 .subcategoria {
   padding-left: 24px;
 }
+
+.fila-edicion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+
+  &.subcategoria {
+    padding-left: 24px;
+  }
+}
+
+.campo-edit-nombre {
+  width: 200px;
+}
+
+.campo-edit-padre {
+  width: 220px;
+}

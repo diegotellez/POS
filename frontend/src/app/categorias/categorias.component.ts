@@ -34,6 +34,10 @@ export class CategoriasComponent implements OnInit {
   nombreNueva = '';
   padreNueva: number | null = null;
 
+  editandoId: number | null = null;
+  nombreEdit = '';
+  padreEdit: number | null = null;
+
   constructor(private categoriaService: CategoriaService, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
@@ -66,5 +70,29 @@ export class CategoriasComponent implements OnInit {
 
   eliminar(categoria: Categoria): void {
     this.categoriaService.eliminar(categoria.id).subscribe(() => this.cargar());
+  }
+
+  iniciarEdicion(categoria: Categoria): void {
+    this.editandoId = categoria.id;
+    this.nombreEdit = categoria.nombre;
+    this.padreEdit = categoria.categoria_padre_id;
+  }
+
+  cancelarEdicion(): void {
+    this.editandoId = null;
+    this.nombreEdit = '';
+    this.padreEdit = null;
+  }
+
+  guardarEdicion(categoria: Categoria): void {
+    if (!this.nombreEdit.trim()) return;
+    this.categoriaService.actualizar(categoria.id, this.nombreEdit.trim(), this.padreEdit).subscribe({
+      next: () => {
+        this.cancelarEdicion();
+        this.cargar();
+      },
+      error: (err) =>
+        this.snackBar.open(err.error?.error || 'Error al actualizar', 'Cerrar', { duration: 4000 }),
+    });
   }
 }

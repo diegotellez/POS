@@ -25,19 +25,82 @@
 
   <mat-nav-list>
     @for (padre of raiz; track padre.id) {
-      <div mat-subheader class="fila-categoria">
-        <span>{{ padre.nombre }}</span>
-        <button mat-icon-button (click)="eliminar(padre)">
-          <mat-icon>delete_outline</mat-icon>
-        </button>
-      </div>
-      @for (hija of hijas(padre.id); track hija.id) {
-        <div mat-list-item class="fila-categoria subcategoria">
-          <span>↳ {{ hija.nombre }}</span>
-          <button mat-icon-button (click)="eliminar(hija)">
-            <mat-icon>delete_outline</mat-icon>
+      @if (editandoId === padre.id) {
+        <div class="fila-edicion">
+          <mat-form-field appearance="outline" class="campo-edit-nombre">
+            <mat-label>Nombre</mat-label>
+            <input matInput [(ngModel)]="nombreEdit" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="campo-edit-padre">
+            <mat-label>Categoría padre</mat-label>
+            <mat-select [(ngModel)]="padreEdit">
+              <mat-option [value]="null">Ninguna (categoría raíz)</mat-option>
+              @for (c of categorias(); track c.id) {
+                @if (c.id !== padre.id) {
+                  <mat-option [value]="c.id">{{ c.nombre }}</mat-option>
+                }
+              }
+            </mat-select>
+          </mat-form-field>
+          <button mat-icon-button color="primary" [disabled]="!nombreEdit.trim()" (click)="guardarEdicion(padre)">
+            <mat-icon>check</mat-icon>
+          </button>
+          <button mat-icon-button (click)="cancelarEdicion()">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
+      } @else {
+        <div mat-subheader class="fila-categoria">
+          <span>{{ padre.nombre }}</span>
+          <span>
+            <button mat-icon-button (click)="iniciarEdicion(padre)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button (click)="eliminar(padre)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </span>
+        </div>
+      }
+
+      @for (hija of hijas(padre.id); track hija.id) {
+        @if (editandoId === hija.id) {
+          <div class="fila-edicion subcategoria">
+            <mat-form-field appearance="outline" class="campo-edit-nombre">
+              <mat-label>Nombre</mat-label>
+              <input matInput [(ngModel)]="nombreEdit" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="campo-edit-padre">
+              <mat-label>Categoría padre</mat-label>
+              <mat-select [(ngModel)]="padreEdit">
+                <mat-option [value]="null">Ninguna (categoría raíz)</mat-option>
+                @for (c of categorias(); track c.id) {
+                  @if (c.id !== hija.id) {
+                    <mat-option [value]="c.id">{{ c.nombre }}</mat-option>
+                  }
+                }
+              </mat-select>
+            </mat-form-field>
+            <button mat-icon-button color="primary" [disabled]="!nombreEdit.trim()" (click)="guardarEdicion(hija)">
+              <mat-icon>check</mat-icon>
+            </button>
+            <button mat-icon-button (click)="cancelarEdicion()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        } @else {
+          <div mat-list-item class="fila-categoria subcategoria">
+            <span>↳ {{ hija.nombre }}</span>
+            <span>
+              <button mat-icon-button (click)="iniciarEdicion(hija)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button (click)="eliminar(hija)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </span>
+          </div>
+        }
       }
     }
   </mat-nav-list>
