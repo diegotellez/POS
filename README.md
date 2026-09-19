@@ -25,7 +25,26 @@ internet para la operación diaria.
 backend/    API REST + servidor Express (sirve también el frontend compilado)
 frontend/   Aplicación Angular (SPA)
 scripts/    Utilidades (build.sh: compila el frontend y lo copia al backend)
+installer/  Instalador Windows (.exe) generado con NSIS
 ```
+
+## Instalador para Windows
+
+`installer/build-installer.sh` genera `installer/SistemaPOS-Setup.exe`: un
+instalador que copia el backend + frontend compilado a la carpeta que elija
+el usuario, crea accesos directos (Menú Inicio y Escritorio) y un
+desinstalador. Requiere `makensis` (paquete `nsis`) en la máquina donde se
+construye el instalador, y que el equipo donde se **instale** el sistema
+tenga Node.js (LTS) — igual que el resto de esta app.
+
+```bash
+sudo apt install nsis   # o el NSIS equivalente en Windows/Mac
+./installer/build-installer.sh
+```
+
+El instalador NO incluye la base de datos ni el `.env` de desarrollo: genera
+un `.env` con un `JWT_SECRET` nuevo en cada build, y crea la carpeta
+`app\data` vacía (la base SQLite se crea sola al primer arranque).
 
 ## Puesta en marcha
 

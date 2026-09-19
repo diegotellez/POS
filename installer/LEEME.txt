@@ -1,0 +1,58 @@
+Sistema POS - Punto de Venta local
+====================================
+
+Requisito: Node.js
+-------------------
+Este sistema necesita tener Node.js instalado en el equipo (una sola vez).
+Si no lo tienes, descarga la version LTS desde https://nodejs.org e
+instalala antes de continuar. No requiere configuracion adicional.
+
+Primer uso
+----------
+1. Ejecuta "Crear usuarios iniciales" (una sola vez) desde el acceso
+   directo del Menu Inicio, o el archivo crear-usuarios-iniciales.bat
+   en esta carpeta. Esto crea:
+
+     Usuario: admin    Contrasena: admin123   (Administrador)
+     Usuario: cajero   Contrasena: cajero123  (Cajero)
+
+   Cambia estas contrasenas desde el modulo "Usuarios" apenas ingreses.
+
+2. Ejecuta "Sistema POS" desde el Menu Inicio o el acceso directo del
+   escritorio. Se abrira una ventana negra (el servidor local) y a los
+   pocos segundos tu navegador se abrira solo en http://localhost:3000
+
+3. No cierres la ventana negra mientras uses el sistema: es el servidor.
+   Para apagar el sistema, cierra esa ventana.
+
+Todo funciona 100% local (sin necesidad de internet), excepto el boton
+de "Enviar por WhatsApp" del reporte de cierre de turno, que abre
+WhatsApp Web/Desktop y si requiere conexion.
+
+Respaldo de la base de datos
+-----------------------------
+Desde el modulo "Respaldo" dentro del sistema puedes copiar la base de
+datos a una memoria USB o a una carpeta sincronizada con Google Drive
+Desktop. La base de datos de trabajo vive en:
+
+    <carpeta de instalacion>\app\data\pos.db
+
+Configuracion opcional (WhatsApp / impresora termica)
+------------------------------------------------------
+Edita el archivo app\.env con el Bloc de notas para configurar:
+
+  WHATSAPP_NUMERO   Numero de WhatsApp (con codigo de pais, sin +)
+                    al que se enviaran los reportes.
+  PRINTER_TYPE      Tipo de impresora termica (ver node-thermal-printer),
+  PRINTER_INTERFACE p.ej. tcp://192.168.1.50 o una impresora USB/serial.
+
+Si no configuras una impresora termica, el comprobante de venta se
+imprime igualmente: se abre como una pagina lista para imprimir desde
+el navegador con el dialogo de impresion de Windows.
+
+Desinstalar
+-----------
+Usa "Agregar o quitar programas" de Windows, o el acceso directo
+"Desinstalar Sistema POS" del Menu Inicio. La base de datos y los
+reportes NO se borran automaticamente; el desinstalador te preguntara
+si quieres conservarlos o eliminarlos.

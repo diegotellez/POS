@@ -9,6 +9,11 @@ backend/data/reportes/*.pdf
 backend/public/
 backend/.env
 
+
 # Frontend
 frontend/dist/
 frontend/.angular/
+
+# Instalador
+installer/staging/
+installer/*.exe
