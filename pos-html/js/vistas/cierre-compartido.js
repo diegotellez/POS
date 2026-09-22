@@ -30,7 +30,10 @@
       (r.turno.usuario_cierre ? ' · cerró ' + U.esc(r.turno.usuario_cierre) : '') + '</p>' +
       '<div class="cifra-principal"><span>Vendido</span><strong>' + $(r.totalVentas) + '</strong>' +
       '<small class="tenue">' + r.cantidadVentas + ' venta' + (r.cantidadVentas === 1 ? '' : 's') +
-      (r.cantidadAnuladas ? ' · ' + r.cantidadAnuladas + ' anulada' + (r.cantidadAnuladas === 1 ? '' : 's') : '') + '</small></div>' +
+      (r.cantidadAnuladas ? ' · ' + r.cantidadAnuladas + ' anulada' + (r.cantidadAnuladas === 1 ? '' : 's') : '') +
+      (r.cambios.cantidad ? ' · ' + r.cambios.cantidad + ' cambio' + (r.cambios.cantidad === 1 ? '' : 's') +
+        (r.cambios.saldoRetenido ? ' (saldo no devuelto ' + $(r.cambios.saldoRetenido) + ')' : '') +
+        (r.cambios.devuelto ? ' · devuelto ' + $(r.cambios.devuelto) : '') : '') + '</small></div>' +
 
       '<div class="secciones">' +
       '<div><h3>Formas de pago</h3>' + filas(r.porMetodoPago.map(function (m) {

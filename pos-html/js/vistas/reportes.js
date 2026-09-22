@@ -38,6 +38,11 @@
         '<div class="metrica"><span>Total vendido</span><strong>' + U.dinero(r.totalVentas) + '</strong></div>' +
         '<div class="metrica"><span>Cantidad de ventas</span><strong>' + r.cantidadVentas +
         (r.cantidadAnuladas ? ' <small class="tenue">(' + r.cantidadAnuladas + ' anuladas)</small>' : '') + '</strong></div>' +
+        (r.cambios.cantidad
+          ? '<div class="metrica"><span>Cambios de productos</span><strong>' + r.cambios.cantidad + '</strong>' +
+            '<small class="tenue">' + (r.cambios.saldoRetenido ? 'Saldo no devuelto: ' + U.dinero(r.cambios.saldoRetenido) : 'Sin saldo retenido') +
+            (r.cambios.devuelto ? ' · Devuelto: ' + U.dinero(r.cambios.devuelto) : '') + '</small></div>'
+          : '') +
         '<div class="metrica"><span>Diferencia de arqueo</span><strong class="' + (a.diferencia < 0 ? 'alerta' : '') + '">' +
         (a.diferencia !== null ? U.dinero(a.diferencia) : '—') + '</strong></div>' +
         '</div>' +

@@ -55,6 +55,12 @@ const OUT = process.argv[2];
   await ir('Historial de ventas'); await foto('u05-historial');
   await page.click('[data-anular]'); await page.fill('[name=motivo]', 'El cliente devolvió el producto'); await foto('u05b-anular');
   await page.click('.modal .boton-secundario');
+  // cambio de productos: devuelve 1 unidad y lleva un producto nuevo
+  await page.click('[data-cambiar]');
+  await page.click('[data-menos="0"]');
+  await page.fill('#cb-buscar', '7705432319487'); await page.press('#cb-buscar', 'Enter');
+  await foto('u05c-cambio');
+  await page.click('.modal-acciones .boton-secundario');
   // productos
   await ir('Productos'); await page.fill('#filtro', 'dolex'); await foto('u09-productos');
   await page.click('#btn-nuevo'); await page.fill('.modal [name=nombre]', 'Dolex Niños 10+ x 24 tabletas'); await page.fill('.modal [name=codigoBarras]', '7709999000011'); await page.fill('.modal [name=precioVenta]', '14000'); await page.fill('.modal [name=stockMinimo]', '3');

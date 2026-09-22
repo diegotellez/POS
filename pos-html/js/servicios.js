@@ -668,7 +668,31 @@
       var p = DB.buscarPorId(db, 'productos', d.producto_id);
       d.producto_nombre = p ? p.nombre : '#' + d.producto_id;
     });
+    r.tipo = v.tipo || 'VENTA';
+    if (r.tipo === 'VENTA') r.cambios = cambiosDe(db, v.id).map(function (c) { return c.id; });
     return r;
+  }
+
+  function cambiosDe(db, ventaId) {
+    return db.ventas.filter(function (x) { return x.tipo === 'CAMBIO' && x.venta_origen_id === ventaId && x.estado === 'COMPLETADA'; });
+  }
+
+  function composicionDe(db, origen) {
+    var mapa = {};
+    var orden = [];
+    [origen].concat(cambiosDe(db, origen.id)).forEach(function (v) {
+      v.detalle.forEach(function (d) {
+        var l = mapa[d.producto_id];
+        if (!l) {
+          var p = DB.buscarPorId(db, 'productos', d.producto_id);
+          l = mapa[d.producto_id] = { productoId: d.producto_id, nombre: p ? p.nombre : '#' + d.producto_id, cantidad: 0, precio: d.precio_unitario };
+          orden.push(l);
+        }
+        l.cantidad += d.cantidad;
+        if (d.cantidad > 0) l.precio = d.precio_unitario;
+      });
+    });
+    return orden.filter(function (l) { return l.cantidad > 0; }).map(copia);
   }
 
   var Ventas = {
@@ -778,6 +802,126 @@
         .slice(0, filtros.limite || 200);
     },
 
+    // Productos que el cliente tiene hoy de una venta: la venta original más todos
+    // sus cambios. Devuelve [{ productoId, nombre, cantidad, precio }].
+    composicion: function (ventaId) {
+      var db = DB.datos();
+      var v = DB.buscarPorId(db, 'ventas', ventaId);
+      if (!v) falla('Venta no encontrada');
+      return composicionDe(db, v.tipo === 'CAMBIO' ? DB.buscarPorId(db, 'ventas', v.venta_origen_id) : v);
+    },
+
+    /*
+     * Cambio de productos de una venta ya cobrada. `datos.items` es la NUEVA
+     * composición completa [{ productoId, cantidad }]. Se registra como un
+     * movimiento aparte (tipo CAMBIO) en el turno abierto, enlazado a la venta:
+     *  - Diferencia a pagar  -> el cliente la paga (datos.pagos).
+     *  - Diferencia a favor  -> por norma NO se devuelve dinero: queda como saldo
+     *    retenido. Excepcionalmente un administrador puede devolverla
+     *    (datos.reembolso = { metodoPago, motivo }).
+     * Lo devuelto vuelve al inventario y lo nuevo sale de él.
+     */
+    cambiar: function (ventaId, datos) {
+      var usuario = Auth.usuario();
+      if (!usuario) falla('La sesión expiró. Vuelve a iniciar sesión.');
+      var idCambio = DB.tx(function (db) {
+        var origen = DB.buscarPorId(db, 'ventas', ventaId);
+        if (!origen) falla('Venta no encontrada');
+        if (origen.tipo === 'CAMBIO') origen = DB.buscarPorId(db, 'ventas', origen.venta_origen_id);
+        if (origen.estado !== 'COMPLETADA') falla('Solo se pueden cambiar productos de una venta completada');
+        var turno = db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; })[0];
+        if (!turno) falla('Abre un turno de caja para registrar el cambio');
+
+        var actual = {};
+        composicionDe(db, origen).forEach(function (l) { actual[l.productoId] = l; });
+        var nueva = {};
+        (datos.items || []).forEach(function (it) {
+          var cant = Number(it.cantidad);
+          if (!isFinite(cant) || cant < 0) falla('Cantidad inválida');
+          if (cant > 0) nueva[Number(it.productoId)] = (nueva[Number(it.productoId)] || 0) + cant;
+        });
+
+        var lineas = [];
+        var ids = {};
+        Object.keys(actual).concat(Object.keys(nueva)).forEach(function (k) { ids[k] = true; });
+        Object.keys(ids).forEach(function (k) {
+          var id = Number(k);
+          var antes = actual[id] ? actual[id].cantidad : 0;
+          var despues = nueva[id] || 0;
+          var delta = despues - antes;
+          if (!delta) return;
+          var p = DB.buscarPorId(db, 'productos', id);
+          if (!p) falla('Producto ' + id + ' no encontrado');
+          var precio;
+          if (delta < 0) {
+            precio = actual[id].precio; // se reconoce lo que el cliente pagó
+          } else {
+            if (!p.activo) falla(p.nombre + ' está inactivo');
+            if (!(p.precio_venta > 0)) falla(p.nombre + ' no tiene precio');
+            precio = p.precio_venta;
+          }
+          lineas.push({ producto: p, cantidad: delta, precio: precio, subtotal: U.redondear(delta * precio) });
+        });
+        if (!lineas.length) falla('No hay cambios: la venta quedó igual');
+
+        var diferencia = U.redondear(lineas.reduce(function (a, l) { return a + l.subtotal; }, 0));
+        var pagos = [];
+        var saldoRetenido = 0;
+        var motivoReembolso = null;
+        if (diferencia > EPSILON) {
+          pagos = (datos.pagos || []).filter(function (x) { return Number(x.monto) > 0; });
+          var pagado = U.redondear(pagos.reduce(function (a, x) { return a + Number(x.monto); }, 0));
+          if (Math.abs(pagado - diferencia) > EPSILON) {
+            falla('El cliente debe pagar la diferencia de ' + diferencia.toFixed(2) + ' (registrado: ' + pagado.toFixed(2) + ')');
+          }
+          pagos.forEach(function (x) { if (METODOS_PAGO.indexOf(x.metodoPago) === -1) falla('Método de pago inválido'); });
+          pagos = pagos.map(function (x) { return { metodo_pago: x.metodoPago, monto: U.redondear(x.monto) }; });
+        } else if (diferencia < -EPSILON) {
+          if (datos.reembolso) {
+            if (usuario.rol !== 'ADMINISTRADOR') falla('Solo un administrador puede autorizar una devolución de dinero');
+            motivoReembolso = String(datos.reembolso.motivo || '').trim();
+            if (!motivoReembolso) falla('Indica el motivo de la devolución de dinero');
+            if (METODOS_PAGO.indexOf(datos.reembolso.metodoPago) === -1) falla('Método de devolución inválido');
+            pagos = [{ metodo_pago: datos.reembolso.metodoPago, monto: diferencia }];
+          } else {
+            saldoRetenido = -diferencia; // política: no se devuelve dinero
+          }
+        }
+
+        var cambio = DB.insertar(db, 'ventas', {
+          tipo: 'CAMBIO',
+          venta_origen_id: origen.id,
+          turno_caja_id: turno.id,
+          usuario_id: usuario.id,
+          cliente_id: origen.cliente_id || null,
+          fecha_hora: U.ahora(),
+          total: U.redondear(diferencia + saldoRetenido),
+          diferencia: diferencia,
+          saldo_retenido: saldoRetenido,
+          motivo_reembolso: motivoReembolso,
+          nota: String(datos.nota || '').trim() || null,
+          estado: 'COMPLETADA',
+          motivo_anulacion: null,
+          fecha_hora_anulacion: null,
+          usuario_anulacion_id: null,
+          detalle: [],
+          pagos: pagos
+        });
+        lineas.forEach(function (l) {
+          cambio.detalle.push({ producto_id: l.producto.id, cantidad: l.cantidad, precio_unitario: l.precio, subtotal: l.subtotal });
+          l.producto.stock -= l.cantidad;
+          movimiento(db, l.producto.id, l.cantidad < 0 ? 'DEVOLUCION_CAMBIO' : 'SALIDA_POR_CAMBIO', -l.cantidad,
+            'Cambio #' + cambio.id + ' (venta #' + origen.id + ')');
+        });
+        auditar(db, usuario.id, motivoReembolso ? 'CambioConDevolucion' : 'CambioVenta',
+          'Cambio #' + cambio.id + ' de la venta #' + origen.id + '. Diferencia ' + diferencia +
+          (saldoRetenido ? ', saldo a favor no devuelto ' + saldoRetenido : '') +
+          (motivoReembolso ? ', devuelto en ' + datos.reembolso.metodoPago + '. Motivo: ' + motivoReembolso : ''));
+        return cambio.id;
+      });
+      return Ventas.obtener(idCambio);
+    },
+
     anular: function (id, motivo) {
       var usuarioId = usuarioActualId();
       motivo = String(motivo || '').trim();
@@ -786,6 +930,8 @@
         var v = DB.buscarPorId(db, 'ventas', id);
         if (!v) falla('Venta no encontrada');
         if (v.estado === 'ANULADA') falla('La venta ya está anulada');
+        if (v.tipo === 'CAMBIO') falla('Un cambio no se anula. Si hay que corregirlo, registre otro cambio sobre la venta #' + v.venta_origen_id + '.');
+        if (cambiosDe(db, v.id).length) falla('La venta tiene cambios de productos registrados. Use "Cambiar" para ajustar los productos.');
         v.estado = 'ANULADA';
         v.motivo_anulacion = motivo;
         v.fecha_hora_anulacion = U.ahora();
@@ -809,6 +955,7 @@
       if (!turno) falla('Turno no encontrado');
       var ventas = db.ventas.filter(function (v) { return v.turno_caja_id === turno.id; });
       var completadas = ventas.filter(function (v) { return v.estado === 'COMPLETADA'; });
+      var cambios = completadas.filter(function (v) { return v.tipo === 'CAMBIO'; });
 
       var porMetodo = {};
       var porUsuario = {};
@@ -819,7 +966,7 @@
         });
         var u = porUsuario[v.usuario_id] || (porUsuario[v.usuario_id] = { nombre_usuario: nombreUsuario(db, v.usuario_id), total: 0, cantidad_ventas: 0 });
         u.total += v.total;
-        u.cantidad_ventas += 1;
+        if (v.tipo !== 'CAMBIO') u.cantidad_ventas += 1;
         v.detalle.forEach(function (d) {
           var p = DB.buscarPorId(db, 'productos', d.producto_id);
           var r = porProducto[d.producto_id] || (porProducto[d.producto_id] = { nombre: p ? p.nombre : '#' + d.producto_id, cantidad: 0, total: 0 });
@@ -836,13 +983,19 @@
       return {
         turno: t,
         totalVentas: U.redondear(completadas.reduce(function (a, v) { return a + v.total; }, 0)),
-        cantidadVentas: completadas.length,
-        cantidadAnuladas: ventas.length - completadas.length,
+        cantidadVentas: completadas.length - cambios.length,
+        cantidadAnuladas: ventas.filter(function (v) { return v.estado === 'ANULADA'; }).length,
+        cambios: {
+          cantidad: cambios.length,
+          saldoRetenido: U.redondear(cambios.reduce(function (a, v) { return a + (v.saldo_retenido || 0); }, 0)),
+          devuelto: U.redondear(-cambios.reduce(function (a, v) { return a + (v.motivo_reembolso ? v.diferencia : 0); }, 0))
+        },
         porMetodoPago: METODOS_PAGO.filter(function (m) { return porMetodo[m]; }).map(function (m) {
           return { metodo_pago: m, total: U.redondear(porMetodo[m]) };
         }),
         porUsuario: Object.keys(porUsuario).map(function (k) { return porUsuario[k]; }),
         porProducto: Object.keys(porProducto).map(function (k) { return porProducto[k]; })
+          .filter(function (x) { return x.cantidad !== 0; })
           .sort(function (a, b) { return b.total - a.total; }),
         arqueo: {
           baseInicial: turno.base_inicial_efectivo,
@@ -868,6 +1021,11 @@
       r.porMetodoPago.forEach(function (m) {
         lineas.push('• ' + m.metodo_pago.charAt(0) + m.metodo_pago.slice(1).toLowerCase() + ': ' + U.dinero(m.total));
       });
+      if (r.cambios && r.cambios.cantidad) {
+        lineas.push('Cambios de productos: ' + r.cambios.cantidad +
+          (r.cambios.saldoRetenido ? ' (saldo no devuelto ' + U.dinero(r.cambios.saldoRetenido) + ')' : '') +
+          (r.cambios.devuelto ? ' · Dinero devuelto: ' + U.dinero(r.cambios.devuelto) : ''));
+      }
       lineas.push('');
       if (a.efectivoContado !== null) {
         lineas.push('Caja: esperado ' + U.dinero(a.efectivoEsperado) + ', contado ' + U.dinero(a.efectivoContado));
@@ -922,7 +1080,8 @@
       mp: r.porMetodoPago.map(function (x) { return [x.metodo_pago, x.total]; }),
       pu: r.porUsuario.map(function (x) { return [x.nombre_usuario, x.total, x.cantidad_ventas]; }),
       pr: r.porProducto.map(function (x) { return [x.nombre, x.cantidad, x.total]; }),
-      ar: [a.baseInicial, a.efectivoVentas, a.efectivoEsperado, a.efectivoContado, a.diferencia]
+      ar: [a.baseInicial, a.efectivoVentas, a.efectivoEsperado, a.efectivoContado, a.diferencia],
+      cb: r.cambios ? [r.cambios.cantidad, r.cambios.saldoRetenido, r.cambios.devuelto] : [0, 0, 0]
     }));
   }
 
@@ -937,7 +1096,8 @@
       porMetodoPago: d.mp.map(function (x) { return { metodo_pago: x[0], total: x[1] }; }),
       porUsuario: d.pu.map(function (x) { return { nombre_usuario: x[0], total: x[1], cantidad_ventas: x[2] }; }),
       porProducto: d.pr.map(function (x) { return { nombre: x[0], cantidad: x[1], total: x[2] }; }),
-      arqueo: { baseInicial: d.ar[0], efectivoVentas: d.ar[1], efectivoEsperado: d.ar[2], efectivoContado: d.ar[3], diferencia: d.ar[4] }
+      arqueo: { baseInicial: d.ar[0], efectivoVentas: d.ar[1], efectivoEsperado: d.ar[2], efectivoContado: d.ar[3], diferencia: d.ar[4] },
+      cambios: d.cb ? { cantidad: d.cb[0], saldoRetenido: d.cb[1], devuelto: d.cb[2] } : { cantidad: 0, saldoRetenido: 0, devuelto: 0 }
     };
   }
 
@@ -1063,8 +1223,14 @@
     ticketHTML: function (venta) {
       var cfg = DB.config();
       var ancho = cfg.anchoTicket || 80;
+      var esCambio = venta.tipo === 'CAMBIO';
       var filas = venta.detalle.map(function (d) {
-        return '<tr><td>' + U.esc(d.cantidad) + ' x ' + U.esc(d.producto_nombre) +
+        if (esCambio && d.cantidad < 0) {
+          return '<tr><td>DEVUELVE ' + U.esc(-d.cantidad) + ' x ' + U.esc(d.producto_nombre) +
+            '<br><small>' + U.dinero(d.precio_unitario) + ' c/u</small></td>' +
+            '<td class="der">' + U.dinero(d.subtotal) + '</td></tr>';
+        }
+        return '<tr><td>' + (esCambio ? 'LLEVA ' : '') + U.esc(d.cantidad) + ' x ' + U.esc(d.producto_nombre) +
           '<br><small>' + U.dinero(d.precio_unitario) + ' c/u</small></td>' +
           '<td class="der">' + U.dinero(d.subtotal) + '</td></tr>';
       }).join('');
@@ -1085,11 +1251,17 @@
         (venta.estado === 'ANULADA' ? '.anulada{font-weight:bold;text-align:center;border:2px solid #111;padding:4px;margin:6px 0}' : '') +
         '</style></head><body>' +
         encabezadoNegocio(cfg) +
-        '<hr><div>Venta #' + venta.id + '</div><div>' + U.esc(venta.fecha_hora) + '</div>' +
+        '<hr>' + (esCambio
+          ? '<div class="centro"><b>CAMBIO DE PRODUCTOS</b></div><div>Cambio #' + venta.id + ' de la venta #' + venta.venta_origen_id + '</div>'
+          : '<div>Venta #' + venta.id + '</div>') + '<div>' + U.esc(venta.fecha_hora) + '</div>' +
         '<div>Atendió: ' + U.esc(venta.nombre_usuario) + '</div>' + cliente +
         (venta.estado === 'ANULADA' ? '<div class="anulada">VENTA ANULADA</div>' : '') +
         '<hr><table>' + filas + '</table><hr>' +
-        '<div class="fila total"><span>TOTAL</span><span>' + U.dinero(venta.total) + '</span></div><hr>' +
+        (esCambio
+          ? '<div class="fila total"><span>DIFERENCIA</span><span>' + U.dinero(venta.diferencia) + '</span></div>' +
+            (venta.saldo_retenido ? '<div>Saldo a favor no reembolsable: ' + U.dinero(venta.saldo_retenido) + '</div><div><small>Política: no se devuelve dinero en cambios.</small></div>' : '') +
+            (venta.motivo_reembolso ? '<div>Devolución autorizada: ' + U.esc(venta.motivo_reembolso) + '</div>' : '') + '<hr>'
+          : '<div class="fila total"><span>TOTAL</span><span>' + U.dinero(venta.total) + '</span></div><hr>') +
         pagos + '<hr>' +
         '<div class="centro">' + U.esc(cfg.mensajeTicket) + '</div>' +
         '</body></html>';
@@ -1113,7 +1285,10 @@
         'Cierre: ' + U.esc(r.turno.fecha_hora_cierre || 'En curso') + (r.turno.usuario_cierre ? ' (' + U.esc(r.turno.usuario_cierre) + ')' : '') + '</p>' +
         '<h2>Resumen de ventas</h2>' +
         '<p>Total vendido: <strong>' + U.dinero(r.totalVentas) + '</strong><br>Cantidad de ventas: ' + r.cantidadVentas +
-        (r.cantidadAnuladas ? '<br>Ventas anuladas: ' + r.cantidadAnuladas : '') + '</p>' +
+        (r.cantidadAnuladas ? '<br>Ventas anuladas: ' + r.cantidadAnuladas : '') +
+        (r.cambios.cantidad ? '<br>Cambios de productos: ' + r.cambios.cantidad +
+          (r.cambios.saldoRetenido ? ' · saldo a favor no devuelto: ' + U.dinero(r.cambios.saldoRetenido) : '') +
+          (r.cambios.devuelto ? ' · dinero devuelto: ' + U.dinero(r.cambios.devuelto) : '') : '') + '</p>' +
         '<h2>Desglose por método de pago</h2>' +
         lista(r.porMetodoPago, function (m) { return '<li>' + U.esc(m.metodo_pago) + ': ' + U.dinero(m.total) + '</li>'; }) +
         '<h2>Desglose por usuario</h2>' +

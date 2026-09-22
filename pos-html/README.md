@@ -67,6 +67,13 @@ Son las mismas de la versión Angular + Express:
 - **Ticket** imprimible de 80 mm o 58 mm desde el diálogo de impresión del navegador.
 - **Historial de ventas**: filtros por turno, estado y fechas; detalle,
   reimpresión y anulación con motivo (el stock se devuelve al inventario).
+- **Cambios de productos**: botón "Cambiar" en el historial para editar lo que
+  el cliente se lleva de una venta (devuelve unos productos, lleva otros). Si
+  lleva más valor paga la diferencia; si lleva menos, por norma **no se
+  devuelve dinero** (queda como saldo no devuelto). Solo un administrador puede
+  autorizar una devolución excepcional, con motivo. El cambio se registra en el
+  turno del día, ajusta el inventario, tiene su comprobante y aparece en el
+  cierre y en Auditoría.
 - **Turno de caja**: apertura con base inicial y cierre con arqueo
   (efectivo esperado contra contado, marcando faltante o sobrante). El resumen
   del cierre lista **todos** los productos vendidos. Si hay un número de

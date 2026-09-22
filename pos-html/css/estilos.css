@@ -397,6 +397,17 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .fila-guardada td { background: var(--exito-fondo); }
 .enlace-nuevo { align-self: flex-start; margin-top: 2px; }
 .columna-productos > .enlace-nuevo { margin: -4px 0 8px; }
+.etiqueta-cambio { background: var(--suave); color: var(--enfasis); }
+.fila-devuelve td { background: var(--alerta-fondo); }
+.fila-lleva td { background: var(--exito-fondo); }
+.cb-resultados { max-height: 180px; margin-bottom: 10px; }
+.cb-resumen { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 10px; }
+.cb-resumen > div { flex: 1 1 160px; background: var(--suave); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; }
+.cb-resumen span { font-size: 12.5px; color: var(--texto-cuerpo); }
+.cb-resumen strong { font-size: 18px; color: var(--enfasis); font-variant-numeric: tabular-nums; }
+.cb-metodo { margin: 0 0 0 auto; min-width: 160px; }
+.cb-favor { flex-direction: column; align-items: stretch; }
+.cb-favor .check { margin: 4px 0 0; }
 .sin-precio { font-size: 12.5px; font-weight: 600; color: var(--alerta); white-space: nowrap; }
 .vista-previa { display: block; width: 100%; height: 60vh; border: 1px solid var(--borde); border-radius: 8px; background: #fff; margin: 0 auto 12px; }
 .modal-acciones { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px 18px; flex-wrap: wrap; }

@@ -111,16 +111,35 @@ lado.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP'), ('LEFTPADDING', (
 h += [lado]
 
 # ------------------------------------------------------------------ 5
-h += [PageBreak(), h1('5. Historial de ventas y anulaciones')]
+h += [PageBreak(), h1('5. Historial de ventas, cambios y anulaciones')]
 h += [p('En <b>Historial de ventas</b> se consultan las ventas del turno actual o de cualquier turno anterior.')]
 h += [viñetas([
     '<b>Filtros</b>: turno, estado (completada / anulada) y rango de fechas.',
     '<b>Ver detalle</b> (icono de documento): productos, precios y pagos de la venta.',
     '<b>Reimprimir</b> (icono de impresora): vuelve a imprimir el ticket.',
-    '<b>Anular</b>: cancela la venta. Pide el <b>motivo</b>, devuelve los productos al inventario y queda registrado en Auditoría. '
-    'Las ventas anuladas no suman en el cierre.',
+    '<b>Cambiar</b>: registra un cambio de productos de esa venta (sección 5.1).',
+    '<b>Anular</b>: cancela la venta completa. Pide el <b>motivo</b>, devuelve los productos al inventario y queda registrado en Auditoría. '
+    'Las ventas anuladas no suman en el cierre. Una venta que ya tiene cambios no se anula: se ajusta con Cambiar.',
 ])]
 h += [figura(C + '/u05-historial.jpg', 'Figura 7. Historial de ventas del turno.', alto_max=8 * cm)]
+h += [h2('5.1 Cambiar productos de una venta')]
+h += [p('Cuando un cliente vuelve para cambiar productos, busque la venta en el Historial y pulse <b>Cambiar</b>. Se abre la lista de '
+        'lo que el cliente tiene hoy de esa venta (incluidos cambios anteriores).')]
+h += [pasos([
+    'Baje la cantidad de lo que el cliente <b>devuelve</b> (con el botón – o escribiendo la cantidad). La fila se marca "devuelve".',
+    'Agregue lo que <b>lleva a cambio</b> buscándolo o escaneándolo en <i>Agregar producto</i>. La fila se marca "lleva".',
+    'Revise la <b>diferencia</b> y registre el cambio. Si quiere, imprima el comprobante del cambio.',
+])]
+h += [figura(C + '/u05c-cambio.jpg', 'Figura 8. Cambio: devuelve un producto y lleva otro; el cliente paga la diferencia.', alto_max=11 * cm, recorte=(0.16, 0.08, 0.84, 0.96))]
+h += [tabla(['Diferencia', 'Qué hace el sistema'], [
+    ['El cliente lleva más valor', 'Cobra la diferencia con el método de pago elegido (efectivo, tarjeta o transferencia).'],
+    ['El cliente lleva menos valor', '<b>Norma: no se devuelve dinero.</b> La diferencia queda registrada como "saldo a favor no devuelto" y así lo dice el comprobante.'],
+    ['Caso excepcional', 'Un <b>administrador</b> puede marcar "devolver el dinero", indicando el método y el <b>motivo</b> (obligatorio). Queda en Auditoría.'],
+    ['Sin diferencia', 'Solo se ajusta el inventario.'],
+], [5, 11])]
+h += [p('El cambio queda registrado en el <b>turno abierto</b> (el del día en que se hace), no en el de la venta original, para que la caja '
+        'cuadre con el dinero real. Lo devuelto vuelve al inventario y lo nuevo sale de él. En el cierre y en el mensaje de WhatsApp '
+        'aparecen la cantidad de cambios, el saldo no devuelto y el dinero devuelto, si hubo.')]
 h += [caja('Atención', 'Anular una venta no se puede deshacer. Si se equivocó de producto antes de cobrar, corrija el ticket en '
            'lugar de cobrar y anular.', 'aviso')]
 
@@ -131,7 +150,7 @@ h += [pasos([
     'Entre a <b>Turno de caja</b>, escriba el <b>efectivo contado</b> y pulse <b>Cerrar turno</b>.',
     'Confirme. Después de cerrar ya no se pueden registrar ventas en ese turno.',
 ])]
-h += [figura(C + '/u07a-cerrar.jpg', 'Figura 8. Turno abierto: resumen del día y formulario de arqueo.', alto_max=8 * cm, recorte=(0.18, 0.07, 0.72, 0.6))]
+h += [figura(C + '/u07a-cerrar.jpg', 'Figura 9. Turno abierto: resumen del día y formulario de arqueo.', alto_max=8 * cm, recorte=(0.18, 0.07, 0.72, 0.6))]
 h += [h2('6.1 El arqueo')]
 h += [p('El sistema calcula el <b>efectivo esperado</b> = base inicial + ventas en efectivo del turno, y lo compara con lo contado:')]
 h += [tabla(['Resultado', 'Significado'], [
@@ -142,7 +161,7 @@ h += [tabla(['Resultado', 'Significado'], [
 h += [h2('6.2 Envío del cierre al dueño')]
 h += [p('Si el administrador configuró el número de WhatsApp, al cerrar se abre WhatsApp con un mensaje ya escrito. <b>Solo '
         'tiene que tocar Enviar.</b> Si WhatsApp no se abre, use el botón <b>Enviar resumen por WhatsApp</b> del resumen del cierre.')]
-h += [figura(C + '/u07c-resumen.jpg', 'Figura 9. Resumen del cierre: arqueo, todos los productos vendidos y envío por WhatsApp.', alto_max=13 * cm, recorte=(0.18, 0.0, 0.72, 1.0))]
+h += [figura(C + '/u07c-resumen.jpg', 'Figura 10. Resumen del cierre: arqueo, todos los productos vendidos y envío por WhatsApp.', alto_max=13 * cm, recorte=(0.18, 0.0, 0.72, 1.0))]
 h += [h2('6.3 Si cerró la caja por error')]
 h += [p('Avise al administrador: en <b>Turno de caja</b> verá <b>¿Cerraste la caja por error? &gt; Reabrir turno</b>. El turno '
         'vuelve a quedar abierto con sus ventas y se borra el arqueo. Solo se puede reabrir el último turno y solo si no se ha '
@@ -152,7 +171,7 @@ h += [p('Avise al administrador: en <b>Turno de caja</b> verá <b>¿Cerraste la 
 h += [PageBreak(), h1('7. Productos (administrador)')]
 h += [p('En <b>Productos</b> se ve todo el catálogo con código, categoría, precio, stock y stock mínimo. El stock en naranja '
         'indica que está en el mínimo o por debajo.')]
-h += [figura(C + '/u09-productos.jpg', 'Figura 10. Catálogo de productos filtrado.', alto_max=8 * cm)]
+h += [figura(C + '/u09-productos.jpg', 'Figura 11. Catálogo de productos filtrado.', alto_max=8 * cm)]
 h += [viñetas([
     '<b>Nuevo producto</b>: nombre (obligatorio), código de barras, descripción, categoría, precio, stock mínimo y stock inicial. '
     'El <b>código interno</b> se genera solo (2000xx).',
@@ -160,7 +179,7 @@ h += [viñetas([
     '<b>Desactivar</b> (papelera): el producto deja de aparecer en ventas, pero se conserva en el historial. Con <i>Mostrar inactivos</i> se puede reactivar.',
     '<b>Stock mínimo</b>: cuando el stock llega a ese número, el sistema avisa. Con 0 no se generan alertas.',
 ])]
-h += [figura(C + '/u10-producto-form.jpg', 'Figura 11. Formulario de producto.', alto_max=10 * cm, recorte=(0.3, 0.03, 0.7, 0.97))]
+h += [figura(C + '/u10-producto-form.jpg', 'Figura 12. Formulario de producto.', alto_max=10 * cm, recorte=(0.3, 0.03, 0.7, 0.97))]
 
 # ------------------------------------------------------------------ 8
 h += [PageBreak(), h1('8. Precios (administrador)')]
@@ -172,7 +191,7 @@ h += [pasos([
     'Escriba el precio y presione <b>Enter</b>: se guarda (la fila se pone verde) y el cursor pasa al siguiente producto.',
     'Para asociar el código de barras real, haga clic en la casilla <i>Escanear</i> del producto y páselo por el lector: el cursor salta a su precio.',
 ])]
-h += [figura(C + '/u11-precios.jpg', 'Figura 12. Carga rápida de precios.', alto_max=9 * cm)]
+h += [figura(C + '/u11-precios.jpg', 'Figura 13. Carga rápida de precios.', alto_max=9 * cm)]
 h += [h2('8.2 Cargar precios desde WhatsApp o texto')]
 h += [p('Si el proveedor o el dueño envía los precios por WhatsApp (texto o audio), el sistema los interpreta:')]
 h += [pasos([
@@ -191,14 +210,14 @@ h += [tabla(['Se puede escribir o dictar así', 'Precio que entiende'], [
 ], [10, 6])]
 h += [p('La presentación del producto (500 mg, x 10, 2+) no se confunde con el precio. Se pueden poner varios productos en '
         'un mismo mensaje, cada uno seguido de su precio.')]
-h += [figura(C + '/u12b-whatsapp-revision.jpg', 'Figura 13. Revisión de precios interpretados desde un mensaje.', alto_max=9.5 * cm, recorte=(0.15, 0.1, 0.85, 0.9))]
+h += [figura(C + '/u12b-whatsapp-revision.jpg', 'Figura 14. Revisión de precios interpretados desde un mensaje.', alto_max=9.5 * cm, recorte=(0.15, 0.1, 0.85, 0.9))]
 
 # ------------------------------------------------------------------ 9
 h += [PageBreak(), h1('9. Categorías (administrador)')]
 h += [p('Las categorías ordenan el catálogo y permiten filtrar en Precios. Pueden tener subcategorías (por ejemplo '
         'Medicamentos &gt; Analgésicos). Escriba el nombre, elija la categoría padre si es subcategoría y pulse <b>Agregar</b>. '
         'Con el lápiz se renombra o se cambia de padre; con la papelera se elimina (sus productos quedan sin categoría).')]
-h += [figura(C + '/u20-categorias.jpg', 'Figura 14. Árbol de categorías con cantidad de productos.', alto_max=9 * cm)]
+h += [figura(C + '/u20-categorias.jpg', 'Figura 15. Árbol de categorías con cantidad de productos.', alto_max=9 * cm)]
 
 # ------------------------------------------------------------------ 10
 h += [PageBreak(), h1('10. Inventario (administrador)')]
@@ -209,19 +228,19 @@ h += [pasos([
     'Escriba la <b>cantidad</b> recibida y una <b>referencia</b> (número de factura y proveedor).',
     'Pulse <b>Registrar entrada</b>. El stock se suma y queda en el historial de movimientos.',
 ])]
-h += [figura(C + '/u13-compras.jpg', 'Figura 15. Registro de una compra.', alto_max=6.5 * cm, recorte=(0.18, 0.07, 1.0, 0.5))]
+h += [figura(C + '/u13-compras.jpg', 'Figura 16. Registro de una compra.', alto_max=6.5 * cm, recorte=(0.18, 0.07, 1.0, 0.5))]
 h += [h2('10.2 Ajuste manual')]
 h += [p('Para corregir el stock después de un conteo físico, una merma o un vencimiento: elija el producto (se muestra su stock '
         'actual), escriba el <b>nuevo stock</b> real y el <b>motivo</b>. El ajuste queda en Auditoría.')]
 h += [h2('10.3 Historial de movimientos')]
 h += [p('Lista los últimos 500 movimientos: compras (Entrada), ventas, anulaciones y ajustes manuales, con fecha, cantidad y referencia.')]
-h += [figura(C + '/u13c-movimientos.jpg', 'Figura 16. Historial de movimientos de inventario.', alto_max=8 * cm)]
+h += [figura(C + '/u13c-movimientos.jpg', 'Figura 17. Historial de movimientos de inventario.', alto_max=8 * cm)]
 
 # ------------------------------------------------------------------ 11
 h += [PageBreak(), h1('11. Reportes (administrador)')]
 h += [p('En <b>Reportes</b> elija un turno para ver su reporte consolidado: total vendido, cantidad de ventas y anuladas, '
         'diferencia de arqueo, desglose por método de pago y por usuario, arqueo de caja y <b>todos los productos vendidos</b>.')]
-h += [figura(C + '/u14-reportes.jpg', 'Figura 17. Reporte consolidado del turno.', alto_max=13.5 * cm)]
+h += [figura(C + '/u14-reportes.jpg', 'Figura 18. Reporte consolidado del turno.', alto_max=13.5 * cm)]
 h += [tabla(['Botón', 'Qué hace'], [
     ['Imprimir / Guardar PDF', 'Abre el reporte para imprimir o guardarlo como PDF (en el diálogo de impresión elija "Guardar como PDF").'],
     ['Exportar ventas (CSV)', 'Descarga todas las líneas de venta del turno para abrir en Excel.'],
@@ -260,7 +279,7 @@ h += [Paragraph('<br/>'.join(lineas), E['mono'])]
 h += [p('Con solo leerlo sabe <b>cuánto se vendió</b>, cómo se pagó y si la caja cuadró. Al tocar <b>Ver detalle</b> se abre una '
         'página con el cierre completo: formas de pago, arqueo, ventas por cajero y todos los productos vendidos. No hace falta '
         'iniciar sesión, y funciona aunque la caja no tenga internet, porque los datos viajan dentro del enlace.')]
-h += [figura(C + '/u17-cierre-movil.jpg', 'Figura 18. Detalle del cierre visto en el celular del dueño.', alto_max=11.5 * cm)]
+h += [figura(C + '/u17-cierre-movil.jpg', 'Figura 19. Detalle del cierre visto en el celular del dueño.', alto_max=11.5 * cm)]
 h += [caja('Nota', 'El detalle es una foto del momento del cierre. Si después se reabre el turno o se anula una venta, se '
            'recibirá un cierre nuevo al volver a cerrar.', 'nota')]
 
@@ -280,6 +299,7 @@ faq = [
     ('Escaneo un producto y no pasa nada.', 'Verifique que el cursor esté en el buscador. Si aparece "No se encontraron productos", el código no está registrado: el administrador lo puede asignar en Precios o crear el producto.'),
     ('El producto dice "Sin precio".', 'El administrador debe asignarle precio en Precios.'),
     ('Me equivoqué en una venta ya cobrada.', 'Anúlela en Historial de ventas indicando el motivo y vuelva a hacer la venta correcta.'),
+    ('Un cliente quiere cambiar un producto.', 'Historial de ventas > Cambiar (sección 5.1). Por norma no se devuelve dinero; solo un administrador puede autorizarlo.'),
     ('Cerré la caja antes de tiempo.', 'El administrador puede reabrir el último turno (sección 6.3).'),
     ('No salió el ticket.', 'Permita las ventanas emergentes del navegador y reimprímalo desde Historial de ventas.'),
     ('No se abrió WhatsApp al cerrar.', 'Use el botón "Enviar resumen por WhatsApp" del resumen de cierre, o el de Reportes.'),

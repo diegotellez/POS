@@ -7,7 +7,9 @@
     ENTRADA: 'Entrada',
     SALIDA_POR_VENTA: 'Venta',
     AJUSTE_ANULACION: 'Anulación',
-    AJUSTE_MANUAL: 'Ajuste manual'
+    AJUSTE_MANUAL: 'Ajuste manual',
+    DEVOLUCION_CAMBIO: 'Devolución por cambio',
+    SALIDA_POR_CAMBIO: 'Salida por cambio'
   };
 
   function opcionesProductos() {
