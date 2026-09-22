@@ -145,7 +145,7 @@
 
   // ======================= Datos iniciales =======================
   // Catálogo de ejemplo de una droguería (precios de referencia en pesos colombianos).
-  var VERSION_CATALOGO = 'drogueria-3';
+  var VERSION_CATALOGO = 'drogueria-4';
   var CATEGORIAS_DEMO = [
     { clave: 'med', nombre: 'Medicamentos' },
     { clave: 'analg', nombre: 'Analgésicos y antiinflamatorios', padre: 'med' },
@@ -221,12 +221,19 @@
       ids[c.clave] = id;
     });
     var existentes = {};
-    db.productos.forEach(function (p) { existentes[normalizarNombre(p.nombre)] = true; });
+    var codigos = {};
+    db.productos.forEach(function (p) {
+      existentes[normalizarNombre(p.nombre)] = true;
+      if (p.codigo_barras) codigos[p.codigo_barras] = true;
+    });
     var agregados = 0;
     base.productos.forEach(function (fila) {
       if (existentes[normalizarNombre(fila[1])]) return;
+      // Si el código ya lo tiene otro producto (p. ej. uno creado a mano al escanearlo), no se duplica.
+      if (fila[2] && codigos[fila[2]]) return;
+      if (fila[2]) codigos[fila[2]] = true;
       DB.insertar(db, 'productos', {
-        codigo_barras: null,
+        codigo_barras: fila[2] || null,
         codigo_interno: generarCodigoInterno(db),
         nombre: fila[1],
         descripcion: null,

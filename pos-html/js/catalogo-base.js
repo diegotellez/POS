@@ -4,7 +4,7 @@
  * inventario rápido: solo falta poner el precio (pantalla "Precios") y, si se
  * quiere, escanear el código de barras real.
  *
- * Formato: [clave de categoría, nombre con presentación].
+ * Formato: [clave de categoría, nombre con presentación, código de barras opcional].
  * Los productos marcados "(Rx)" requieren fórmula médica para su venta.
  */
 (function (global) {
@@ -332,6 +332,16 @@
     // Bebidas y misceláneos
     ['varios', 'Agua mineral x 600 ml'],
     ['varios', 'Gatorade x 500 ml'],
+    // Nevera de bebidas (códigos leídos de la foto; los marcados "por confirmar"
+    // conviene verificarlos escaneando el producto).
+    ['varios', 'Gatorade rojo x 500 ml', '7702192422051'],
+    ['varios', 'Jugo Hit botella roja x 500 ml (sabor por confirmar)', '7707133052670'],
+    ['varios', 'Jugo Hit botella naranja x 500 ml (sabor por confirmar)', '7707133062471'],
+    ['varios', 'Jugo Hit Frutas Tropicales caja x 200 ml', '7707133025919'],
+    ['varios', 'Jugo Hit Mango caja x 200 ml'],
+    ['varios', 'Agua Cristal x 300 ml', '7702090073065'],
+    ['varios', 'Agua Cristal x 600 ml', '7702090022711'],
+    ['varios', 'Agua Cristal x 1 L'],
     ['varios', 'Suero oral sobre x 1'],
     ['varios', 'Bebida hidratante infantil x 500 ml'],
     ['varios', 'Galletas integrales x 6 paquetes'],
