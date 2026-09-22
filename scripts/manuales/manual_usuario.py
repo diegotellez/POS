@@ -164,7 +164,7 @@ h += [figura(C + '/u10-producto-form.jpg', 'Figura 11. Formulario de producto.',
 
 # ------------------------------------------------------------------ 8
 h += [PageBreak(), h1('8. Precios (administrador)')]
-h += [p('La pantalla <b>Precios</b> sirve para asignar precios rápido, en especial a los 256 productos del catálogo base que '
+h += [p('La pantalla <b>Precios</b> sirve para asignar precios rápido, en especial a los 280 productos del catálogo base que '
         'vienen sin precio. La barra superior muestra cuántos productos tienen precio.')]
 h += [h2('8.1 Carga rápida producto por producto')]
 h += [pasos([

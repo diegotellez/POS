@@ -18,7 +18,7 @@ h += [h2('1.1 Qué incluye')]
 h += [viñetas([
     'Punto de venta con lector de código de barras, pagos mixtos (efectivo, tarjeta, transferencia) y ticket imprimible.',
     'Turnos de caja con apertura, arqueo al cierre y envío del cierre al dueño por WhatsApp.',
-    'Catálogo de droguería precargado: 17 productos de ejemplo con precio y 256 productos habituales sin precio, en 22 categorías.',
+    'Catálogo de droguería precargado: 17 productos de ejemplo con precio y 280 productos habituales sin precio, en 23 categorías.',
     'Carga rápida de precios, incluso pegando mensajes o audios transcritos de WhatsApp.',
     'Inventario (compras, ajustes, movimientos), reportes por turno, usuarios con roles, auditoría y respaldo de datos.',
 ])]
@@ -143,7 +143,7 @@ h += [p('Conecte el lector, abra <b>Ventas</b>, haga clic en el buscador y escan
         'el ticket, está listo. Si solo se escribe el número sin agregarse, configure el lector para enviar <b>Enter</b> (sufijo '
         'CR) con el manual de su fabricante.')]
 h += [h2('4.6 Catálogo y precios')]
-h += [p('El catálogo base trae 256 productos habituales de droguería sin precio. Un producto sin precio no se puede vender, así '
+h += [p('El catálogo base trae 280 productos habituales de droguería sin precio. Un producto sin precio no se puede vender, así '
         'que antes de abrir la caja asigne precios en la pantalla <b>Precios</b> (vea el Manual del Usuario, sección Precios):')]
 h += [viñetas([
     'Escriba el precio y presione Enter para pasar al siguiente. La barra muestra el avance.',

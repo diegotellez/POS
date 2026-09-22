@@ -18,9 +18,9 @@ El primer arranque trae un catálogo de droguería:
 
 - **17 productos de ejemplo con precio** (en pesos colombianos) y stock, para
   probar ventas, alertas de stock bajo y reportes.
-- **Un catálogo base de 256 productos habituales sin precio** (`js/catalogo-base.js`),
-  en 22 categorías: medicamentos por grupo, vitaminas, cuidado personal, higiene
-  femenina, primeros auxilios, bebé, adulto mayor y misceláneos. Los que exigen
+- **Un catálogo base de 280 productos habituales sin precio** (`js/catalogo-base.js`),
+  en 23 categorías: medicamentos por grupo, vitaminas, cuidado personal, higiene
+  femenina, maquillaje y uñas, primeros auxilios, bebé, adulto mayor y misceláneos. Los que exigen
   fórmula médica están marcados "(Rx)". Un producto sin precio no se puede vender.
 
 ### Cargar precios rápido

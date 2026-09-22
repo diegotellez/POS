@@ -145,7 +145,7 @@
 
   // ======================= Datos iniciales =======================
   // Catálogo de ejemplo de una droguería (precios de referencia en pesos colombianos).
-  var VERSION_CATALOGO = 'drogueria-2';
+  var VERSION_CATALOGO = 'drogueria-3';
   var CATEGORIAS_DEMO = [
     { clave: 'med', nombre: 'Medicamentos' },
     { clave: 'analg', nombre: 'Analgésicos y antiinflamatorios', padre: 'med' },
