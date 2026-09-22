@@ -58,7 +58,13 @@ Son las mismas de la versión Angular + Express:
 - **Historial de ventas**: filtros por turno, estado y fechas; detalle,
   reimpresión y anulación con motivo (el stock se devuelve al inventario).
 - **Turno de caja**: apertura con base inicial y cierre con arqueo
-  (efectivo esperado contra contado, marcando faltante o sobrante).
+  (efectivo esperado contra contado, marcando faltante o sobrante). El resumen
+  del cierre lista **todos** los productos vendidos. Si hay un número de
+  WhatsApp configurado, al cerrar se abre WhatsApp con ese número y el resumen
+  ya escrito (solo falta tocar "Enviar"; si el navegador bloquea la ventana,
+  queda el botón "Enviar resumen por WhatsApp"). Un administrador puede
+  **reabrir el último turno** si se cerró por error: vuelve a quedar abierto
+  con sus ventas, se borra el arqueo y queda registrado en Auditoría.
 - **Productos y categorías** (con subcategorías). El código interno se genera solo.
 - **Inventario**: compras (entrada de mercancía) con enlace "Nuevo producto"
   para crear en el momento lo que llegó y no existía, ajustes manuales,

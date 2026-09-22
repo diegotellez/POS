@@ -326,6 +326,8 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .secciones ul { padding-left: 18px; margin: 0; }
 .campo-turno { max-width: 520px; }
 .acciones-reporte { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.bloque-reabrir { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.resumen-cierre .tabla { margin: 8px 0; background: var(--superficie); }
 .resumen-cierre { margin-top: 20px; padding: 14px; border-radius: var(--radio); background: var(--exito-fondo); border: 1px solid var(--exito-borde); }
 
 /* Pestañas */

@@ -613,6 +613,36 @@
       return copia(DB.datos().turnos).reverse();
     },
 
+    // Último turno si está cerrado y no hay otro abierto después: es el único que se puede reabrir.
+    ultimoCerrado: function () {
+      var turnos = DB.datos().turnos;
+      var ultimo = turnos[turnos.length - 1];
+      return ultimo && ultimo.estado === 'CERRADO' ? copia(ultimo) : null;
+    },
+
+    // Deshace un cierre hecho por error: el turno vuelve a quedar abierto con sus
+    // ventas, y se borra el arqueo. Queda registrado en auditoría.
+    reabrir: function (id) {
+      Auth.requerirAdmin();
+      var usuarioId = usuarioActualId();
+      return DB.tx(function (db) {
+        var t = DB.buscarPorId(db, 'turnos', id);
+        if (!t) falla('Turno no encontrado');
+        if (t.estado !== 'CERRADO') falla('El turno no está cerrado');
+        if (db.turnos[db.turnos.length - 1].id !== t.id) {
+          falla('Solo se puede reabrir el último turno. Después de este ya se abrió otro.');
+        }
+        auditar(db, usuarioId, 'ReaperturaTurno', 'Turno #' + t.id + ' reabierto. Cierre anulado: ' + t.fecha_hora_cierre +
+          ' por ' + nombreUsuario(db, t.usuario_cierre_id) + ', contado ' + t.efectivo_contado + ', diferencia ' + t.diferencia_arqueo);
+        t.estado = 'ABIERTO';
+        t.usuario_cierre_id = null;
+        t.fecha_hora_cierre = null;
+        t.efectivo_contado = null;
+        t.diferencia_arqueo = null;
+        return copia(t);
+      });
+    },
+
     efectivoEsperado: function (id) {
       var db = DB.datos();
       var t = DB.buscarPorId(db, 'turnos', id);
@@ -829,6 +859,11 @@
         ''
       ];
       r.porMetodoPago.forEach(function (m) { lineas.push(m.metodo_pago + ': ' + U.dinero(m.total)); });
+      if (r.porProducto.length) {
+        lineas.push('');
+        lineas.push('*Productos vendidos*');
+        r.porProducto.forEach(function (p) { lineas.push(p.cantidad + ' x ' + p.nombre + ': ' + U.dinero(p.total)); });
+      }
       lineas.push('');
       lineas.push('Efectivo esperado: ' + U.dinero(r.arqueo.efectivoEsperado));
       if (r.arqueo.efectivoContado !== null) {
@@ -836,6 +871,12 @@
         lineas.push('Diferencia: ' + U.dinero(r.arqueo.diferencia) + etiquetaDiferencia(r.arqueo.diferencia));
       }
       return lineas.join('\n');
+    },
+
+    // Enlace de WhatsApp al número configurado con el resumen ya escrito.
+    urlWhatsApp: function (r) {
+      var numero = DB.config().whatsapp || '';
+      return 'https://wa.me/' + numero + '?text=' + encodeURIComponent(Reportes.textoResumen(r));
     }
   };
 

@@ -51,10 +51,10 @@
         '<br>Efectivo esperado: ' + U.dinero(a.efectivoEsperado) +
         '<br>Efectivo contado: ' + (a.efectivoContado !== null ? U.dinero(a.efectivoContado) : '—') + '</p></div>' +
         '</div>' +
-        '<h3>Productos más vendidos</h3>' +
+        '<h3>Productos vendidos (' + r.porProducto.length + ')</h3>' +
         (r.porProducto.length
           ? '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Producto</th><th class="num">Cantidad</th><th class="num">Total</th></tr></thead><tbody>' +
-            r.porProducto.slice(0, 15).map(function (p) {
+            r.porProducto.map(function (p) {
               return '<tr><td>' + U.esc(p.nombre) + '</td><td class="num">' + p.cantidad + '</td><td class="num">' + U.dinero(p.total) + '</td></tr>';
             }).join('') + '</tbody></table></div>'
           : '<p class="tenue">Sin ventas en este turno.</p>') +
@@ -72,9 +72,8 @@
       });
       // Enlace real (no window.open) para que funcione también cuando se bloquean ventanas.
       var numero = DB.config().whatsapp;
-      var texto = encodeURIComponent(POS.Reportes.textoResumen(r));
       var btnWa = U.$('#btn-wa', cont);
-      btnWa.href = 'https://wa.me/' + (numero || '') + '?text=' + texto;
+      btnWa.href = POS.Reportes.urlWhatsApp(r);
       btnWa.addEventListener('click', function () {
         if (!numero) U.aviso('Tip: configura un número de WhatsApp por defecto en Respaldo y configuración.', '', 5000);
       });
