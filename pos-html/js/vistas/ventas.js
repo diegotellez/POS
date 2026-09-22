@@ -1,0 +1,332 @@
+/* Punto de venta: búsqueda/escaneo, carrito y cobro. */
+(function () {
+  'use strict';
+
+  var EPSILON = 0.01;
+  // El carrito sobrevive a cambios de vista mientras la pestaña siga abierta.
+  var carrito = [];
+
+  function totalCarrito() {
+    return U.redondear(carrito.reduce(function (a, i) { return a + i.precioUnitario * i.cantidad; }, 0));
+  }
+
+  function render(cont) {
+    var turno = POS.Turnos.actual();
+    cont.innerHTML =
+      '<div class="venta-layout">' +
+      '<section class="tarjeta columna-productos">' +
+      '<label class="campo campo-busqueda">' +
+      '<span>Buscar o escanear producto</span>' +
+      '<div class="con-icono">' + U.icono('buscar') +
+      '<input id="busqueda" placeholder="Nombre, código de barras o código interno" autocomplete="off"></div>' +
+      '</label>' +
+      (!turno
+        ? '<div class="aviso-inline">' + U.icono('alerta', 'alerta') +
+          '<span>No hay un turno de caja abierto.</span>' +
+          '<a class="boton boton-texto" href="#/turno">Abrir turno</a></div>'
+        : '<p class="tenue pequeno">Turno #' + turno.id + ' abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
+      '<div id="resultados" class="lista-resultados"></div>' +
+      '</section>' +
+      '<section class="tarjeta columna-carrito">' +
+      '<h2>Ticket</h2>' +
+      '<div id="carrito" class="lista-carrito"></div>' +
+      '<div class="total-carrito"><span>Total</span><span class="monto-total" id="total">' + U.dinero(0) + '</span></div>' +
+      '<div class="acciones-carrito">' +
+      '<button class="boton boton-secundario" id="btn-vaciar">Vaciar</button>' +
+      '<button class="boton boton-primario boton-pill" id="btn-cobrar">' + U.icono('ok') + ' Cobrar <kbd>F2</kbd></button>' +
+      '</div>' +
+      '</section>' +
+      '</div>';
+
+    var input = U.$('#busqueda', cont);
+    var resultados = U.$('#resultados', cont);
+    var listaActual = [];
+
+    function pintarResultados() {
+      var termino = input.value.trim();
+      listaActual = termino ? POS.Productos.buscar(termino) : [];
+      if (!termino) {
+        // Sin búsqueda: mostrar el catálogo activo para vender con clics.
+        listaActual = POS.Productos.listar({ soloActivos: true }).slice(0, 60);
+      }
+      if (!listaActual.length) {
+        resultados.innerHTML = '<p class="tenue vacio">No se encontraron productos.</p>';
+        return;
+      }
+      resultados.innerHTML = listaActual.map(function (p, i) {
+        var bajo = p.stock <= p.stock_minimo;
+        return '<button type="button" class="item-producto" data-i="' + i + '">' +
+          '<span class="item-info"><strong>' + U.esc(p.nombre) + '</strong>' +
+          '<small class="tenue">' + U.esc(p.codigo_barras || p.codigo_interno) + ' · ' +
+          '<span class="' + (bajo ? 'alerta' : '') + '">Stock: ' + p.stock + '</span></small></span>' +
+          '<span class="precio">' + U.dinero(p.precio_venta) + '</span></button>';
+      }).join('');
+    }
+
+    function pintarCarrito() {
+      var lista = U.$('#carrito', cont);
+      if (!carrito.length) {
+        lista.innerHTML = '<p class="tenue vacio">Agrega productos para iniciar la venta.</p>';
+      } else {
+        lista.innerHTML = carrito.map(function (item, i) {
+          var excede = item.cantidad > item.stockDisponible;
+          return '<div class="item-carrito">' +
+            '<div class="item-info"><div>' + U.esc(item.nombre) + '</div>' +
+            '<small class="tenue">' + U.dinero(item.precioUnitario) + ' c/u' +
+            (excede ? ' · <span class="alerta">stock disponible: ' + item.stockDisponible + '</span>' : '') + '</small></div>' +
+            '<div class="controles-cantidad">' +
+            '<button class="boton-icono" data-accion="menos" data-i="' + i + '" aria-label="Restar">' + U.icono('menos') + '</button>' +
+            '<input class="cantidad" type="number" min="1" step="1" value="' + item.cantidad + '" data-i="' + i + '" aria-label="Cantidad">' +
+            '<button class="boton-icono" data-accion="mas" data-i="' + i + '" aria-label="Sumar">' + U.icono('mas') + '</button>' +
+            '</div>' +
+            '<div class="subtotal">' + U.dinero(item.precioUnitario * item.cantidad) + '</div>' +
+            '<button class="boton-icono" data-accion="quitar" data-i="' + i + '" aria-label="Quitar">' + U.icono('borrar') + '</button>' +
+            '</div>';
+        }).join('');
+      }
+      U.$('#total', cont).textContent = U.dinero(totalCarrito());
+      U.$('#btn-cobrar', cont).disabled = !carrito.length;
+    }
+
+    function agregar(p) {
+      var existente = carrito.filter(function (i) { return i.productoId === p.id; })[0];
+      if (existente) existente.cantidad += 1;
+      else carrito.push({ productoId: p.id, nombre: p.nombre, precioUnitario: p.precio_venta, cantidad: 1, stockDisponible: p.stock });
+      pintarCarrito();
+      input.focus();
+    }
+
+    input.addEventListener('input', pintarResultados);
+
+    // El lector de código de barras USB emula teclado: escribe el código y
+    // termina con "Enter". Si coincide con un código exacto se agrega directo.
+    input.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.keyCode !== 13) return;
+      e.preventDefault();
+      var codigo = input.value.trim();
+      if (!codigo) return;
+      var p = POS.Productos.obtenerPorCodigo(codigo);
+      if (!p && listaActual.length === 1) p = listaActual[0];
+      if (p) {
+        agregar(p);
+        input.value = '';
+        pintarResultados();
+      } else {
+        U.aviso('No hay un producto con el código "' + codigo + '"', 'error');
+        input.select();
+      }
+    });
+
+    resultados.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('[data-i]') : null;
+      if (btn) agregar(listaActual[Number(btn.getAttribute('data-i'))]);
+    });
+
+    U.$('#carrito', cont).addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('[data-accion]') : null;
+      if (!btn) return;
+      var i = Number(btn.getAttribute('data-i'));
+      var accion = btn.getAttribute('data-accion');
+      if (accion === 'mas') carrito[i].cantidad += 1;
+      else if (accion === 'menos') carrito[i].cantidad = Math.max(1, carrito[i].cantidad - 1);
+      else if (accion === 'quitar') carrito.splice(i, 1);
+      pintarCarrito();
+    });
+
+    U.$('#carrito', cont).addEventListener('change', function (e) {
+      if (!e.target.classList.contains('cantidad')) return;
+      var i = Number(e.target.getAttribute('data-i'));
+      var n = Math.floor(Number(e.target.value));
+      carrito[i].cantidad = n > 0 ? n : 1;
+      pintarCarrito();
+    });
+
+    U.$('#btn-vaciar', cont).addEventListener('click', function () {
+      if (!carrito.length) return;
+      U.confirmar('¿Vaciar el ticket actual?', function () {
+        carrito = [];
+        pintarCarrito();
+      }, 'Vaciar');
+    });
+
+    function cobrar() {
+      if (!carrito.length) return;
+      var t = POS.Turnos.actual();
+      if (!t) {
+        U.aviso('No hay un turno de caja abierto. Ábrelo antes de vender.', 'error', 4000);
+        return;
+      }
+      abrirDialogoPago(t, totalCarrito(), function () {
+        pintarCarrito();
+        pintarResultados();
+        input.focus();
+      });
+    }
+    U.$('#btn-cobrar', cont).addEventListener('click', cobrar);
+
+    function onTecla(e) {
+      if ((e.key === 'F2' || e.keyCode === 113) && !document.querySelector('.modal-fondo')) {
+        e.preventDefault();
+        cobrar();
+      }
+    }
+    document.addEventListener('keydown', onTecla);
+    App.alSalir(function () { document.removeEventListener('keydown', onTecla); });
+
+    pintarResultados();
+    pintarCarrito();
+    input.focus();
+  }
+
+  function abrirDialogoPago(turno, total, alTerminar) {
+    var pagos = [{ metodoPago: 'EFECTIVO', monto: total }];
+    var recibido = '';
+
+    function totalPagado() {
+      return U.redondear(pagos.reduce(function (a, p) { return a + U.numero(p.monto); }, 0));
+    }
+
+    var cuerpo =
+      '<p class="total-venta">Total a pagar: <strong>' + U.dinero(total) + '</strong></p>' +
+      '<div id="pagos"></div>' +
+      '<button type="button" class="boton boton-texto" id="btn-otro-pago">' + U.icono('mas') + ' Agregar otro método de pago</button>' +
+      '<p id="estado-pago"></p>' +
+      '<div class="cambio" id="bloque-cambio">' +
+      '<label class="campo"><span>Efectivo recibido (para calcular cambio)</span><input type="number" min="0" step="any" id="recibido"></label>' +
+      '<p id="cambio" class="tenue"></p></div>' +
+      '<details class="cliente"><summary>Datos del cliente (opcional)</summary>' +
+      '<div class="fila-doble">' +
+      '<label class="campo"><span>Nombre</span><input id="cliente-nombre"></label>' +
+      '<label class="campo"><span>Documento</span><input id="cliente-doc"></label>' +
+      '</div></details>';
+
+    U.modal({
+      titulo: 'Registrar pago',
+      cuerpo: cuerpo,
+      botones: [
+        { texto: 'Cancelar', clase: 'boton-secundario' },
+        {
+          texto: 'Confirmar venta',
+          clase: 'boton-primario',
+          accion: function (cerrar, raiz) {
+            if (Math.abs(total - totalPagado()) > EPSILON) {
+              U.aviso('Los pagos no cuadran con el total.', 'error');
+              return;
+            }
+            var resultado = POS.Ventas.crear({
+              turnoCajaId: turno.id,
+              items: carrito.map(function (i) { return { productoId: i.productoId, cantidad: i.cantidad }; }),
+              pagos: pagos.filter(function (p) { return U.numero(p.monto) > 0; }).map(function (p) {
+                return { metodoPago: p.metodoPago, monto: U.numero(p.monto) };
+              }),
+              cliente: { nombre: U.$('#cliente-nombre', raiz).value, documento: U.$('#cliente-doc', raiz).value }
+            });
+            cerrar();
+            carrito = [];
+            U.aviso('Venta #' + resultado.venta.id + ' registrada', 'ok');
+            if (resultado.alertasStock.length) {
+              U.aviso('Stock bajo: ' + resultado.alertasStock.map(function (a) {
+                return a.nombre + (a.agotado ? ' (agotado)' : ' (' + a.stock + ')');
+              }).join(', '), 'alerta', 7000);
+            }
+            ofrecerTicket(resultado.venta);
+            alTerminar();
+          }
+        }
+      ],
+      alAbrir: function (raiz) {
+        var cont = U.$('#pagos', raiz);
+        var btnConfirmar = U.$('.boton-primario', raiz);
+
+        function actualizarEstado() {
+          var diferencia = U.redondear(total - totalPagado());
+          var cuadra = Math.abs(diferencia) <= EPSILON;
+          var estado = U.$('#estado-pago', raiz);
+          estado.className = cuadra ? 'ok' : 'alerta';
+          estado.textContent = cuadra ? 'Los pagos cuadran con el total.' : 'Diferencia: ' + U.dinero(diferencia);
+          btnConfirmar.disabled = !cuadra;
+
+          var efectivo = pagos.filter(function (p) { return p.metodoPago === 'EFECTIVO'; })
+            .reduce(function (a, p) { return a + U.numero(p.monto); }, 0);
+          U.$('#bloque-cambio', raiz).style.display = efectivo > 0 ? '' : 'none';
+          var rec = U.numero(recibido);
+          U.$('#cambio', raiz).innerHTML = recibido === ''
+            ? ''
+            : rec >= efectivo
+              ? 'Cambio a devolver: <strong>' + U.dinero(rec - efectivo) + '</strong>'
+              : '<span class="alerta">Faltan ' + U.dinero(efectivo - rec) + ' en efectivo</span>';
+        }
+
+        function pintar() {
+          cont.innerHTML = pagos.map(function (p, i) {
+            return '<div class="fila-pago">' +
+              '<label class="campo"><span>Método</span><select data-i="' + i + '" data-campo="metodo">' +
+              POS.Ventas.METODOS_PAGO.map(function (m) {
+                return '<option value="' + m + '"' + (m === p.metodoPago ? ' selected' : '') + '>' + m + '</option>';
+              }).join('') + '</select></label>' +
+              '<label class="campo"><span>Monto</span><input type="number" min="0" step="any" data-i="' + i + '" data-campo="monto" value="' + p.monto + '"></label>' +
+              (pagos.length > 1 ? '<button type="button" class="boton-icono" data-quitar="' + i + '" aria-label="Quitar pago">' + U.icono('cerrar') + '</button>' : '') +
+              '</div>';
+          }).join('');
+          actualizarEstado();
+        }
+
+        cont.addEventListener('input', function (e) {
+          var i = e.target.getAttribute('data-i');
+          if (i === null) return;
+          if (e.target.getAttribute('data-campo') === 'monto') pagos[i].monto = e.target.value;
+          else pagos[i].metodoPago = e.target.value;
+          actualizarEstado();
+        });
+        cont.addEventListener('change', function (e) {
+          var i = e.target.getAttribute('data-i');
+          if (i !== null && e.target.getAttribute('data-campo') === 'metodo') {
+            pagos[i].metodoPago = e.target.value;
+            actualizarEstado();
+          }
+        });
+        cont.addEventListener('click', function (e) {
+          var btn = e.target.closest ? e.target.closest('[data-quitar]') : null;
+          if (!btn) return;
+          pagos.splice(Number(btn.getAttribute('data-quitar')), 1);
+          pintar();
+        });
+        U.$('#btn-otro-pago', raiz).addEventListener('click', function () {
+          pagos.push({ metodoPago: 'TARJETA', monto: Math.max(U.redondear(total - totalPagado()), 0) });
+          pintar();
+        });
+        U.$('#recibido', raiz).addEventListener('input', function (e) {
+          recibido = e.target.value;
+          actualizarEstado();
+        });
+        raiz.addEventListener('keydown', function (e) {
+          if ((e.key === 'Enter' || e.keyCode === 13) && e.target.tagName === 'INPUT' && !btnConfirmar.disabled) {
+            e.preventDefault();
+            btnConfirmar.click();
+          }
+        });
+        pintar();
+      }
+    });
+  }
+
+  function ofrecerTicket(venta) {
+    U.modal({
+      titulo: 'Venta #' + venta.id + ' registrada',
+      cuerpo: '<p>Total: <strong>' + U.dinero(venta.total) + '</strong></p><p class="tenue">¿Deseas imprimir el comprobante?</p>',
+      botones: [
+        { texto: 'No imprimir', clase: 'boton-secundario' },
+        {
+          texto: 'Imprimir ticket',
+          clase: 'boton-primario',
+          accion: function (cerrar) {
+            cerrar();
+            U.imprimirHTML(POS.Documentos.ticketHTML(venta), 380);
+          }
+        }
+      ]
+    });
+  }
+
+  App.registrar('ventas', { titulo: 'Ventas', icono: 'venta', render: render });
+})();

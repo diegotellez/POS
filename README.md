@@ -19,9 +19,14 @@ internet para la operación diaria.
   desde el navegador (ancho fijo 58/80mm) como respaldo.
 - **Reportes**: PDF generado en el backend con `pdfkit`.
 
+> **¿Sin Node ni compilación?** La carpeta [`pos-html/`](pos-html/README.md)
+> tiene una versión en HTML, CSS y JS puro que se abre con doble clic en
+> `index.html` y guarda los datos en el navegador.
+
 ## Estructura
 
 ```
+pos-html/   Versión autónoma en HTML/CSS/JS (sin backend ni compilación)
 backend/    API REST + servidor Express (sirve también el frontend compilado)
 frontend/   Aplicación Angular (SPA)
 scripts/    Utilidades (build.sh: compila el frontend y lo copia al backend)
