@@ -37,6 +37,8 @@
       '</select></label>' +
       '<label class="campo"><span>WhatsApp para reportes</span><input name="whatsapp" value="' + U.esc(cfg.whatsapp) + '" placeholder="Ej. 573001234567"></label>' +
       '</div>' +
+      '<label class="campo"><span>Enlace de la app para ver cierres</span><input name="urlApp" value="' + U.esc(cfg.urlApp) + '" placeholder="https://..."></label>' +
+      '<p class="tenue pequeno">Va al final del mensaje de cierre. Quien lo abra ve el detalle de ese cierre sin iniciar sesión; deja vacío para no incluir enlace.</p>' +
       '<label class="campo"><span>Mensaje al pie del ticket</span><input name="mensajeTicket" value="' + U.esc(cfg.mensajeTicket) + '"></label>' +
       '<button class="boton boton-primario" type="submit">Guardar configuración</button>' +
       '</form>' +

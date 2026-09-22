@@ -20,6 +20,8 @@
     decimales: 2,
     anchoTicket: 80,
     whatsapp: '',
+    // Dirección donde el dueño abre el detalle de un cierre enviado por WhatsApp.
+    urlApp: 'https://claude.ai/artifact/8ZBPh1mwVLqgRbQRSP2zg6',
     mensajeTicket: '¡Gracias por su compra!'
   };
 

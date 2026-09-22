@@ -326,6 +326,18 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .secciones ul { padding-left: 18px; margin: 0; }
 .campo-turno { max-width: 520px; }
 .acciones-reporte { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+/* Detalle de cierre compartido (enlace de WhatsApp) */
+.app-publica { min-height: 100%; padding: 24px 16px; }
+.cierre-publico { max-width: 680px; margin: 0 auto; }
+.cierre-publico h1 { font-size: 24px; margin-bottom: 4px; }
+.eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--primario-oscuro); margin-bottom: 4px; }
+.cifra-principal { display: flex; flex-direction: column; gap: 2px; background: var(--suave); border-radius: var(--radio); padding: 16px 18px; margin: 16px 0 8px; }
+.cifra-principal span { font-size: 13px; color: var(--texto-cuerpo); }
+.cifra-principal strong { font-size: 34px; line-height: 1.1; color: var(--enfasis); font-variant-numeric: tabular-nums; }
+.pares { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.pares dt { color: var(--texto-cuerpo); }
+.pares dd { margin: 0; text-align: right; font-weight: 600; }
+.pie-publico { margin-top: 16px; }
 .bloque-reabrir { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--borde); }
 .resumen-cierre .tabla { margin: 8px 0; background: var(--superficie); }
 .resumen-cierre { margin-top: 20px; padding: 14px; border-radius: var(--radio); background: var(--exito-fondo); border: 1px solid var(--exito-borde); }

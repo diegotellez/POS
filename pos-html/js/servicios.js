@@ -847,31 +847,43 @@
       };
     },
 
+    // Mensaje corto para el dueño: lo vendido y el arqueo, más un enlace al detalle completo.
     textoResumen: function (r) {
       var cfg = DB.config();
+      var a = r.arqueo;
       var lineas = [
-        '*' + cfg.nombreNegocio + '* - Cierre de turno #' + r.turno.id,
-        'Apertura: ' + r.turno.fecha_hora_apertura,
-        'Cierre: ' + (r.turno.fecha_hora_cierre || 'En curso'),
+        '*' + cfg.nombreNegocio + '* — Cierre de caja #' + r.turno.id,
+        (r.turno.fecha_hora_cierre || 'En curso') + (r.turno.usuario_cierre ? ' · ' + r.turno.usuario_cierre : ''),
         '',
-        'Total vendido: ' + U.dinero(r.totalVentas),
-        'Ventas: ' + r.cantidadVentas + (r.cantidadAnuladas ? ' (anuladas: ' + r.cantidadAnuladas + ')' : ''),
-        ''
+        'Vendido: *' + U.dinero(r.totalVentas) + '* (' + r.cantidadVentas + ' venta' + (r.cantidadVentas === 1 ? '' : 's') +
+          (r.cantidadAnuladas ? ', ' + r.cantidadAnuladas + ' anulada' + (r.cantidadAnuladas === 1 ? '' : 's') : '') + ')'
       ];
-      r.porMetodoPago.forEach(function (m) { lineas.push(m.metodo_pago + ': ' + U.dinero(m.total)); });
-      if (r.porProducto.length) {
-        lineas.push('');
-        lineas.push('*Productos vendidos*');
-        r.porProducto.forEach(function (p) { lineas.push(p.cantidad + ' x ' + p.nombre + ': ' + U.dinero(p.total)); });
-      }
+      r.porMetodoPago.forEach(function (m) {
+        lineas.push('• ' + m.metodo_pago.charAt(0) + m.metodo_pago.slice(1).toLowerCase() + ': ' + U.dinero(m.total));
+      });
       lineas.push('');
-      lineas.push('Efectivo esperado: ' + U.dinero(r.arqueo.efectivoEsperado));
-      if (r.arqueo.efectivoContado !== null) {
-        lineas.push('Efectivo contado: ' + U.dinero(r.arqueo.efectivoContado));
-        lineas.push('Diferencia: ' + U.dinero(r.arqueo.diferencia) + etiquetaDiferencia(r.arqueo.diferencia));
+      if (a.efectivoContado !== null) {
+        lineas.push('Caja: esperado ' + U.dinero(a.efectivoEsperado) + ', contado ' + U.dinero(a.efectivoContado));
+        lineas.push(a.diferencia === 0 ? 'Cuadre exacto ✔' : 'Diferencia: ' + U.dinero(a.diferencia) + etiquetaDiferencia(a.diferencia));
+      } else {
+        lineas.push('Efectivo esperado en caja: ' + U.dinero(a.efectivoEsperado));
+      }
+      var enlace = Reportes.enlaceDetalle(r);
+      if (enlace) {
+        lineas.push('');
+        lineas.push('Ver detalle: ' + enlace);
       }
       return lineas.join('\n');
     },
+
+    // El enlace lleva el cierre codificado en el ancla (#cierre-...): la página lo
+    // muestra sin iniciar sesión y sin depender de los datos del equipo que lo abre.
+    enlaceDetalle: function (r) {
+      var base = DB.config().urlApp;
+      return base ? base + '#cierre-' + codificarCierre(r) : '';
+    },
+
+    decodificarCierre: decodificarCierre,
 
     // Enlace de WhatsApp al número configurado con el resumen ya escrito.
     urlWhatsApp: function (r) {
@@ -879,6 +891,48 @@
       return 'https://wa.me/' + numero + '?text=' + encodeURIComponent(Reportes.textoResumen(r));
     }
   };
+
+  // ---- Cierre compartible: JSON compacto en base64url (solo letras, dígitos, - y _) ----
+  function aBase64Url(texto) {
+    return btoa(unescape(encodeURIComponent(texto))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function deBase64Url(texto) {
+    var b = texto.replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    return decodeURIComponent(escape(atob(b)));
+  }
+
+  function codificarCierre(r) {
+    var cfg = DB.config();
+    var a = r.arqueo;
+    return aBase64Url(JSON.stringify({
+      v: 1,
+      n: cfg.nombreNegocio, m: cfg.moneda, dc: cfg.decimales,
+      t: r.turno.id, ap: r.turno.fecha_hora_apertura, ci: r.turno.fecha_hora_cierre,
+      ua: r.turno.usuario_apertura, uc: r.turno.usuario_cierre,
+      tv: r.totalVentas, cv: r.cantidadVentas, an: r.cantidadAnuladas,
+      mp: r.porMetodoPago.map(function (x) { return [x.metodo_pago, x.total]; }),
+      pu: r.porUsuario.map(function (x) { return [x.nombre_usuario, x.total, x.cantidad_ventas]; }),
+      pr: r.porProducto.map(function (x) { return [x.nombre, x.cantidad, x.total]; }),
+      ar: [a.baseInicial, a.efectivoVentas, a.efectivoEsperado, a.efectivoContado, a.diferencia]
+    }));
+  }
+
+  // Devuelve el cierre con la misma forma que Reportes.construir (más la moneda del negocio).
+  function decodificarCierre(token) {
+    var d = JSON.parse(deBase64Url(String(token || '')));
+    if (!d || d.v !== 1) throw new Error('Enlace de cierre no válido');
+    return {
+      negocio: d.n, moneda: d.m, decimales: d.dc,
+      turno: { id: d.t, fecha_hora_apertura: d.ap, fecha_hora_cierre: d.ci, usuario_apertura: d.ua, usuario_cierre: d.uc },
+      totalVentas: d.tv, cantidadVentas: d.cv, cantidadAnuladas: d.an,
+      porMetodoPago: d.mp.map(function (x) { return { metodo_pago: x[0], total: x[1] }; }),
+      porUsuario: d.pu.map(function (x) { return { nombre_usuario: x[0], total: x[1], cantidad_ventas: x[2] }; }),
+      porProducto: d.pr.map(function (x) { return { nombre: x[0], cantidad: x[1], total: x[2] }; }),
+      arqueo: { baseInicial: d.ar[0], efectivoVentas: d.ar[1], efectivoEsperado: d.ar[2], efectivoContado: d.ar[3], diferencia: d.ar[4] }
+    };
+  }
 
   function etiquetaDiferencia(d) {
     if (d === null || d === undefined) return '';
@@ -984,6 +1038,7 @@
         db.config.decimales = dec === 0 ? 0 : 2;
         db.config.anchoTicket = Number(datos.anchoTicket) === 58 ? 58 : 80;
         db.config.whatsapp = String(datos.whatsapp || '').replace(/[^\d]/g, '');
+        if (datos.urlApp !== undefined) db.config.urlApp = String(datos.urlApp || '').trim().replace(/#.*$/, '');
         db.config.mensajeTicket = String(datos.mensajeTicket || '');
         auditar(db, usuarioId, 'Configuracion', 'Configuración actualizada');
       });

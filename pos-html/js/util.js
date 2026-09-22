@@ -49,8 +49,9 @@
     return isFinite(n) ? n : 0;
   };
 
-  U.dinero = function (valor) {
-    var cfg = global.DB ? global.DB.config() : {};
+  // `formato` opcional ({ moneda, decimales }) para mostrar montos de otro negocio.
+  U.dinero = function (valor, formato) {
+    var cfg = formato || (global.DB ? global.DB.config() : {});
     var decimales = cfg.decimales !== undefined ? Number(cfg.decimales) : 2;
     var simbolo = cfg.moneda !== undefined ? cfg.moneda : '$';
     var n = U.numero(valor);

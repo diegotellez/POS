@@ -60,9 +60,14 @@ Son las mismas de la versión Angular + Express:
 - **Turno de caja**: apertura con base inicial y cierre con arqueo
   (efectivo esperado contra contado, marcando faltante o sobrante). El resumen
   del cierre lista **todos** los productos vendidos. Si hay un número de
-  WhatsApp configurado, al cerrar se abre WhatsApp con ese número y el resumen
-  ya escrito (solo falta tocar "Enviar"; si el navegador bloquea la ventana,
-  queda el botón "Enviar resumen por WhatsApp"). Un administrador puede
+  WhatsApp configurado, al cerrar se abre WhatsApp con ese número y un mensaje
+  corto ya escrito (lo vendido, formas de pago y cuadre de caja) con un enlace
+  **"Ver detalle"**: al abrirlo, el dueño ve el cierre completo (todos los
+  productos, arqueo, cajeros) sin iniciar sesión. El cierre va codificado
+  dentro del enlace, así que no depende de los datos del equipo que lo abre
+  ni de que la caja tenga internet. La dirección base se configura en
+  "Enlace de la app para ver cierres". Solo falta tocar "Enviar"; si el
+  navegador bloquea la ventana, queda el botón "Enviar resumen por WhatsApp". Un administrador puede
   **reabrir el último turno** si se cerró por error: vuelve a quedar abierto
   con sus ventas, se borra el arqueo y queda registrado en Auditoría.
 - **Productos y categorías** (con subcategorías). El código interno se genera solo.

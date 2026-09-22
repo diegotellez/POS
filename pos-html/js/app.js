@@ -141,6 +141,13 @@
     while (App.limpiezas.length) {
       try { App.limpiezas.pop()(); } catch (e) { /* ignorar */ }
     }
+    // Enlace de cierre enviado por WhatsApp: se muestra sin iniciar sesión.
+    var token = /^cierre-([A-Za-z0-9_-]+)/.exec(rutaCompleta());
+    if (token && App.cierreCompartido) {
+      document.title = 'Cierre de caja · POS';
+      App.cierreCompartido(document.getElementById('app'), token[1]);
+      return;
+    }
     var usuario = POS.Auth.usuario();
     if (!usuario) {
       renderLogin();
