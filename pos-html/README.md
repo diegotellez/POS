@@ -14,11 +14,30 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
 | admin   | admin123   | ADMINISTRADOR |
 | cajero  | cajero123  | CAJERO        |
 
-El primer arranque trae un catálogo de ejemplo de droguería: 17 productos en 9
-categorías (medicamentos con subcategorías, vitaminas, cuidado personal,
-primeros auxilios y bebé), con precios de referencia en pesos colombianos y
-algunos productos con stock bajo para ver las alertas. Edítalo o reemplázalo
-desde *Productos* e *Inventario*.
+El primer arranque trae un catálogo de droguería:
+
+- **17 productos de ejemplo con precio** (en pesos colombianos) y stock, para
+  probar ventas, alertas de stock bajo y reportes.
+- **Un catálogo base de 256 productos habituales sin precio** (`js/catalogo-base.js`),
+  en 22 categorías: medicamentos por grupo, vitaminas, cuidado personal, higiene
+  femenina, primeros auxilios, bebé, adulto mayor y misceláneos. Los que exigen
+  fórmula médica están marcados "(Rx)". Un producto sin precio no se puede vender.
+
+### Cargar precios rápido
+
+En **Precios** (solo administrador):
+
+- Escribe el precio y presiona Enter para pasar al siguiente producto. El filtro
+  "Solo sin precio" muestra lo que falta y la barra muestra el avance.
+- Para asignar el código de barras real, haz clic en su casilla y escanea: el
+  cursor salta al precio del mismo producto.
+- **Cargar desde WhatsApp o texto**: pega mensajes como
+  `Dolex niños 10+, 14 mil` o `Advil max a 8.500. Noxpirin 3500`. Entiende
+  "14 mil", "14.000", "14k", "14 lucas" y precios en palabras ("catorce mil
+  quinientos"), y no confunde la presentación (500 mg, x 10, 2+) con el precio.
+  Cada renglón se empareja con el catálogo y se puede revisar antes de guardar;
+  lo que no existe se crea como producto nuevo. Para un audio de WhatsApp: mantén
+  presionada la nota de voz, elige **Transcribir** y copia el texto.
 
 Si prefieres servirla desde un servidor web, sirve la carpeta como archivos
 estáticos (por ejemplo `python3 -m http.server` dentro de `pos-html/`).
@@ -81,6 +100,8 @@ css/estilos.css     estilos (misma paleta que la versión Angular)
 js/sha256.js        hash de contraseñas (JS puro)
 js/util.js          formato, íconos SVG, avisos y diálogos
 js/db.js            almacenamiento en localStorage con transacciones
+js/catalogo-base.js catálogo base de droguería (sin precios)
+js/precios-texto.js interpreta listas de precios en lenguaje natural (WhatsApp)
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
 js/vistas/*.js      una pantalla por archivo

@@ -47,19 +47,24 @@
       listaActual = termino ? POS.Productos.buscar(termino) : [];
       if (!termino) {
         // Sin búsqueda: mostrar el catálogo activo para vender con clics.
-        listaActual = POS.Productos.listar({ soloActivos: true }).slice(0, 60);
+        // Sin búsqueda: primero los que ya tienen precio.
+        listaActual = POS.Productos.listar({ soloActivos: true })
+          .filter(function (p) { return p.precio_venta > 0; })
+          .slice(0, 60);
       }
       if (!listaActual.length) {
         resultados.innerHTML = '<p class="tenue vacio">No se encontraron productos.</p>';
         return;
       }
       resultados.innerHTML = listaActual.map(function (p, i) {
-        var bajo = p.stock <= p.stock_minimo;
+        var bajo = POS.Productos.stockBajo(p);
         return '<button type="button" class="item-producto" data-i="' + i + '">' +
           '<span class="item-info"><strong>' + U.esc(p.nombre) + '</strong>' +
           '<small class="tenue">' + U.esc(p.codigo_barras || p.codigo_interno) + ' · ' +
           '<span class="' + (bajo ? 'alerta' : '') + '">Stock: ' + p.stock + '</span></small></span>' +
-          '<span class="precio">' + U.dinero(p.precio_venta) + '</span></button>';
+          (p.precio_venta > 0
+            ? '<span class="precio">' + U.dinero(p.precio_venta) + '</span>'
+            : '<span class="sin-precio">Sin precio</span>') + '</button>';
       }).join('');
     }
 
@@ -89,6 +94,11 @@
     }
 
     function agregar(p) {
+      if (!(p.precio_venta > 0)) {
+        U.aviso('"' + p.nombre + '" no tiene precio. Un administrador debe asignarlo en Precios.', 'error', 5000);
+        input.focus();
+        return;
+      }
       var existente = carrito.filter(function (i) { return i.productoId === p.id; })[0];
       if (existente) existente.cantidad += 1;
       else carrito.push({ productoId: p.id, nombre: p.nombre, precioUnitario: p.precio_venta, cantidad: 1, stockDisponible: p.stock });

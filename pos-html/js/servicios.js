@@ -145,7 +145,7 @@
 
   // ======================= Datos iniciales =======================
   // Catálogo de ejemplo de una droguería (precios de referencia en pesos colombianos).
-  var VERSION_CATALOGO = 'drogueria-1';
+  var VERSION_CATALOGO = 'drogueria-2';
   var CATEGORIAS_DEMO = [
     { clave: 'med', nombre: 'Medicamentos' },
     { clave: 'analg', nombre: 'Analgésicos y antiinflamatorios', padre: 'med' },
@@ -199,21 +199,59 @@
       });
       movimiento(db, p.id, 'ENTRADA', p.stock, 'Stock inicial');
     });
-    db.config.catalogoDemo = VERSION_CATALOGO;
+  }
+
+  function normalizarNombre(texto) {
+    return String(texto || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  // Agrega el catálogo base (sin precio) sin duplicar productos ni categorías existentes.
+  function agregarCatalogoBase(db) {
+    var base = global.CATALOGO_BASE;
+    if (!base) return 0;
+    var porNombre = {};
+    db.categorias.forEach(function (c) { porNombre[normalizarNombre(c.nombre)] = c.id; });
+    var ids = {};
+    base.categorias.forEach(function (c) {
+      var id = porNombre[normalizarNombre(c.nombre)];
+      if (!id) {
+        id = DB.insertar(db, 'categorias', { nombre: c.nombre, categoria_padre_id: c.padre ? ids[c.padre] : null }).id;
+        porNombre[normalizarNombre(c.nombre)] = id;
+      }
+      ids[c.clave] = id;
+    });
+    var existentes = {};
+    db.productos.forEach(function (p) { existentes[normalizarNombre(p.nombre)] = true; });
+    var agregados = 0;
+    base.productos.forEach(function (fila) {
+      if (existentes[normalizarNombre(fila[1])]) return;
+      DB.insertar(db, 'productos', {
+        codigo_barras: null,
+        codigo_interno: generarCodigoInterno(db),
+        nombre: fila[1],
+        descripcion: null,
+        categoria_id: ids[fila[0]] || null,
+        precio_venta: 0,
+        stock: 0,
+        stock_minimo: 0,
+        tasa_impuesto: null,
+        activo: 1
+      });
+      existentes[normalizarNombre(fila[1])] = true;
+      agregados++;
+    });
+    return agregados;
   }
 
   // Si la base aún tiene el catálogo de ejemplo anterior, lo cambia por el de droguería.
   // Sin ventas, se reemplaza por completo; con ventas, los productos viejos se
   // desactivan (para conservar el historial) y se agregan los nuevos.
   function migrarCatalogoDemo(db) {
-    if (db.config.catalogoDemo === VERSION_CATALOGO) return false;
+    if (db.config.catalogoDemo) return false; // ya tiene un catálogo de droguería
     var soloDemo = db.productos.length > 0 && db.productos.every(function (p) {
       return PRODUCTOS_DEMO_ANTERIOR.indexOf(p.nombre) !== -1;
     });
-    if (!soloDemo) {
-      db.config.catalogoDemo = VERSION_CATALOGO;
-      return true;
-    }
+    if (!soloDemo) return false;
     if (!db.ventas.length) {
       db.productos = [];
       db.movimientos = [];
@@ -230,13 +268,21 @@
   function sembrar() {
     if (DB.existe()) {
       var d = DB.datos();
-      if (d.config.catalogoDemo !== VERSION_CATALOGO) DB.tx(migrarCatalogoDemo);
+      if (d.config.catalogoDemo !== VERSION_CATALOGO) {
+        DB.tx(function (db) {
+          migrarCatalogoDemo(db);
+          agregarCatalogoBase(db);
+          db.config.catalogoDemo = VERSION_CATALOGO;
+        });
+      }
       return false;
     }
     DB.tx(function (db) {
       DB.insertar(db, 'usuarios', { nombre_usuario: 'admin', password_hash: hashPassword('admin123'), rol: 'ADMINISTRADOR', activo: 1 });
       DB.insertar(db, 'usuarios', { nombre_usuario: 'cajero', password_hash: hashPassword('cajero123'), rol: 'CAJERO', activo: 1 });
       cargarCatalogoDemo(db);
+      agregarCatalogoBase(db);
+      db.config.catalogoDemo = VERSION_CATALOGO;
       db.config.nombreNegocio = 'Mi Droguería';
       db.config.decimales = 0;
       db.config.primerUso = true;
@@ -316,6 +362,11 @@
     var texto = String(siguiente);
     while (texto.length < LONGITUD_CODIGO_INTERNO) texto = '0' + texto;
     return texto;
+  }
+
+  // Solo alerta si el producto tiene un stock mínimo configurado.
+  function stockBajo(p) {
+    return p.stock_minimo > 0 && p.stock <= p.stock_minimo;
   }
 
   function codigoEnUso(db, codigo, exceptoId) {
@@ -428,12 +479,14 @@
     },
 
     // Igual que en el backend: "eliminar" desactiva, para no romper el historial de ventas.
+    stockBajo: stockBajo,
+
     desactivar: function (id) {
       return Productos.actualizar(id, { activo: false });
     },
 
     listarStockBajo: function () {
-      return Productos.listar({ soloActivos: true }).filter(function (p) { return p.stock <= p.stock_minimo; });
+      return Productos.listar({ soloActivos: true }).filter(stockBajo);
     }
   };
 
@@ -658,7 +711,7 @@
       var alertasStock = [];
       venta.detalle.forEach(function (d) {
         var p = DB.buscarPorId(db, 'productos', d.producto_id);
-        if (p && p.stock <= p.stock_minimo) {
+        if (p && stockBajo(p)) {
           alertasStock.push({ productoId: p.id, nombre: p.nombre, stock: p.stock, stockMinimo: p.stock_minimo, agotado: p.stock <= 0 });
         }
       });

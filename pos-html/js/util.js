@@ -93,7 +93,8 @@
     descargar: 'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
     subir: 'M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z',
     llave: 'M12.65 10A6 6 0 1 0 12.65 14H17v4h4v-4h2v-4zM7 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z',
-    menu: 'M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z'
+    menu: 'M3 18h18v-2H3zm0-5h18v-2H3zm0-7v2h18V6z',
+    etiqueta: 'M21.41 11.58l-9-9A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7c0 .55.22 1.05.59 1.42l9 9a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.84zM5.5 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z'
   };
 
   U.icono = function (nombre, clase) {

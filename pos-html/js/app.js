@@ -9,7 +9,7 @@
   var App = {
     vistas: {},
     // Orden del menú lateral
-    menu: ['ventas', 'historial', 'turno', 'productos', 'categorias', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
+    menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
     limpiezas: []
   };
 

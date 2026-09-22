@@ -49,7 +49,7 @@
           '<td>' + U.esc(p.nombre) + (!p.activo ? ' <span class="etiqueta etiqueta-alerta">INACTIVO</span>' : '') + '</td>' +
           '<td>' + U.esc(p.categoria_nombre || '—') + '</td>' +
           '<td class="num">' + U.dinero(p.precio_venta) + '</td>' +
-          '<td class="num ' + (p.stock <= p.stock_minimo ? 'alerta' : '') + '">' + p.stock + '</td>' +
+          '<td class="num ' + (POS.Productos.stockBajo(p) ? 'alerta' : '') + '">' + p.stock + '</td>' +
           '<td class="num">' + p.stock_minimo + '</td>' +
           '<td class="acciones">' +
           '<button class="boton-icono" data-editar="' + p.id + '" title="Editar" aria-label="Editar">' + U.icono('editar') + '</button>' +
