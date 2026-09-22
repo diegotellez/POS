@@ -1,5 +1,5 @@
 /*
- * Arranque, enrutador por hash (#/ventas, #/turno, ...) y marco de la
+ * Arranque, enrutador (#/ventas, #/turno, ...) y marco de la
  * aplicación (menú lateral + barra superior). Cada vista se registra en
  * App.vistas desde su propio archivo en js/vistas/.
  */
@@ -17,9 +17,29 @@
     App.vistas[nombre] = vista;
   };
 
+  // La ruta vive en memoria y se refleja en el hash cuando el entorno lo
+  // permite. Así también funciona embebida (p. ej. en un iframe aislado),
+  // donde cambiar location.hash no es confiable.
+  var rutaEstado = null;
+
+  function fijarRuta(ruta) {
+    rutaEstado = ruta;
+    try {
+      if (global.history && global.history.replaceState) global.history.replaceState(null, '', '#/' + ruta);
+    } catch (e) {
+      /* entorno sin historial: basta con la ruta en memoria */
+    }
+  }
+
   App.ir = function (ruta) {
-    if (global.location.hash === '#/' + ruta) App.renderizar();
-    else global.location.hash = '#/' + ruta;
+    fijarRuta(ruta);
+    App.renderizar();
+  };
+
+  // Parámetro de la ruta actual, p. ej. App.param('turno') en #/reportes?turno=3
+  App.param = function (nombre) {
+    var m = new RegExp('[?&]' + nombre + '=([^&]*)').exec(rutaCompleta());
+    return m ? decodeURIComponent(m[1]) : null;
   };
 
   // Permite a una vista registrar algo que se debe liberar al salir de ella.
@@ -27,9 +47,15 @@
     App.limpiezas.push(fn);
   };
 
+  function rutaCompleta() {
+    if (rutaEstado !== null) return rutaEstado;
+    var h = '';
+    try { h = global.location.hash || ''; } catch (e) { /* sin acceso al hash */ }
+    return h.replace(/^#\/?/, '');
+  }
+
   function rutaActual() {
-    var h = (global.location.hash || '').replace(/^#\/?/, '');
-    return h.split('?')[0] || 'ventas';
+    return rutaCompleta().split('?')[0] || 'ventas';
   }
 
   function renderLogin() {
@@ -57,7 +83,7 @@
       var datos = U.leerForm(form);
       try {
         POS.Auth.login(datos.usuario, datos.password);
-        if (rutaActual() === 'login') global.location.hash = '#/ventas';
+        if (rutaActual() === 'login') fijarRuta('ventas');
         App.renderizar();
       } catch (err) {
         U.error(err);
@@ -100,8 +126,7 @@
 
     document.getElementById('btn-salir').addEventListener('click', function () {
       POS.Auth.logout();
-      global.location.hash = '#/ventas';
-      App.renderizar();
+      App.ir('ventas');
     });
     var lateral = document.getElementById('lateral');
     document.getElementById('btn-menu').addEventListener('click', function () {
@@ -126,9 +151,7 @@
     if (!vista || (vista.soloAdmin && usuario.rol !== 'ADMINISTRADOR')) {
       ruta = 'ventas';
       vista = App.vistas.ventas;
-      if (global.location.hash !== '#/ventas') {
-        global.history.replaceState ? global.history.replaceState(null, '', '#/ventas') : (global.location.hash = '#/ventas');
-      }
+      if (rutaCompleta() !== 'ventas') fijarRuta('ventas');
     }
     renderShell(usuario, ruta);
     document.title = vista.titulo + ' · POS';
@@ -147,7 +170,19 @@
     } catch (err) {
       U.error(err);
     }
-    global.addEventListener('hashchange', App.renderizar);
+    global.addEventListener('hashchange', function () {
+      rutaEstado = null;
+      App.renderizar();
+    });
+    // Los enlaces internos (href="#/ruta") navegan sin depender del hash.
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('a[href^="#/"]') : null;
+      if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      e.preventDefault();
+      var lateral = document.getElementById('lateral');
+      if (lateral) lateral.classList.remove('abierto');
+      App.ir(a.getAttribute('href').replace(/^#\//, ''));
+    });
     // Otra pestaña modificó los datos: descartar la caché.
     global.addEventListener('storage', function (e) {
       if (e.key === DB.CLAVE || e.key === null) DB.invalidar();

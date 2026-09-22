@@ -47,9 +47,11 @@
       '<p class="tenue">Los datos se guardan <strong>en este navegador, en este equipo</strong>. Si se borran los datos del navegador se pierden, así que descarga un respaldo con frecuencia (por ejemplo al cerrar cada turno) y guárdalo en una USB o en una carpeta sincronizada con Google Drive.</p>' +
       '<div class="uso"><div class="uso-barra"><span style="width:' + pct + '%"></span></div>' +
       '<small class="tenue">Espacio usado: ' + kb(tam) + ' de ~' + kb(LIMITE_APROX) + ' (' + pct + '%)</small></div>' +
+      '<p class="tenue pequeno">Si la descarga no arranca, usa "Copiar respaldo" y pega el texto en un archivo .json.</p>' +
       (!DB.persistente ? '<p class="alerta">Este navegador no permite guardar datos (¿modo privado?). Descarga un respaldo antes de cerrar.</p>' : '') +
       '<div class="acciones-reporte">' +
       '<button class="boton boton-primario" id="btn-exportar">' + U.icono('descargar') + ' Descargar respaldo</button>' +
+      '<button class="boton boton-secundario" id="btn-copiar">' + U.icono('respaldo') + ' Copiar respaldo</button>' +
       '<label class="boton boton-secundario">' + U.icono('subir') + ' Restaurar respaldo<input type="file" id="archivo" accept=".json,application/json" hidden></label>' +
       '</div>' +
       '<h3>Zona de peligro</h3>' +
@@ -72,6 +74,10 @@
 
     U.$('#btn-exportar', cont).addEventListener('click', function () {
       U.descargar('pos-respaldo-' + U.marcaArchivo() + '.json', DB.exportar(), 'application/json');
+    });
+
+    U.$('#btn-copiar', cont).addEventListener('click', function () {
+      U.copiar(DB.exportar(), 'respaldo');
     });
 
     U.$('#archivo', cont).addEventListener('change', function (e) {

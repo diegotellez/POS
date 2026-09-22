@@ -202,6 +202,25 @@
   };
 
   U.descargar = function (nombre, contenido, tipo) {
+    // Publicado como artefacto de Claude: las descargas pasan por el visor.
+    if (global.claude && typeof global.claude.use === 'function') {
+      global.claude.use('downloads').then(function (downloads) {
+        if (!downloads) {
+          U.aviso('Este entorno no permite descargar archivos. Usa "Copiar" en su lugar.', 'error', 6000);
+          return null;
+        }
+        return downloads.save({ filename: nombre, data: contenido }).then(function () {
+          U.aviso('Archivo ' + nombre + ' guardado', 'ok');
+        }, function (err) {
+          if (err && err.code !== 'declined') U.aviso('No se pudo descargar: ' + (err.message || err.code), 'error', 6000);
+        });
+      });
+      return;
+    }
+    descargarLocal(nombre, contenido, tipo);
+  };
+
+  function descargarLocal(nombre, contenido, tipo) {
     var blob = new Blob([contenido], { type: tipo || 'application/octet-stream' });
     if (global.navigator && global.navigator.msSaveOrOpenBlob) {
       global.navigator.msSaveOrOpenBlob(blob, nombre);
@@ -217,13 +236,53 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 0);
+  }
+
+  // Copia texto al portapapeles; si el entorno lo impide, lo muestra para copiarlo a mano.
+  U.copiar = function (texto, etiqueta) {
+    function manual() {
+      U.modal({
+        titulo: 'Copiar ' + (etiqueta || 'texto'),
+        cuerpo: '<p class="tenue">Selecciona todo el texto y cópialo (Ctrl+C / Cmd+C).</p>' +
+          '<textarea id="texto-copiar" rows="10" readonly>' + U.esc(texto) + '</textarea>',
+        alAbrir: function (raiz) {
+          var t = U.$('#texto-copiar', raiz);
+          setTimeout(function () { t.focus(); t.select(); }, 0);
+        }
+      });
+    }
+    try {
+      global.navigator.clipboard.writeText(texto).then(function () {
+        U.aviso((etiqueta ? etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1) : 'Texto') + ' copiado al portapapeles', 'ok');
+      }, manual);
+    } catch (e) {
+      manual();
+    }
   };
+
+  // Muestra un documento dentro de la página cuando no se puede abrir una ventana nueva.
+  function vistaPrevia(html, ancho) {
+    U.modal({
+      titulo: 'Vista previa',
+      cuerpo: '<p class="tenue pequeno">Este entorno no permite abrir el diálogo de impresión. ' +
+        'Para imprimir, usa el sistema abriendo index.html directamente en el navegador.</p>' +
+        '<iframe class="vista-previa" title="Vista previa del documento" style="max-width:' + (ancho || 420) + 'px"></iframe>',
+      alAbrir: function (raiz) {
+        U.$('iframe', raiz).srcdoc = html;
+      }
+    });
+  }
 
   // Abre un documento HTML en una ventana nueva y lanza el diálogo de impresión.
   U.imprimirHTML = function (html, ancho) {
-    var ventana = global.open('', '_blank', 'width=' + (ancho || 420) + ',height=640');
+    var ventana = null;
+    try {
+      ventana = global.open('', '_blank', 'width=' + (ancho || 420) + ',height=640');
+    } catch (e) {
+      ventana = null;
+    }
     if (!ventana) {
-      U.aviso('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes.', 'error', 6000);
+      vistaPrevia(html, ancho);
       return;
     }
     ventana.document.open();
@@ -231,7 +290,7 @@
     ventana.document.close();
     ventana.focus();
     setTimeout(function () {
-      ventana.print();
+      try { ventana.print(); } catch (e) { /* sin impresión disponible */ }
     }, 250);
   };
 

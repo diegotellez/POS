@@ -3,8 +3,8 @@
   'use strict';
 
   function turnoDeUrl() {
-    var m = /[?&]turno=(\d+)/.exec(window.location.hash);
-    return m ? Number(m[1]) : null;
+    var t = Number(App.param('turno'));
+    return t > 0 ? t : null;
   }
 
   function render(cont) {
@@ -61,7 +61,7 @@
         '<div class="acciones-reporte">' +
         '<button class="boton boton-primario" id="btn-pdf">' + U.icono('imprimir') + ' Imprimir / Guardar PDF</button>' +
         '<button class="boton boton-secundario" id="btn-csv">' + U.icono('descargar') + ' Exportar ventas (CSV)</button>' +
-        '<button class="boton boton-secundario" id="btn-wa">' + U.icono('chat') + ' Enviar por WhatsApp</button>' +
+        '<a class="boton boton-secundario" id="btn-wa" target="_blank" rel="noopener">' + U.icono('chat') + ' Enviar por WhatsApp</a>' +
         '</div>';
 
       U.$('#btn-pdf', cont).addEventListener('click', function () {
@@ -70,11 +70,12 @@
       U.$('#btn-csv', cont).addEventListener('click', function () {
         exportarCSV(r.turno.id);
       });
-      U.$('#btn-wa', cont).addEventListener('click', function () {
-        var numero = DB.config().whatsapp;
-        var texto = encodeURIComponent(POS.Reportes.textoResumen(r));
-        var url = numero ? 'https://wa.me/' + numero + '?text=' + texto : 'https://wa.me/?text=' + texto;
-        window.open(url, '_blank');
+      // Enlace real (no window.open) para que funcione también cuando se bloquean ventanas.
+      var numero = DB.config().whatsapp;
+      var texto = encodeURIComponent(POS.Reportes.textoResumen(r));
+      var btnWa = U.$('#btn-wa', cont);
+      btnWa.href = 'https://wa.me/' + (numero || '') + '?text=' + texto;
+      btnWa.addEventListener('click', function () {
         if (!numero) U.aviso('Tip: configura un número de WhatsApp por defecto en Respaldo y configuración.', '', 5000);
       });
     }
