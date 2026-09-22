@@ -3,14 +3,35 @@
   'use strict';
 
   var EPSILON = 0.01;
-  // El carrito sobrevive a cambios de vista mientras la pestaña siga abierta.
-  var carrito = [];
+  // El ticket en curso se guarda en el navegador: sobrevive a cambios de
+  // pantalla, a recargar la página y a cerrar sesión, hasta que se cobre o vacíe.
+  var CLAVE_CARRITO = 'pos_html_carrito';
+  var carrito = leerCarrito();
+
+  function leerCarrito() {
+    try {
+      var guardado = JSON.parse(window.localStorage.getItem(CLAVE_CARRITO) || '[]');
+      return Array.isArray(guardado) ? guardado : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function guardarCarrito() {
+    try {
+      if (carrito.length) window.localStorage.setItem(CLAVE_CARRITO, JSON.stringify(carrito));
+      else window.localStorage.removeItem(CLAVE_CARRITO);
+    } catch (e) {
+      /* sin almacenamiento: el ticket vive solo mientras la pestaña esté abierta */
+    }
+  }
 
   function totalCarrito() {
     return U.redondear(carrito.reduce(function (a, i) { return a + i.precioUnitario * i.cantidad; }, 0));
   }
 
-  function render(cont) {
+  function render(cont, usuario) {
+    var esAdmin = usuario && usuario.rol === 'ADMINISTRADOR';
     var turno = POS.Turnos.actual();
     cont.innerHTML =
       '<div class="venta-layout">' +
@@ -25,6 +46,7 @@
           '<span>No hay un turno de caja abierto.</span>' +
           '<a class="boton boton-texto" href="#/turno">Abrir turno</a></div>'
         : '<p class="tenue pequeno">Turno #' + turno.id + ' abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
+      (esAdmin ? '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-producto">' + U.icono('mas') + ' Agregar producto nuevo</button>' : '') +
       '<div id="resultados" class="lista-resultados"></div>' +
       '</section>' +
       '<section class="tarjeta columna-carrito">' +
@@ -53,7 +75,13 @@
           .slice(0, 60);
       }
       if (!listaActual.length) {
-        resultados.innerHTML = '<p class="tenue vacio">No se encontraron productos.</p>';
+        resultados.innerHTML = '<div class="vacio"><p class="tenue">No se encontraron productos' + (termino ? ' para "' + U.esc(termino) + '"' : '') + '.</p>' +
+          (termino && esAdmin
+            ? '<button type="button" class="boton boton-secundario" id="btn-crear-buscado">' + U.icono('mas') + ' Agregar "' + U.esc(termino) + '" como producto nuevo</button>'
+            : termino ? '<p class="tenue pequeno">Pide a un administrador que lo cree.</p>' : '') +
+          '</div>';
+        var btnCrear = U.$('#btn-crear-buscado', resultados);
+        if (btnCrear) btnCrear.addEventListener('click', function () { nuevoProducto(termino); });
         return;
       }
       resultados.innerHTML = listaActual.map(function (p, i) {
@@ -89,6 +117,7 @@
             '</div>';
         }).join('');
       }
+      guardarCarrito();
       U.$('#total', cont).textContent = U.dinero(totalCarrito());
       U.$('#btn-cobrar', cont).disabled = !carrito.length;
     }
@@ -105,6 +134,20 @@
       pintarCarrito();
       input.focus();
     }
+
+    // Crea un producto sin salir de la venta (el ticket en curso no se toca) y lo agrega.
+    function nuevoProducto(texto) {
+      texto = String(texto || '').trim();
+      var esCodigo = /^\d{6,}$/.test(texto);
+      FormularioProducto(null, function (p) {
+        input.value = '';
+        pintarResultados();
+        if (p.precio_venta > 0) agregar(p);
+        else U.aviso('"' + p.nombre + '" se creó sin precio; asígnalo para poder venderlo.', 'alerta', 5000);
+      }, { nombre: esCodigo ? '' : texto, codigoBarras: esCodigo ? texto : '' });
+    }
+    var btnNuevo = U.$('#btn-nuevo-producto', cont);
+    if (btnNuevo) btnNuevo.addEventListener('click', function () { nuevoProducto(input.value); });
 
     input.addEventListener('input', pintarResultados);
 
@@ -123,6 +166,7 @@
         pintarResultados();
       } else {
         U.aviso('No hay un producto con el código "' + codigo + '"', 'error');
+        pintarResultados();
         input.select();
       }
     });

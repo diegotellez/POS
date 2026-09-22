@@ -26,7 +26,7 @@
           U.esc(bajo.map(function (p) { return p.nombre + ' (' + p.stock + ')'; }).join(', ')) + '</span></div>'
         : '') +
       '<div class="pestanas" role="tablist">' +
-      '<button role="tab" data-p="entrada">Entrada de mercancía</button>' +
+      '<button role="tab" data-p="entrada">Compras (entrada de mercancía)</button>' +
       '<button role="tab" data-p="ajuste">Ajuste manual</button>' +
       '<button role="tab" data-p="movimientos">Historial de movimientos</button>' +
       '</div>' +
@@ -44,12 +44,21 @@
       if (pestana === 'entrada') {
         panel.innerHTML =
           '<form class="form-inventario" id="form-entrada">' +
-          '<label class="campo"><span>Producto</span><select name="productoId" required>' + opcionesProductos() + '</select></label>' +
+          '<label class="campo"><span>Producto</span><select name="productoId" required>' + opcionesProductos() + '</select>' +
+          '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-compra">' + U.icono('mas') + ' Nuevo producto</button></label>' +
           '<label class="campo"><span>Cantidad a ingresar</span><input name="cantidad" type="number" min="1" step="any" required></label>' +
           '<label class="campo"><span>Referencia (opcional)</span><input name="referencia" placeholder="Ej. compra proveedor X"></label>' +
           '<button class="boton boton-primario" type="submit">Registrar entrada</button>' +
           '</form>';
         var fe = U.$('#form-entrada', panel);
+        // El producto que llegó en la compra no existe: se crea aquí mismo y queda seleccionado.
+        U.$('#btn-nuevo-compra', panel).addEventListener('click', function () {
+          FormularioProducto(null, function (nuevo) {
+            fe.productoId.innerHTML = opcionesProductos();
+            fe.productoId.value = String(nuevo.id);
+            fe.cantidad.focus();
+          }, { sinStock: true });
+        });
         fe.addEventListener('submit', function (e) {
           e.preventDefault();
           try {

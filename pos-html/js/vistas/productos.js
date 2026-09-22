@@ -97,8 +97,12 @@
     inputFiltro.focus();
   }
 
-  function formulario(producto, alGuardar) {
-    var p = producto || {};
+  // Formulario de producto. También se usa desde Ventas y Compras para crear un
+  // producto sin salir de la pantalla. `inicial` prellena un producto nuevo
+  // ({ nombre, codigoBarras, sinStock }); `alGuardar` recibe el producto guardado.
+  function formulario(producto, alGuardar, inicial) {
+    inicial = inicial || {};
+    var p = producto || { nombre: inicial.nombre || '', codigo_barras: inicial.codigoBarras || '' };
     var edicion = !!producto;
     U.modal({
       titulo: edicion ? 'Editar producto' : 'Nuevo producto',
@@ -113,7 +117,9 @@
         '<label class="campo"><span>Precio de venta</span><input name="precioVenta" type="number" min="0" step="any" value="' + (p.precio_venta !== undefined ? p.precio_venta : '') + '"></label>' +
         '<label class="campo"><span>Stock mínimo</span><input name="stockMinimo" type="number" min="0" step="1" value="' + (p.stock_minimo !== undefined ? p.stock_minimo : 0) + '"></label>' +
         '</div>' +
-        (!edicion
+        (!edicion && inicial.sinStock
+          ? '<p class="tenue">El stock se suma al registrar la compra.</p>'
+          : !edicion
           ? '<label class="campo"><span>Stock inicial</span><input name="stock" type="number" min="0" step="1" value="0"></label>'
           : '<p class="tenue">Stock actual: ' + p.stock + ' (modifícalo desde Inventario).</p>') +
         '</form>',
@@ -124,16 +130,17 @@
           clase: 'boton-primario',
           accion: function (cerrar, raiz) {
             var datos = U.leerForm(raiz);
-            if (edicion) POS.Productos.actualizar(p.id, datos);
-            else POS.Productos.crear(datos);
+            var guardado = edicion ? POS.Productos.actualizar(p.id, datos) : POS.Productos.crear(datos);
             cerrar();
             U.aviso('Producto guardado', 'ok');
-            alGuardar();
+            if (alGuardar) alGuardar(POS.Productos.obtener(guardado.id));
           }
         }
       ]
     });
   }
+
+  window.FormularioProducto = formulario;
 
   App.registrar('productos', { titulo: 'Productos', icono: 'caja', soloAdmin: true, render: render });
 })();

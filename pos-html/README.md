@@ -49,15 +49,20 @@ Son las mismas de la versión Angular + Express:
 - **Ventas**: búsqueda por nombre y lectura de código de barras con lector USB
   (Enter agrega el producto), carrito, cobro con varios métodos de pago
   (efectivo, tarjeta, transferencia), cálculo del cambio, datos opcionales del
-  cliente y atajo **F2** para cobrar.
+  cliente y atajo **F2** para cobrar. El ticket en curso se guarda en el
+  navegador: no se pierde al cambiar de pantalla, recargar o cerrar sesión.
+  Si un producto buscado o escaneado no existe, el administrador lo crea ahí
+  mismo con "Agregar producto nuevo" (el código escaneado queda prellenado) y
+  pasa directo al ticket.
 - **Ticket** imprimible de 80 mm o 58 mm desde el diálogo de impresión del navegador.
 - **Historial de ventas**: filtros por turno, estado y fechas; detalle,
   reimpresión y anulación con motivo (el stock se devuelve al inventario).
 - **Turno de caja**: apertura con base inicial y cierre con arqueo
   (efectivo esperado contra contado, marcando faltante o sobrante).
 - **Productos y categorías** (con subcategorías). El código interno se genera solo.
-- **Inventario**: entradas de mercancía, ajustes manuales, historial de
-  movimientos y alertas de stock bajo.
+- **Inventario**: compras (entrada de mercancía) con enlace "Nuevo producto"
+  para crear en el momento lo que llegó y no existía, ajustes manuales,
+  historial de movimientos y alertas de stock bajo.
 - **Reportes por turno**: totales, desglose por método de pago, por usuario y
   por producto, e impresión o **Guardar como PDF**. También exporta a CSV y
   envía un resumen por WhatsApp (`wa.me`).
