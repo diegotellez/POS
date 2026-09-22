@@ -14,6 +14,12 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
 | admin   | admin123   | ADMINISTRADOR |
 | cajero  | cajero123  | CAJERO        |
 
+El primer arranque trae un catálogo de ejemplo de droguería: 17 productos en 9
+categorías (medicamentos con subcategorías, vitaminas, cuidado personal,
+primeros auxilios y bebé), con precios de referencia en pesos colombianos y
+algunos productos con stock bajo para ver las alertas. Edítalo o reemplázalo
+desde *Productos* e *Inventario*.
+
 Si prefieres servirla desde un servidor web, sirve la carpeta como archivos
 estáticos (por ejemplo `python3 -m http.server` dentro de `pos-html/`).
 

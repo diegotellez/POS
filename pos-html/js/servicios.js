@@ -144,24 +144,101 @@
   }
 
   // ======================= Datos iniciales =======================
+  // Catálogo de ejemplo de una droguería (precios de referencia en pesos colombianos).
+  var VERSION_CATALOGO = 'drogueria-1';
+  var CATEGORIAS_DEMO = [
+    { clave: 'med', nombre: 'Medicamentos' },
+    { clave: 'analg', nombre: 'Analgésicos y antiinflamatorios', padre: 'med' },
+    { clave: 'gripa', nombre: 'Antigripales', padre: 'med' },
+    { clave: 'alerg', nombre: 'Antialérgicos', padre: 'med' },
+    { clave: 'digest', nombre: 'Digestivos', padre: 'med' },
+    { clave: 'vit', nombre: 'Vitaminas y suplementos' },
+    { clave: 'personal', nombre: 'Cuidado personal' },
+    { clave: 'aux', nombre: 'Primeros auxilios' },
+    { clave: 'bebe', nombre: 'Bebé y maternidad' }
+  ];
+  var PRODUCTOS_DEMO = [
+    { cat: 'analg', codigo_barras: '7705260181591', nombre: 'Acetaminofén 500 mg x 10 tabletas', precio_venta: 2500, stock: 60, stock_minimo: 20 },
+    { cat: 'analg', codigo_barras: '7700830166138', nombre: 'Ibuprofeno 400 mg x 10 tabletas', precio_venta: 4200, stock: 45, stock_minimo: 15 },
+    { cat: 'analg', codigo_barras: '7701860913907', nombre: 'Naproxeno 250 mg x 10 tabletas', precio_venta: 5800, stock: 20, stock_minimo: 10 },
+    { cat: 'analg', codigo_barras: '7709960308241', nombre: 'Diclofenaco gel 1% x 50 g', precio_venta: 12500, stock: 8, stock_minimo: 5 },
+    { cat: 'gripa', codigo_barras: '7706281948217', nombre: 'Antigripal día x 12 tabletas', precio_venta: 9800, stock: 30, stock_minimo: 10 },
+    { cat: 'gripa', codigo_barras: '7709935181909', nombre: 'Jarabe para la tos x 120 ml', precio_venta: 14900, stock: 4, stock_minimo: 5 },
+    { cat: 'alerg', codigo_barras: '7709378657979', nombre: 'Loratadina 10 mg x 10 tabletas', precio_venta: 3900, stock: 25, stock_minimo: 10 },
+    { cat: 'digest', codigo_barras: '7705432319487', nombre: 'Omeprazol 20 mg x 14 cápsulas', precio_venta: 6500, stock: 35, stock_minimo: 10 },
+    { cat: 'digest', codigo_barras: null, nombre: 'Sales de rehidratación oral (sobre)', precio_venta: 1800, stock: 40, stock_minimo: 15 },
+    { cat: 'vit', codigo_barras: '7707574911864', nombre: 'Vitamina C 500 mg x 100 tabletas', precio_venta: 18900, stock: 12, stock_minimo: 5 },
+    { cat: 'personal', codigo_barras: '7702527601892', nombre: 'Crema dental x 100 ml', precio_venta: 6900, stock: 24, stock_minimo: 8 },
+    { cat: 'personal', codigo_barras: '7705559797113', nombre: 'Protector solar FPS 50 x 120 ml', precio_venta: 42000, stock: 6, stock_minimo: 3 },
+    { cat: 'aux', codigo_barras: '7704710497466', nombre: 'Alcohol antiséptico 70% x 350 ml', precio_venta: 5500, stock: 18, stock_minimo: 6 },
+    { cat: 'aux', codigo_barras: '7705075291706', nombre: 'Curas adhesivas x 20 unidades', precio_venta: 4500, stock: 3, stock_minimo: 5 },
+    { cat: 'aux', codigo_barras: '7703423667128', nombre: 'Tapabocas desechable x 10 unidades', precio_venta: 5000, stock: 30, stock_minimo: 10 },
+    { cat: 'aux', codigo_barras: '7707684268469', nombre: 'Suero fisiológico 0,9% x 500 ml', precio_venta: 7200, stock: 10, stock_minimo: 4 },
+    { cat: 'bebe', codigo_barras: '7705632122337', nombre: 'Pañales etapa 3 x 30 unidades', precio_venta: 38500, stock: 7, stock_minimo: 4 }
+  ];
+  // Nombres del catálogo de ejemplo anterior (tienda de abarrotes).
+  var PRODUCTOS_DEMO_ANTERIOR = ['Gaseosa 400ml', 'Arroz 500g', 'Jabón de baño'];
+
+  function cargarCatalogoDemo(db) {
+    var ids = {};
+    CATEGORIAS_DEMO.forEach(function (c) {
+      ids[c.clave] = DB.insertar(db, 'categorias', { nombre: c.nombre, categoria_padre_id: c.padre ? ids[c.padre] : null }).id;
+    });
+    PRODUCTOS_DEMO.forEach(function (d) {
+      var p = DB.insertar(db, 'productos', {
+        codigo_barras: d.codigo_barras,
+        codigo_interno: generarCodigoInterno(db),
+        nombre: d.nombre,
+        descripcion: null,
+        categoria_id: ids[d.cat],
+        precio_venta: d.precio_venta,
+        stock: d.stock,
+        stock_minimo: d.stock_minimo,
+        tasa_impuesto: null,
+        activo: 1
+      });
+      movimiento(db, p.id, 'ENTRADA', p.stock, 'Stock inicial');
+    });
+    db.config.catalogoDemo = VERSION_CATALOGO;
+  }
+
+  // Si la base aún tiene el catálogo de ejemplo anterior, lo cambia por el de droguería.
+  // Sin ventas, se reemplaza por completo; con ventas, los productos viejos se
+  // desactivan (para conservar el historial) y se agregan los nuevos.
+  function migrarCatalogoDemo(db) {
+    if (db.config.catalogoDemo === VERSION_CATALOGO) return false;
+    var soloDemo = db.productos.length > 0 && db.productos.every(function (p) {
+      return PRODUCTOS_DEMO_ANTERIOR.indexOf(p.nombre) !== -1;
+    });
+    if (!soloDemo) {
+      db.config.catalogoDemo = VERSION_CATALOGO;
+      return true;
+    }
+    if (!db.ventas.length) {
+      db.productos = [];
+      db.movimientos = [];
+      db.categorias = [];
+    } else {
+      db.productos.forEach(function (p) { p.activo = 0; });
+    }
+    cargarCatalogoDemo(db);
+    if (db.config.nombreNegocio === 'Mi Negocio') db.config.nombreNegocio = 'Mi Droguería';
+    if (!db.ventas.length) db.config.decimales = 0;
+    return true;
+  }
+
   function sembrar() {
-    if (DB.existe()) return false;
+    if (DB.existe()) {
+      var d = DB.datos();
+      if (d.config.catalogoDemo !== VERSION_CATALOGO) DB.tx(migrarCatalogoDemo);
+      return false;
+    }
     DB.tx(function (db) {
       DB.insertar(db, 'usuarios', { nombre_usuario: 'admin', password_hash: hashPassword('admin123'), rol: 'ADMINISTRADOR', activo: 1 });
       DB.insertar(db, 'usuarios', { nombre_usuario: 'cajero', password_hash: hashPassword('cajero123'), rol: 'CAJERO', activo: 1 });
-      var bebidas = DB.insertar(db, 'categorias', { nombre: 'Bebidas', categoria_padre_id: null });
-      var abarrotes = DB.insertar(db, 'categorias', { nombre: 'Abarrotes', categoria_padre_id: null });
-      var aseo = DB.insertar(db, 'categorias', { nombre: 'Aseo', categoria_padre_id: null });
-      [
-        { codigo_barras: '7701234567890', codigo_interno: '200001', nombre: 'Gaseosa 400ml', categoria_id: bebidas.id, precio_venta: 3500, stock: 50, stock_minimo: 10 },
-        { codigo_barras: null, codigo_interno: '200002', nombre: 'Arroz 500g', categoria_id: abarrotes.id, precio_venta: 2800, stock: 30, stock_minimo: 5 },
-        { codigo_barras: '7709876543210', codigo_interno: '200003', nombre: 'Jabón de baño', categoria_id: aseo.id, precio_venta: 1900, stock: 4, stock_minimo: 5 }
-      ].forEach(function (p) {
-        p.descripcion = null;
-        p.tasa_impuesto = null;
-        p.activo = 1;
-        DB.insertar(db, 'productos', p);
-      });
+      cargarCatalogoDemo(db);
+      db.config.nombreNegocio = 'Mi Droguería';
+      db.config.decimales = 0;
       db.config.primerUso = true;
     });
     return true;
