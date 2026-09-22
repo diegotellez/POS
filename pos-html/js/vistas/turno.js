@@ -2,9 +2,12 @@
 (function () {
   'use strict';
 
+  // Resumen del último cierre hecho en esta pestaña; solo lo ve quien cerró.
   var ultimoCierre = null;
+  var ultimoCierreUsuarioId = null;
 
   function render(cont, usuario) {
+    if (ultimoCierre && ultimoCierreUsuarioId !== usuario.id) ultimoCierre = null;
     var turno = POS.Turnos.actual();
     var html = '<div class="angosto"><section class="tarjeta">';
 
@@ -112,6 +115,7 @@
         var valor = fCerrar.efectivo.value;
         U.confirmar('¿Cerrar el turno #' + turno.id + ' con ' + U.dinero(valor) + ' contados? Después no podrás registrar ventas en este turno.', function () {
           ultimoCierre = POS.Turnos.cerrar(turno.id, valor);
+          ultimoCierreUsuarioId = usuario.id;
           U.aviso('Turno #' + turno.id + ' cerrado', 'ok');
           // Abre WhatsApp con el número configurado y el resumen escrito (falta tocar "Enviar").
           // Si el navegador bloquea la ventana, queda el botón en el resumen.

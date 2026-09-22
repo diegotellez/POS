@@ -42,6 +42,16 @@ En **Precios** (solo administrador):
 Si prefieres servirla desde un servidor web, sirve la carpeta como archivos
 estáticos (por ejemplo `python3 -m http.server` dentro de `pos-html/`).
 
+## Manuales
+
+En `docs/`:
+
+- **Manual de instalación, configuración y mantenimiento** (PDF): requisitos,
+  instalación, acceso directo, impresora, lector, WhatsApp, respaldos,
+  actualización, seguridad y solución de problemas.
+- **Manual del Usuario** (PDF): uso diario para cajeros, funciones del
+  administrador y lo que recibe el dueño al cierre de caja.
+
 ## Funcionalidades
 
 Son las mismas de la versión Angular + Express:
@@ -121,6 +131,7 @@ js/precios-texto.js interpreta listas de precios en lenguaje natural (WhatsApp)
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
 js/vistas/*.js      una pantalla por archivo
+docs/*.pdf          manuales de instalación y de usuario
 ```
 
 Los scripts son clásicos (sin `import`/`export`) porque varios navegadores
