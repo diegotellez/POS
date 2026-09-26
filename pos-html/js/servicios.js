@@ -552,6 +552,22 @@
   };
 
   // ======================= Turnos de caja =======================
+  // Gastos y pedidos pagados durante el turno (los anulados no cuentan).
+  function gastosTurno(db, turnoId) {
+    return db.gastos.filter(function (g) { return g.turno_caja_id === turnoId && g.estado !== 'ANULADO'; });
+  }
+
+  function gastosEfectivoTurno(db, turnoId) {
+    return U.redondear(gastosTurno(db, turnoId).reduce(function (a, g) {
+      return a + (g.metodo_pago === 'EFECTIVO' ? g.monto : 0);
+    }, 0));
+  }
+
+  // Lo que debe haber en el cajón: base + ventas en efectivo - gastos pagados en efectivo.
+  function efectivoEsperadoTurno(db, t) {
+    return U.redondear(t.base_inicial_efectivo + efectivoVentasTurno(db, t.id) - gastosEfectivoTurno(db, t.id));
+  }
+
   function efectivoVentasTurno(db, turnoId) {
     var total = 0;
     db.ventas.forEach(function (v) {
@@ -603,7 +619,7 @@
         var t = DB.buscarPorId(db, 'turnos', id);
         if (!t) falla('Turno no encontrado');
         if (t.estado !== 'ABIERTO') falla('El turno ya está cerrado');
-        var esperado = U.redondear(t.base_inicial_efectivo + efectivoVentasTurno(db, t.id));
+        var esperado = efectivoEsperadoTurno(db, t);
         t.usuario_cierre_id = usuarioId;
         t.fecha_hora_cierre = U.ahora();
         t.efectivo_contado = Number(efectivoContado);
@@ -618,6 +634,22 @@
 
     listar: function () {
       return copia(DB.datos().turnos).reverse();
+    },
+
+    // Corrige la base del turno abierto (p. ej. el cajero la abrió sin el admin y contó mal).
+    ajustarBase: function (id, nuevaBase, motivo) {
+      var usuarioId = usuarioActualId();
+      if (nuevaBase === '' || nuevaBase === null || !isFinite(Number(nuevaBase)) || Number(nuevaBase) < 0) falla('Indica la base correcta');
+      return DB.tx(function (db) {
+        var t = DB.buscarPorId(db, 'turnos', id);
+        if (!t) falla('Turno no encontrado');
+        if (t.estado !== 'ABIERTO') falla('Solo se puede ajustar la base de un turno abierto');
+        var anterior = t.base_inicial_efectivo;
+        t.base_inicial_efectivo = U.redondear(nuevaBase);
+        auditar(db, usuarioId, 'AjusteBaseTurno', 'Turno #' + t.id + ': base ' + anterior + ' -> ' + t.base_inicial_efectivo +
+          (String(motivo || '').trim() ? '. Motivo: ' + String(motivo).trim() : ''));
+        return copia(t);
+      });
     },
 
     // Último turno si está cerrado y no hay otro abierto después: es el único que se puede reabrir.
@@ -653,7 +685,7 @@
     efectivoEsperado: function (id) {
       var db = DB.datos();
       var t = DB.buscarPorId(db, 'turnos', id);
-      return t ? U.redondear(t.base_inicial_efectivo + efectivoVentasTurno(db, t.id)) : 0;
+      return t ? efectivoEsperadoTurno(db, t) : 0;
     }
   };
 
@@ -947,8 +979,170 @@
     }
   };
 
+  // ======================= Gastos del turno =======================
+  var TIPOS_GASTO = ['Pedido a proveedor', 'Servicios', 'Domicilios y transporte', 'Aseo y cafetería', 'Nómina y adelantos', 'Otros'];
+
+  var Gastos = {
+    TIPOS: TIPOS_GASTO,
+
+    // Registra un gasto o pedido pagado en el turno abierto. Si se paga en
+    // efectivo, sale del cajón y se descuenta del efectivo esperado del arqueo.
+    registrar: function (datos) {
+      var usuarioId = usuarioActualId();
+      var concepto = String(datos.concepto || '').trim();
+      if (!concepto) falla('Escribe el concepto del gasto (qué se pagó)');
+      var monto = U.redondear(datos.monto);
+      if (!(monto > 0)) falla('El valor del gasto debe ser mayor a cero');
+      var metodo = datos.metodoPago || 'EFECTIVO';
+      if (METODOS_PAGO.indexOf(metodo) === -1) falla('Método de pago inválido');
+      var tipo = TIPOS_GASTO.indexOf(datos.tipo) === -1 ? 'Otros' : datos.tipo;
+      return DB.tx(function (db) {
+        var turno = db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; })[0];
+        if (!turno) falla('Abre un turno de caja para registrar gastos');
+        if (metodo === 'EFECTIVO' && monto > efectivoEsperadoTurno(db, turno) + EPSILON) {
+          falla('No hay suficiente efectivo en caja para ese pago (disponible: ' + efectivoEsperadoTurno(db, turno).toFixed(0) + ')');
+        }
+        var g = DB.insertar(db, 'gastos', {
+          turno_caja_id: turno.id,
+          usuario_id: usuarioId,
+          fecha_hora: U.ahora(),
+          tipo: tipo,
+          concepto: concepto,
+          proveedor: String(datos.proveedor || '').trim() || null,
+          monto: monto,
+          metodo_pago: metodo,
+          estado: 'REGISTRADO',
+          motivo_anulacion: null
+        });
+        auditar(db, usuarioId, 'RegistroGasto', 'Gasto #' + g.id + ' (' + tipo + '): ' + concepto + ' ' + monto + ' en ' + metodo);
+        return copia(g);
+      });
+    },
+
+    listar: function (filtros) {
+      filtros = filtros || {};
+      var db = DB.datos();
+      return db.gastos.filter(function (g) {
+        if (filtros.turnoId && g.turno_caja_id !== Number(filtros.turnoId)) return false;
+        if (filtros.mes && g.fecha_hora.slice(0, 7) !== filtros.mes) return false;
+        return true;
+      }).map(function (g) {
+        var r = copia(g);
+        r.nombre_usuario = nombreUsuario(db, g.usuario_id);
+        return r;
+      }).reverse();
+    },
+
+    // Solo el administrador anula un gasto registrado por error.
+    anular: function (id, motivo) {
+      Auth.requerirAdmin();
+      var usuarioId = usuarioActualId();
+      motivo = String(motivo || '').trim();
+      if (!motivo) falla('Indica el motivo de la anulación');
+      return DB.tx(function (db) {
+        var g = DB.buscarPorId(db, 'gastos', id);
+        if (!g) falla('Gasto no encontrado');
+        if (g.estado === 'ANULADO') falla('El gasto ya está anulado');
+        var t = DB.buscarPorId(db, 'turnos', g.turno_caja_id);
+        if (!t || t.estado !== 'ABIERTO') falla('Solo se anulan gastos del turno abierto');
+        g.estado = 'ANULADO';
+        g.motivo_anulacion = motivo;
+        auditar(db, usuarioId, 'AnulacionGasto', 'Gasto #' + g.id + ' anulado (' + g.concepto + ' ' + g.monto + '). Motivo: ' + motivo);
+        return copia(g);
+      });
+    }
+  };
+
   // ======================= Reportes =======================
+  var DIAS_SEMANA = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  var MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
   var Reportes = {
+    MESES: MESES,
+
+    // Meses (AAAA-MM) con ventas o gastos, del más reciente al más antiguo.
+    mesesDisponibles: function () {
+      var db = DB.datos();
+      var vistos = {};
+      vistos[U.ahora().slice(0, 7)] = true;
+      db.ventas.forEach(function (v) { vistos[v.fecha_hora.slice(0, 7)] = true; });
+      db.gastos.forEach(function (g) { vistos[g.fecha_hora.slice(0, 7)] = true; });
+      return Object.keys(vistos).sort().reverse();
+    },
+
+    nombreMes: function (mes) {
+      var p = mes.split('-');
+      return MESES[Number(p[1]) - 1] + ' de ' + p[0];
+    },
+
+    // Reporte de ventas de un mes calendario (AAAA-MM), por día de venta.
+    mensual: function (mes) {
+      var db = DB.datos();
+      var anio = Number(mes.slice(0, 4));
+      var numMes = Number(mes.slice(5, 7));
+      var diasMes = new Date(anio, numMes, 0).getDate();
+      var dias = [];
+      for (var d = 1; d <= diasMes; d++) {
+        var fecha = mes + '-' + (d < 10 ? '0' : '') + d;
+        dias.push({ fecha: fecha, dia: d, semana: DIAS_SEMANA[new Date(anio, numMes - 1, d).getDay()], total: 0, ventas: 0, gastos: 0 });
+      }
+      var ventas = db.ventas.filter(function (v) { return v.estado === 'COMPLETADA' && v.fecha_hora.slice(0, 7) === mes; });
+      var porMetodo = {};
+      var porCategoria = {};
+      var porProducto = {};
+      var cambios = 0;
+      ventas.forEach(function (v) {
+        var dia = dias[Number(v.fecha_hora.slice(8, 10)) - 1];
+        dia.total += v.total;
+        if (v.tipo === 'CAMBIO') cambios++; else dia.ventas++;
+        v.pagos.forEach(function (pg) { porMetodo[pg.metodo_pago] = (porMetodo[pg.metodo_pago] || 0) + pg.monto; });
+        v.detalle.forEach(function (x) {
+          var p = DB.buscarPorId(db, 'productos', x.producto_id);
+          var c = p && p.categoria_id ? DB.buscarPorId(db, 'categorias', p.categoria_id) : null;
+          // agrupa por la categoría principal (la raíz) para que el resumen sea legible
+          while (c && c.categoria_padre_id) c = DB.buscarPorId(db, 'categorias', c.categoria_padre_id) || null;
+          var nc = c ? c.nombre : 'Sin categoría';
+          var rc = porCategoria[nc] || (porCategoria[nc] = { nombre: nc, cantidad: 0, total: 0 });
+          rc.cantidad += x.cantidad;
+          rc.total += x.subtotal;
+          var rp = porProducto[x.producto_id] || (porProducto[x.producto_id] = { nombre: p ? p.nombre : '#' + x.producto_id, cantidad: 0, total: 0 });
+          rp.cantidad += x.cantidad;
+          rp.total += x.subtotal;
+        });
+      });
+      var gastos = db.gastos.filter(function (g) { return g.estado !== 'ANULADO' && g.fecha_hora.slice(0, 7) === mes; });
+      var gastosPorTipo = {};
+      gastos.forEach(function (g) {
+        dias[Number(g.fecha_hora.slice(8, 10)) - 1].gastos += g.monto;
+        gastosPorTipo[g.tipo] = (gastosPorTipo[g.tipo] || 0) + g.monto;
+      });
+      dias.forEach(function (x) { x.total = U.redondear(x.total); x.gastos = U.redondear(x.gastos); });
+      var total = U.redondear(dias.reduce(function (a, x) { return a + x.total; }, 0));
+      var totalGastos = U.redondear(gastos.reduce(function (a, g) { return a + g.monto; }, 0));
+      var cantidad = dias.reduce(function (a, x) { return a + x.ventas; }, 0);
+      var conVentas = dias.filter(function (x) { return x.ventas > 0; });
+      var mejor = conVentas.slice().sort(function (a, b) { return b.total - a.total; })[0] || null;
+      var ordenar = function (o) { return Object.keys(o).map(function (k) { return o[k]; }).filter(function (x) { return x.cantidad !== 0; }).sort(function (a, b) { return b.total - a.total; }); };
+      return {
+        mes: mes,
+        nombre: Reportes.nombreMes(mes),
+        total: total,
+        cantidadVentas: cantidad,
+        cambios: cambios,
+        ticketPromedio: cantidad ? U.redondear(total / cantidad) : 0,
+        diasConVentas: conVentas.length,
+        promedioDiario: conVentas.length ? U.redondear(total / conVentas.length) : 0,
+        mejorDia: mejor,
+        gastos: totalGastos,
+        gastosPorTipo: Object.keys(gastosPorTipo).map(function (k) { return { tipo: k, total: U.redondear(gastosPorTipo[k]) }; })
+          .sort(function (a, b) { return b.total - a.total; }),
+        neto: U.redondear(total - totalGastos),
+        dias: dias,
+        porMetodoPago: METODOS_PAGO.filter(function (m) { return porMetodo[m]; }).map(function (m) { return { metodo_pago: m, total: U.redondear(porMetodo[m]) }; }),
+        porCategoria: ordenar(porCategoria).map(function (x) { x.total = U.redondear(x.total); return x; }),
+        porProducto: ordenar(porProducto).map(function (x) { x.total = U.redondear(x.total); return x; })
+      };
+    },
     construir: function (turnoId) {
       var db = DB.datos();
       var turno = DB.buscarPorId(db, 'turnos', turnoId);
@@ -997,10 +1191,20 @@
         porProducto: Object.keys(porProducto).map(function (k) { return porProducto[k]; })
           .filter(function (x) { return x.cantidad !== 0; })
           .sort(function (a, b) { return b.total - a.total; }),
+        gastos: (function () {
+          var lista = gastosTurno(db, turno.id);
+          return {
+            cantidad: lista.length,
+            total: U.redondear(lista.reduce(function (a, g) { return a + g.monto; }, 0)),
+            efectivo: gastosEfectivoTurno(db, turno.id),
+            lista: lista.map(function (g) { return { concepto: g.concepto, tipo: g.tipo, monto: g.monto, metodo_pago: g.metodo_pago }; })
+          };
+        })(),
         arqueo: {
           baseInicial: turno.base_inicial_efectivo,
           efectivoVentas: efectivoVentas,
-          efectivoEsperado: U.redondear(turno.base_inicial_efectivo + efectivoVentas),
+          gastosEfectivo: gastosEfectivoTurno(db, turno.id),
+          efectivoEsperado: efectivoEsperadoTurno(db, turno),
           efectivoContado: turno.efectivo_contado,
           diferencia: turno.diferencia_arqueo
         }
@@ -1025,6 +1229,10 @@
         lineas.push('Cambios de productos: ' + r.cambios.cantidad +
           (r.cambios.saldoRetenido ? ' (saldo no devuelto ' + U.dinero(r.cambios.saldoRetenido) + ')' : '') +
           (r.cambios.devuelto ? ' · Dinero devuelto: ' + U.dinero(r.cambios.devuelto) : ''));
+      }
+      if (r.gastos && r.gastos.cantidad) {
+        lineas.push('Gastos y pedidos pagados: ' + U.dinero(r.gastos.total) + ' (' + r.gastos.cantidad + ')' +
+          (r.gastos.efectivo && r.gastos.efectivo !== r.gastos.total ? ', en efectivo ' + U.dinero(r.gastos.efectivo) : ''));
       }
       lineas.push('');
       if (a.efectivoContado !== null) {
@@ -1081,7 +1289,9 @@
       pu: r.porUsuario.map(function (x) { return [x.nombre_usuario, x.total, x.cantidad_ventas]; }),
       pr: r.porProducto.map(function (x) { return [x.nombre, x.cantidad, x.total]; }),
       ar: [a.baseInicial, a.efectivoVentas, a.efectivoEsperado, a.efectivoContado, a.diferencia],
-      cb: r.cambios ? [r.cambios.cantidad, r.cambios.saldoRetenido, r.cambios.devuelto] : [0, 0, 0]
+      cb: r.cambios ? [r.cambios.cantidad, r.cambios.saldoRetenido, r.cambios.devuelto] : [0, 0, 0],
+      gs: r.gastos ? [r.gastos.total, r.gastos.efectivo, r.gastos.lista.map(function (g) { return [g.concepto, g.monto, g.metodo_pago, g.tipo]; })] : [0, 0, []],
+      ge: a.gastosEfectivo || 0
     }));
   }
 
@@ -1096,7 +1306,9 @@
       porMetodoPago: d.mp.map(function (x) { return { metodo_pago: x[0], total: x[1] }; }),
       porUsuario: d.pu.map(function (x) { return { nombre_usuario: x[0], total: x[1], cantidad_ventas: x[2] }; }),
       porProducto: d.pr.map(function (x) { return { nombre: x[0], cantidad: x[1], total: x[2] }; }),
-      arqueo: { baseInicial: d.ar[0], efectivoVentas: d.ar[1], efectivoEsperado: d.ar[2], efectivoContado: d.ar[3], diferencia: d.ar[4] },
+      arqueo: { baseInicial: d.ar[0], efectivoVentas: d.ar[1], gastosEfectivo: d.ge || 0, efectivoEsperado: d.ar[2], efectivoContado: d.ar[3], diferencia: d.ar[4] },
+      gastos: d.gs ? { total: d.gs[0], efectivo: d.gs[1], cantidad: d.gs[2].length,
+        lista: d.gs[2].map(function (g) { return { concepto: g[0], monto: g[1], metodo_pago: g[2], tipo: g[3] }; }) } : { total: 0, efectivo: 0, cantidad: 0, lista: [] },
       cambios: d.cb ? { cantidad: d.cb[0], saldoRetenido: d.cb[1], devuelto: d.cb[2] } : { cantidad: 0, saldoRetenido: 0, devuelto: 0 }
     };
   }
@@ -1300,8 +1512,16 @@
               return '<tr><td>' + U.esc(p.nombre) + '</td><td class="num">' + p.cantidad + '</td><td class="num">' + U.dinero(p.total) + '</td></tr>';
             }).join('') + '</tbody></table>'
           : '<p class="tenue">Sin datos</p>') +
+        '<h2>Gastos y pedidos pagados</h2>' +
+        (r.gastos.cantidad
+          ? '<table><thead><tr><th>Concepto</th><th>Tipo</th><th>Pago</th><th class="num">Valor</th></tr></thead><tbody>' +
+            r.gastos.lista.map(function (g) {
+              return '<tr><td>' + U.esc(g.concepto) + '</td><td>' + U.esc(g.tipo) + '</td><td>' + U.esc(g.metodo_pago) + '</td><td class="num">' + U.dinero(g.monto) + '</td></tr>';
+            }).join('') + '</tbody></table><p>Total gastos: <strong>' + U.dinero(r.gastos.total) + '</strong></p>'
+          : '<p class="tenue">Sin gastos registrados</p>') +
         '<h2>Arqueo de caja</h2>' +
         '<p>Base inicial: ' + U.dinero(a.baseInicial) + '<br>Ventas en efectivo: ' + U.dinero(a.efectivoVentas) +
+        (a.gastosEfectivo ? '<br>Gastos pagados en efectivo: -' + U.dinero(a.gastosEfectivo) : '') +
         '<br>Efectivo esperado: ' + U.dinero(a.efectivoEsperado) +
         (a.efectivoContado !== null
           ? '<br>Efectivo contado: ' + U.dinero(a.efectivoContado) +
@@ -1321,6 +1541,7 @@
     Turnos: Turnos,
     Ventas: Ventas,
     Reportes: Reportes,
+    Gastos: Gastos,
     Usuarios: Usuarios,
     Auditoria: Auditoria,
     Config: Config,

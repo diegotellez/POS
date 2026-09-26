@@ -48,8 +48,8 @@ E = {
     'caja': ParagraphStyle('caja', fontName='Sans', fontSize=9.3, leading=13.5, textColor=TEXTO),
     'mono': ParagraphStyle('mono', fontName='Mono', fontSize=8.5, leading=12, textColor=TEXTO, backColor=GRIS_CLARO,
                            borderPadding=(6, 8, 6, 8), spaceBefore=4, spaceAfter=10, leftIndent=8, rightIndent=8),
-    'toc1': ParagraphStyle('toc1', fontName='Sans-Bold', fontSize=10, leading=13.2, textColor=NAVY, leftIndent=0),
-    'toc2': ParagraphStyle('toc2', fontName='Sans', fontSize=9, leading=11.4, textColor=TEXTO, leftIndent=16),
+    'toc1': ParagraphStyle('toc1', fontName='Sans-Bold', fontSize=9.5, leading=12, textColor=NAVY, leftIndent=0),
+    'toc2': ParagraphStyle('toc2', fontName='Sans', fontSize=8.6, leading=10.4, textColor=TEXTO, leftIndent=16),
 }
 
 

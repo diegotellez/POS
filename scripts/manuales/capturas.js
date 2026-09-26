@@ -20,6 +20,8 @@ const OUT = process.argv[2];
   // turno
   await ir('Turno de caja'); await page.fill('[name=base]', '100000'); await foto('u06-abrir-turno');
   await page.click('#form-abrir button'); await page.waitForSelector('#busqueda');
+  // categorías en ventas
+  await page.click('.chip >> text=Medicamentos'); await foto('u02b-categorias'); await page.click('.chip >> text=Todas');
   // ventas: varias
   const vender = async (codigos, pagos) => {
     for (const c of codigos) { await page.fill('#busqueda', c); await page.press('#busqueda', 'Enter'); }
@@ -51,6 +53,14 @@ const OUT = process.argv[2];
   await page.fill('#busqueda', '7709999000011'); await page.press('#busqueda', 'Enter');
   await foto('u19-no-encontrado');
   await page.fill('#busqueda', '');
+  // gastos del turno
+  await ir('Turno de caja');
+  const gasto = async (c, t, m, met) => { await page.fill('#form-gasto [name=concepto]', c); await page.selectOption('#form-gasto [name=tipo]', t); await page.fill('#form-gasto [name=monto]', m); await page.selectOption('#form-gasto [name=metodoPago]', met); await page.click('#form-gasto button'); };
+  await gasto('Pedido Distribuidora Andina factura 4581', 'Pedido a proveedor', '32000', 'EFECTIVO');
+  await gasto('Domicilio a cliente', 'Domicilios y transporte', '4000', 'EFECTIVO');
+  await gasto('Pedido Tecnoquímicas', 'Pedido a proveedor', '85000', 'TRANSFERENCIA');
+  await page.click('details.ajuste-base summary');
+  await foto('u06b-gastos', { fullPage: true });
   // historial
   await ir('Historial de ventas'); await foto('u05-historial');
   await page.click('[data-anular]'); await page.fill('[name=motivo]', 'El cliente devolvió el producto'); await foto('u05b-anular');
@@ -84,7 +94,7 @@ const OUT = process.argv[2];
   // respaldo
   await ir('Respaldo y configuración'); await foto('u16-respaldo');
   // turno abierto y cierre
-  await ir('Turno de caja'); await page.fill('[name=efectivo]', '139500'); await foto('u07a-cerrar');
+  await ir('Turno de caja'); await page.fill('[name=efectivo]', '103500'); await foto('u07a-cerrar');
   await page.click('#form-cerrar button'); await foto('u07b-confirmar');
   await page.click('.modal .boton-primario'); await page.waitForTimeout(600);
   const waUrl = popups[popups.length - 1].url(); await popups[popups.length - 1].close();
@@ -92,6 +102,7 @@ const OUT = process.argv[2];
   require('fs').writeFileSync(OUT + '/mensaje.txt', decodeURIComponent(waUrl.split('text=')[1]));
   // reportes
   await ir('Reportes'); await foto('u14-reportes', { fullPage: true });
+  await page.click('[data-p=mensual]'); await foto('u14b-mensual', { fullPage: true });
   // auditoria
   await ir('Auditoría'); await foto('u18-auditoria');
   // cierre publico movil

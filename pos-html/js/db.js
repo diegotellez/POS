@@ -10,7 +10,7 @@
 
   var CLAVE = 'pos_html_db_v1';
   var VERSION = 1;
-  var TABLAS = ['categorias', 'productos', 'usuarios', 'turnos', 'clientes', 'ventas', 'movimientos', 'auditoria'];
+  var TABLAS = ['categorias', 'productos', 'usuarios', 'turnos', 'clientes', 'ventas', 'movimientos', 'auditoria', 'gastos'];
 
   var CONFIG_POR_DEFECTO = {
     nombreNegocio: 'Mi Negocio',

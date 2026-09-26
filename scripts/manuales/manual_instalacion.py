@@ -198,7 +198,7 @@ h += [viñetas([
 ])]
 h += [h2('5.5 Auditoría y control')]
 h += [p('En <b>Auditoría</b> se registran las acciones sensibles: inicios de sesión, cambios de precio, entradas y ajustes de '
-        'inventario, anulaciones de venta, cambios de productos (y devoluciones de dinero autorizadas), aperturas, cierres y reaperturas de turno, creación y cambios de usuarios y cambios '
+        'inventario, gastos del turno y sus anulaciones, correcciones de la base, anulaciones de venta, cambios de productos (y devoluciones de dinero autorizadas), aperturas, cierres y reaperturas de turno, creación y cambios de usuarios y cambios '
         'de configuración. Revísela periódicamente, en especial las anulaciones y los ajustes manuales de inventario.')]
 h += [figura(C + '/u18-auditoria.jpg', 'Figura 4. Registro de auditoría.', alto_max=8.5 * cm)]
 h += [h2('5.6 Corregir un cierre de caja hecho por error')]

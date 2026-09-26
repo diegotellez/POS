@@ -43,6 +43,7 @@
       filas([
         ['Base inicial', $(a.baseInicial)],
         ['Ventas en efectivo', $(a.efectivoVentas)],
+        ['Gastos en efectivo', a.gastosEfectivo ? '-' + $(a.gastosEfectivo) : $(0)],
         ['Efectivo esperado', $(a.efectivoEsperado)],
         ['Efectivo contado', a.efectivoContado === null ? '—' : $(a.efectivoContado)],
         ['Diferencia', a.diferencia === null ? '—' : '<span class="' + (a.diferencia < 0 ? 'alerta' : '') + '">' + $(a.diferencia) + '</span>']
@@ -54,6 +55,11 @@
         : '') +
       '</div>' +
 
+      (r.gastos.cantidad
+        ? '<h3>Gastos y pedidos pagados (' + $(r.gastos.total) + ')</h3>' + filas(r.gastos.lista.map(function (g) {
+          return [U.esc(g.concepto) + ' <small class="tenue">' + U.esc(g.metodo_pago.toLowerCase()) + '</small>', $(g.monto)];
+        }))
+        : '') +
       '<h3>Productos vendidos (' + r.porProducto.length + ')</h3>' +
       (r.porProducto.length
         ? '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Producto</th><th class="num">Cant.</th><th class="num">Total</th></tr></thead><tbody>' +

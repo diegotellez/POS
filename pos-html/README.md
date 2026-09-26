@@ -74,8 +74,12 @@ Son las mismas de la versión Angular + Express:
   autorizar una devolución excepcional, con motivo. El cambio se registra en el
   turno del día, ajusta el inventario, tiene su comprobante y aparece en el
   cierre y en Auditoría.
-- **Turno de caja**: apertura con base inicial y cierre con arqueo
-  (efectivo esperado contra contado, marcando faltante o sobrante). El resumen
+- **Turno de caja**: apertura con base inicial (la puede poner un cajero si no
+  está el administrador, y corregirla después con motivo) y cierre con arqueo
+  (efectivo esperado contra contado, marcando faltante o sobrante).
+- **Gastos y pedidos pagados** en cada turno: concepto, tipo, valor y método de
+  pago. Lo pagado en efectivo se descuenta del efectivo esperado; aparecen en el
+  cierre, el WhatsApp del dueño y los reportes. El administrador los puede anular. El resumen
   del cierre lista **todos** los productos vendidos. Si hay un número de
   WhatsApp configurado, al cerrar se abre WhatsApp con ese número y un mensaje
   corto ya escrito (lo vendido, formas de pago y cuadre de caja) con un enlace
@@ -91,6 +95,11 @@ Son las mismas de la versión Angular + Express:
 - **Inventario**: compras (entrada de mercancía) con enlace "Nuevo producto"
   para crear en el momento lo que llegó y no existía, ajustes manuales,
   historial de movimientos y alertas de stock bajo.
+- **Ventas mensuales**: total, ventas, promedio diario, ticket promedio, mejor
+  día, gráfico por día, por categoría, por método de pago, gastos y ventas menos
+  gastos; imprimible y exportable a CSV.
+- **Categorías al vender**: cada producto muestra su categoría y hay un filtro
+  por categoría principal encima de la lista.
 - **Reportes por turno**: totales, desglose por método de pago, por usuario y
   por producto, e impresión o **Guardar como PDF**. También exporta a CSV y
   envía un resumen por WhatsApp (`wa.me`).

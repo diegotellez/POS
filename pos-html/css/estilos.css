@@ -452,3 +452,34 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
   .lateral, .barra, .avisos { display: none !important; }
   .principal { margin-left: 0; }
 }
+
+/* Gráfico de ventas mensuales (una serie; escala desde 0) */
+.grafico-contenedor { position: relative; margin-bottom: 8px; }
+.grafico-mes { width: 100%; height: auto; display: block; }
+.g-barra { fill: var(--primario); pointer-events: none; }
+.g-zona { fill: transparent; cursor: default; }
+.g-zona:hover { fill: var(--hover); fill-opacity: 0.5; }
+.g-rejilla { stroke: var(--borde); stroke-width: 1; }
+.g-base { stroke: var(--borde-fuerte); stroke-width: 1; }
+.g-eje { fill: var(--texto-cuerpo); font-size: 11px; font-variant-numeric: tabular-nums; }
+.g-tooltip {
+  position: absolute; pointer-events: none; background: var(--secundario); color: #fff;
+  font-size: 12.5px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; box-shadow: var(--sombra);
+}
+
+/* Gastos del turno y categorías en ventas */
+.gastos-turno { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.form-gasto { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 12px; }
+.form-gasto .campo { margin-bottom: 0; }
+.form-gasto .campo:first-child { grid-column: 1 / -1; }
+@media (max-width: 760px) { .form-gasto { grid-template-columns: 1fr 1fr; } }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
+.chip {
+  flex-shrink: 0; font: inherit; font-size: 13px; padding: 5px 12px; border-radius: var(--radio-pill);
+  border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--texto); cursor: pointer; white-space: nowrap;
+}
+.chip:hover { background: var(--hover); }
+.chip.activa { background: var(--secundario); border-color: var(--secundario); color: #fff; }
+.cat-item { font-size: 11.5px; font-weight: 600; color: var(--primario-oscuro); }
+.fila-ajuste-base { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.fila-ajuste-base .campo { margin-bottom: 0; flex: 1 1 140px; }

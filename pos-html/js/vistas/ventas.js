@@ -7,6 +7,7 @@
   // pantalla, a recargar la página y a cerrar sesión, hasta que se cobre o vacíe.
   var CLAVE_CARRITO = 'pos_html_carrito';
   var carrito = leerCarrito();
+  var categoriaVenta = 0; // categoría principal elegida en la lista de productos (0 = todas)
 
   function leerCarrito() {
     try {
@@ -47,6 +48,7 @@
           '<a class="boton boton-texto" href="#/turno">Abrir turno</a></div>'
         : '<p class="tenue pequeno">Turno #' + turno.id + ' abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
       (esAdmin ? '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-producto">' + U.icono('mas') + ' Agregar producto nuevo</button>' : '') +
+      '<div id="chips-categorias" class="chips" role="toolbar" aria-label="Filtrar por categoría"></div>' +
       '<div id="resultados" class="lista-resultados"></div>' +
       '</section>' +
       '<section class="tarjeta columna-carrito">' +
@@ -63,16 +65,58 @@
     var input = U.$('#busqueda', cont);
     var resultados = U.$('#resultados', cont);
     var listaActual = [];
+    var chips = U.$('#chips-categorias', cont);
+
+    // Categorías principales (raíz) con productos activos; cada una incluye sus subcategorías.
+    var categorias = POS.Categorias.listar();
+    function raizDe(id) {
+      var c = categorias.filter(function (x) { return x.id === id; })[0];
+      while (c && c.categoria_padre_id) {
+        var padre = categorias.filter(function (x) { return x.id === c.categoria_padre_id; })[0];
+        if (!padre) break;
+        c = padre;
+      }
+      return c || null;
+    }
+    var conteo = {};
+    POS.Productos.listar({ soloActivos: true }).forEach(function (p) {
+      var r = p.categoria_id ? raizDe(p.categoria_id) : null;
+      if (r) conteo[r.id] = (conteo[r.id] || 0) + 1;
+    });
+    var raices = categorias.filter(function (c) { return !c.categoria_padre_id && conteo[c.id]; });
+    if (categoriaVenta && !conteo[categoriaVenta]) categoriaVenta = 0;
+
+    function pintarChips() {
+      chips.innerHTML = '<button type="button" class="chip' + (!categoriaVenta ? ' activa' : '') + '" data-cat="0">Todas</button>' +
+        raices.map(function (c) {
+          return '<button type="button" class="chip' + (categoriaVenta === c.id ? ' activa' : '') + '" data-cat="' + c.id + '">' + U.esc(c.nombre) + '</button>';
+        }).join('');
+    }
+    chips.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-cat]') : null;
+      if (!b) return;
+      categoriaVenta = Number(b.getAttribute('data-cat'));
+      pintarChips();
+      pintarResultados();
+      input.focus();
+    });
+
+    function enCategoria(p) {
+      if (!categoriaVenta) return true;
+      var r = p.categoria_id ? raizDe(p.categoria_id) : null;
+      return !!r && r.id === categoriaVenta;
+    }
 
     function pintarResultados() {
       var termino = input.value.trim();
-      listaActual = termino ? POS.Productos.buscar(termino) : [];
+      listaActual = termino ? POS.Productos.buscar(termino).filter(enCategoria) : [];
       if (!termino) {
-        // Sin búsqueda: mostrar el catálogo activo para vender con clics.
-        // Sin búsqueda: primero los que ya tienen precio.
+        // Sin búsqueda: con una categoría elegida se ve toda la categoría (primero lo que
+        // tiene precio); sin categoría, los productos con precio para vender con clics.
         listaActual = POS.Productos.listar({ soloActivos: true })
-          .filter(function (p) { return p.precio_venta > 0; })
-          .slice(0, 60);
+          .filter(function (p) { return enCategoria(p) && (categoriaVenta || p.precio_venta > 0); })
+          .sort(function (a, b) { return (b.precio_venta > 0) - (a.precio_venta > 0); })
+          .slice(0, categoriaVenta ? 150 : 60);
       }
       if (!listaActual.length) {
         resultados.innerHTML = '<div class="vacio"><p class="tenue">No se encontraron productos' + (termino ? ' para "' + U.esc(termino) + '"' : '') + '.</p>' +
@@ -87,7 +131,8 @@
       resultados.innerHTML = listaActual.map(function (p, i) {
         var bajo = POS.Productos.stockBajo(p);
         return '<button type="button" class="item-producto" data-i="' + i + '">' +
-          '<span class="item-info"><strong>' + U.esc(p.nombre) + '</strong>' +
+          '<span class="item-info">' + (p.categoria_nombre ? '<span class="cat-item">' + U.esc(p.categoria_nombre) + '</span>' : '') +
+          '<strong>' + U.esc(p.nombre) + '</strong>' +
           '<small class="tenue">' + U.esc(p.codigo_barras || p.codigo_interno) + ' · ' +
           '<span class="' + (bajo ? 'alerta' : '') + '">Stock: ' + p.stock + '</span></small></span>' +
           (p.precio_venta > 0
@@ -227,6 +272,7 @@
     document.addEventListener('keydown', onTecla);
     App.alSalir(function () { document.removeEventListener('keydown', onTecla); });
 
+    pintarChips();
     pintarResultados();
     pintarCarrito();
     input.focus();
