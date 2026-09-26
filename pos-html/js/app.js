@@ -6,7 +6,10 @@
 (function (global) {
   'use strict';
 
+  var VERSION_APP = '2.0';
+
   var App = {
+    version: VERSION_APP,
     vistas: {},
     // Orden del menú lateral
     menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
@@ -76,6 +79,7 @@
       (!DB.persistente
         ? '<p class="nota nota-alerta">Este navegador no permite guardar datos locales (¿modo privado?). Lo que registres se perderá al cerrar la pestaña.</p>'
         : '') +
+      '<p class="tenue pequeno version-app">Versión ' + VERSION_APP + '</p>' +
       '</form>';
     var form = document.getElementById('form-login');
     form.addEventListener('submit', function (e) {

@@ -49,6 +49,7 @@
       '<p class="tenue">Los datos se guardan <strong>en este navegador, en este equipo</strong>. Si se borran los datos del navegador se pierden, así que descarga un respaldo con frecuencia (por ejemplo al cerrar cada turno) y guárdalo en una USB o en una carpeta sincronizada con Google Drive.</p>' +
       '<div class="uso"><div class="uso-barra"><span style="width:' + pct + '%"></span></div>' +
       '<small class="tenue">Espacio usado: ' + kb(tam) + ' de ~' + kb(LIMITE_APROX) + ' (' + pct + '%)</small></div>' +
+      '<p class="tenue pequeno">Versión del sistema: ' + App.version + '</p>' +
       '<p class="tenue pequeno">Si la descarga no arranca, usa "Copiar respaldo" y pega el texto en un archivo .json.</p>' +
       (!DB.persistente ? '<p class="alerta">Este navegador no permite guardar datos (¿modo privado?). Descarga un respaldo antes de cerrar.</p>' : '') +
       '<div class="acciones-reporte">' +

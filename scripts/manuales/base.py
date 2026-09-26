@@ -18,6 +18,10 @@ pdfmetrics.registerFont(TTFont('Sans', F + 'DejaVuSans.ttf'))
 pdfmetrics.registerFont(TTFont('Sans-Bold', F + 'DejaVuSans-Bold.ttf'))
 pdfmetrics.registerFont(TTFont('Mono', F + 'DejaVuSansMono.ttf'))
 from reportlab.pdfbase.pdfmetrics import registerFontFamily
+
+# Versión que se imprime en la portada de los manuales.
+VERSION = '2.0'
+FECHA_VERSION = 'Septiembre de 2026'
 registerFontFamily('Sans', normal='Sans', bold='Sans-Bold', italic='Sans', boldItalic='Sans-Bold')
 
 NAVY = colors.HexColor('#17303B')
@@ -94,7 +98,7 @@ class Documento(BaseDocTemplate):
         c.setFillColor(GRIS)
         c.setFont('Sans', 9)
         c.drawString(MARGEN, 2.2 * cm, 'Sistema POS · versión HTML/CSS/JS (sin instalación ni servidor)')
-        c.drawRightString(ANCHO - MARGEN, 2.2 * cm, 'Versión 1.0 · Septiembre de 2026')
+        c.drawRightString(ANCHO - MARGEN, 2.2 * cm, 'Versión %s · %s' % (VERSION, FECHA_VERSION))
         c.restoreState()
 
     def _pagina(self, c, doc):

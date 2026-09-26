@@ -1,7 +1,18 @@
 # Sistema POS — versión HTML/CSS/JS
 
+**Versión 2.0** (septiembre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.0
+
+- Categorías visibles al vender, con filtro por categoría principal.
+- El cajero puede poner y corregir la base cuando no está el administrador.
+- Reporte de ventas mensuales.
+- Gastos y pedidos pagados en cada turno, descontados del efectivo esperado.
+- Cambios de productos desde el historial (sin devolución de dinero, salvo excepción autorizada).
+- Productos de la vitrina de maquillaje y de la nevera en el catálogo base.
 
 ## Cómo usarlo
 
