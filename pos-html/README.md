@@ -1,9 +1,14 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.0** (septiembre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.1
+
+- Ventas: todas las categorías arriba (ordenadas y sin scroll), búsqueda debajo y
+  búsqueda en una o varias categorías.
 
 ## Novedades de la versión 2.0
 
@@ -109,8 +114,12 @@ Son las mismas de la versión Angular + Express:
 - **Ventas mensuales**: total, ventas, promedio diario, ticket promedio, mejor
   día, gráfico por día, por categoría, por método de pago, gastos y ventas menos
   gastos; imprimible y exportable a CSV.
-- **Categorías al vender**: cada producto muestra su categoría y hay un filtro
-  por categoría principal encima de la lista.
+- **Categorías al vender**: arriba de Ventas están todas las categorías en orden
+  alfabético, a la vista sin scroll; debajo, la barra de búsqueda. Se pueden
+  elegir una o varias categorías (cada una incluye sus subcategorías) y la
+  búsqueda se hace solo en ellas; sin ninguna elegida, busca en todas. Encima de
+  los resultados se indica dónde se está buscando. El lector de código de barras
+  encuentra el producto sin importar el filtro.
 - **Reportes por turno**: totales, desglose por método de pago, por usuario y
   por producto, e impresión o **Guardar como PDF**. También exporta a CSV y
   envía un resumen por WhatsApp (`wa.me`).

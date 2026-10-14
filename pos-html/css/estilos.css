@@ -271,7 +271,8 @@ textarea { resize: vertical; }
 .columna-carrito { position: sticky; top: 76px; display: flex; flex-direction: column; max-height: calc(100vh - 96px); }
 .campo-busqueda input { font-size: 17px; min-height: 48px; }
 
-.lista-resultados { display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 260px); overflow-y: auto; }
+/* La lista crece con la página (el ticket queda fijo a la derecha). */
+.lista-resultados { display: flex; flex-direction: column; gap: 6px; }
 .item-producto {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; text-align: left; font: inherit; color: inherit;
@@ -432,7 +433,7 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 @media (max-width: 960px) {
   .venta-layout { grid-template-columns: 1fr; }
   .columna-carrito { position: static; max-height: none; }
-  .lista-resultados { max-height: 45vh; }
+  .lista-resultados { max-height: 45vh; overflow-y: auto; }
 }
 
 @media (max-width: 760px) {
@@ -473,9 +474,13 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .form-gasto .campo { margin-bottom: 0; }
 .form-gasto .campo:first-child { grid-column: 1 / -1; }
 @media (max-width: 760px) { .form-gasto { grid-template-columns: 1fr 1fr; } }
-.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
+.cab-categorias { display: flex; justify-content: space-between; align-items: center; min-height: 24px; margin-bottom: 4px; }
+.cab-categorias .boton-texto { padding: 2px 6px; min-height: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.chip-n { font-size: 11px; opacity: .7; margin-left: 2px; }
+.resumen-busqueda { font-size: 13px; color: var(--texto-cuerpo); margin: 4px 0 8px; }
 .chip {
-  flex-shrink: 0; font: inherit; font-size: 13px; padding: 5px 12px; border-radius: var(--radio-pill);
+  flex-shrink: 0; font: inherit; font-size: 12.5px; padding: 3px 9px; border-radius: var(--radio-pill);
   border: 1px solid var(--borde-fuerte); background: var(--superficie); color: var(--texto); cursor: pointer; white-space: nowrap;
 }
 .chip:hover { background: var(--hover); }

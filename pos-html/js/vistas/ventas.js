@@ -7,7 +7,7 @@
   // pantalla, a recargar la página y a cerrar sesión, hasta que se cobre o vacíe.
   var CLAVE_CARRITO = 'pos_html_carrito';
   var carrito = leerCarrito();
-  var categoriaVenta = 0; // categoría principal elegida en la lista de productos (0 = todas)
+  var categoriasVenta = []; // categorías principales elegidas para buscar (vacío = todas)
 
   function leerCarrito() {
     try {
@@ -37,6 +37,9 @@
     cont.innerHTML =
       '<div class="venta-layout">' +
       '<section class="tarjeta columna-productos">' +
+      '<div class="cab-categorias"><span class="tenue pequeno">Categorías</span>' +
+      '<button type="button" class="boton boton-texto pequeno" id="btn-todas-cat" hidden>Quitar filtro</button></div>' +
+      '<div id="chips-categorias" class="chips" role="group" aria-label="Filtrar por categoría"></div>' +
       '<label class="campo campo-busqueda">' +
       '<span>Buscar o escanear producto</span>' +
       '<div class="con-icono">' + U.icono('buscar') +
@@ -48,7 +51,7 @@
           '<a class="boton boton-texto" href="#/turno">Abrir turno</a></div>'
         : '<p class="tenue pequeno">Turno #' + turno.id + ' abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
       (esAdmin ? '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-producto">' + U.icono('mas') + ' Agregar producto nuevo</button>' : '') +
-      '<div id="chips-categorias" class="chips" role="toolbar" aria-label="Filtrar por categoría"></div>' +
+      '<p id="resumen-busqueda" class="resumen-busqueda" aria-live="polite"></p>' +
       '<div id="resultados" class="lista-resultados"></div>' +
       '</section>' +
       '<section class="tarjeta columna-carrito">' +
@@ -67,58 +70,108 @@
     var listaActual = [];
     var chips = U.$('#chips-categorias', cont);
 
-    // Categorías principales (raíz) con productos activos; cada una incluye sus subcategorías.
+    // Todas las categorías con productos activos (principales y subcategorías), en
+    // orden alfabético y a la vista, sin scroll. Una categoría incluye sus subcategorías.
     var categorias = POS.Categorias.listar();
-    function raizDe(id) {
-      var c = categorias.filter(function (x) { return x.id === id; })[0];
-      while (c && c.categoria_padre_id) {
-        var padre = categorias.filter(function (x) { return x.id === c.categoria_padre_id; })[0];
-        if (!padre) break;
-        c = padre;
+    var porId = {};
+    categorias.forEach(function (c) { porId[c.id] = c; });
+    function cadenaDe(id) {
+      var ids = [];
+      var c = porId[id];
+      while (c && ids.indexOf(c.id) === -1) {
+        ids.push(c.id);
+        c = c.categoria_padre_id ? porId[c.categoria_padre_id] : null;
       }
-      return c || null;
+      return ids;
     }
     var conteo = {};
     POS.Productos.listar({ soloActivos: true }).forEach(function (p) {
-      var r = p.categoria_id ? raizDe(p.categoria_id) : null;
-      if (r) conteo[r.id] = (conteo[r.id] || 0) + 1;
+      if (p.categoria_id) cadenaDe(p.categoria_id).forEach(function (id) { conteo[id] = (conteo[id] || 0) + 1; });
     });
-    var raices = categorias.filter(function (c) { return !c.categoria_padre_id && conteo[c.id]; });
-    if (categoriaVenta && !conteo[categoriaVenta]) categoriaVenta = 0;
+    var chipsCat = categorias.filter(function (c) { return conteo[c.id]; })
+      .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }); });
+    categoriasVenta = categoriasVenta.filter(function (id) { return conteo[id]; });
+    var btnTodas = U.$('#btn-todas-cat', cont);
+    var resumen = U.$('#resumen-busqueda', cont);
+
+    function elegida(id) { return categoriasVenta.indexOf(id) !== -1; }
 
     function pintarChips() {
-      chips.innerHTML = '<button type="button" class="chip' + (!categoriaVenta ? ' activa' : '') + '" data-cat="0">Todas</button>' +
-        raices.map(function (c) {
-          return '<button type="button" class="chip' + (categoriaVenta === c.id ? ' activa' : '') + '" data-cat="' + c.id + '">' + U.esc(c.nombre) + '</button>';
+      chips.innerHTML = '<button type="button" class="chip' + (!categoriasVenta.length ? ' activa' : '') + '" data-cat="0" aria-pressed="' + !categoriasVenta.length + '">Todas</button>' +
+        chipsCat.map(function (c) {
+          var on = elegida(c.id);
+          return '<button type="button" class="chip' + (on ? ' activa' : '') + '" data-cat="' + c.id + '" aria-pressed="' + on + '">' +
+            U.esc(c.nombre) + ' <span class="chip-n">' + conteo[c.id] + '</span></button>';
         }).join('');
+      btnTodas.hidden = !categoriasVenta.length;
     }
+    // Cada clic marca o desmarca una categoría; se pueden combinar varias. "Todas" quita el filtro.
     chips.addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-cat]') : null;
       if (!b) return;
-      categoriaVenta = Number(b.getAttribute('data-cat'));
+      var id = Number(b.getAttribute('data-cat'));
+      if (!id) categoriasVenta = [];
+      else if (elegida(id)) categoriasVenta.splice(categoriasVenta.indexOf(id), 1);
+      else categoriasVenta.push(id);
+      pintarChips();
+      pintarResultados();
+      input.focus();
+    });
+    btnTodas.addEventListener('click', function () {
+      categoriasVenta = [];
       pintarChips();
       pintarResultados();
       input.focus();
     });
 
     function enCategoria(p) {
-      if (!categoriaVenta) return true;
-      var r = p.categoria_id ? raizDe(p.categoria_id) : null;
-      return !!r && r.id === categoriaVenta;
+      if (!categoriasVenta.length) return true;
+      return !!p.categoria_id && cadenaDe(p.categoria_id).some(elegida);
+    }
+
+    function nombresElegidas() {
+      return chipsCat.filter(function (c) { return elegida(c.id); }).map(function (c) { return c.nombre; });
+    }
+
+    function pintarResumen(termino, n, recortado) {
+      var donde = categoriasVenta.length
+        ? 'en <strong>' + U.esc(nombresElegidas().join(', ')) + '</strong>'
+        : 'en <strong>todas las categorías</strong>';
+      var cuantos = n + (recortado ? '+' : '') + ' producto' + (n === 1 ? '' : 's');
+      resumen.innerHTML = termino
+        ? cuantos + ' para "' + U.esc(termino) + '" ' + donde
+        : (categoriasVenta.length ? cuantos + ' ' + donde : 'Productos con precio ' + donde + ' · escribe para buscar');
     }
 
     function pintarResultados() {
       var termino = input.value.trim();
-      listaActual = termino ? POS.Productos.buscar(termino).filter(enCategoria) : [];
-      if (!termino) {
-        // Sin búsqueda: con una categoría elegida se ve toda la categoría (primero lo que
+      var hayCat = categoriasVenta.length > 0;
+      var tope = hayCat ? 200 : 60;
+      var todos;
+      if (termino) {
+        // La búsqueda se hace solo en las categorías elegidas; sin ninguna, en todas.
+        todos = POS.Productos.buscar(termino).filter(enCategoria);
+      } else {
+        // Sin texto: con categorías elegidas se ve todo lo que tienen (primero lo que
         // tiene precio); sin categoría, los productos con precio para vender con clics.
-        listaActual = POS.Productos.listar({ soloActivos: true })
-          .filter(function (p) { return enCategoria(p) && (categoriaVenta || p.precio_venta > 0); })
-          .sort(function (a, b) { return (b.precio_venta > 0) - (a.precio_venta > 0); })
-          .slice(0, categoriaVenta ? 150 : 60);
+        todos = POS.Productos.listar({ soloActivos: true })
+          .filter(function (p) { return enCategoria(p) && (hayCat || p.precio_venta > 0); })
+          .sort(function (a, b) { return (b.precio_venta > 0) - (a.precio_venta > 0); });
       }
+      listaActual = todos.slice(0, tope);
+      pintarResumen(termino, listaActual.length, todos.length > tope);
       if (!listaActual.length) {
+        if (termino && hayCat && POS.Productos.buscar(termino).length) {
+          resultados.innerHTML = '<div class="vacio"><p class="tenue">No hay "' + U.esc(termino) + '" en las categorías elegidas.</p>' +
+            '<button type="button" class="boton boton-secundario" id="btn-buscar-todas">Buscar en todas las categorías</button></div>';
+          U.$('#btn-buscar-todas', resultados).addEventListener('click', function () {
+            categoriasVenta = [];
+            pintarChips();
+            pintarResultados();
+            input.focus();
+          });
+          return;
+        }
         resultados.innerHTML = '<div class="vacio"><p class="tenue">No se encontraron productos' + (termino ? ' para "' + U.esc(termino) + '"' : '') + '.</p>' +
           (termino && esAdmin
             ? '<button type="button" class="boton boton-secundario" id="btn-crear-buscado">' + U.icono('mas') + ' Agregar "' + U.esc(termino) + '" como producto nuevo</button>'
