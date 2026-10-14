@@ -1,9 +1,15 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.1.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.2** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.2
+
+- Devolver / Cambiar en tres pasos: qué devuelve, qué se lleva a cambio (buscar o
+  escanear) y cuánto paga. Muestra devuelve / se lleva / paga, cobra el excedente
+  y en efectivo calcula el cambio a entregar.
 
 ## Novedades de la versión 2.1.1
 

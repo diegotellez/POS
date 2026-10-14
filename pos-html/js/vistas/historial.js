@@ -149,7 +149,6 @@
     var venta = POS.Ventas.obtener(ventaId);
     var esAdmin = usuario && usuario.rol === 'ADMINISTRADOR';
     var original = POS.Ventas.composicion(ventaId);
-    var valorActual = U.redondear(original.reduce(function (a, l) { return a + l.cantidad * l.precio; }, 0));
     // Nueva composición: parte de lo que el cliente tiene hoy.
     var lineas = original.map(function (l) { return { productoId: l.productoId, nombre: l.nombre, cantidad: l.cantidad, antes: l.cantidad, precio: l.precio }; });
 
@@ -159,24 +158,34 @@
       return p ? p.precio_venta : l.precio;
     }
     function diferencia() {
-      return U.redondear(lineas.reduce(function (a, l) {
-        var d = l.cantidad - l.antes;
-        return a + d * (d > 0 ? precioNuevo(l) : l.precio);
-      }, 0));
+      return U.redondear(valorLleva() - valorDevuelve());
+    }
+    function valorDevuelve() {
+      return U.redondear(lineas.reduce(function (a, l) { return a + Math.max(0, l.antes - l.cantidad) * l.precio; }, 0));
+    }
+    function valorLleva() {
+      return U.redondear(lineas.reduce(function (a, l) { return a + Math.max(0, l.cantidad - l.antes) * precioNuevo(l); }, 0));
     }
 
     U.modal({
-      titulo: 'Cambiar productos · venta #' + ventaId,
+      titulo: 'Devolver o cambiar productos · venta #' + ventaId,
       cuerpo:
-        '<p class="tenue pequeno">Venta del ' + U.esc(venta.fecha_hora) + '. Ajuste las cantidades de lo que el cliente devuelve y agregue lo que lleva a cambio. ' +
-        'Lo devuelto vuelve al inventario.</p>' +
+        '<p class="tenue pequeno">Venta del ' + U.esc(venta.fecha_hora) + '. Lo devuelto vuelve al inventario.</p>' +
+        '<h3 class="cb-paso"><span>1</span> ¿Qué devuelve el cliente?</h3>' +
+        '<p class="tenue pequeno cb-ayuda">Baje con <b>–</b> la cantidad del producto que devuelve.</p>' +
         '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Producto</th><th class="num">Tenía</th><th class="num">Queda</th><th class="num">Precio</th></tr></thead>' +
         '<tbody id="cb-filas"></tbody></table></div>' +
-        '<label class="campo"><span>Agregar producto (buscar o escanear)</span><input id="cb-buscar" autocomplete="off" placeholder="Nombre o código"></label>' +
+        '<div class="cb-lleva">' +
+        '<h3 class="cb-paso"><span>2</span> ¿Qué se lleva a cambio?</h3>' +
+        '<label class="campo campo-busqueda"><span>Buscar o escanear el producto nuevo</span><div class="con-icono">' + U.icono('buscar') +
+        '<input id="cb-buscar" autocomplete="off" placeholder="Nombre, código de barras o código interno"></div></label>' +
         '<div id="cb-resultados" class="lista-resultados cb-resultados"></div>' +
+        '<div id="cb-nuevos"></div>' +
+        '</div>' +
+        '<h3 class="cb-paso"><span>3</span> Diferencia</h3>' +
         '<div class="cb-resumen" id="cb-resumen"></div>' +
         '<div id="cb-diferencia"></div>' +
-        '<label class="campo"><span>Nota (opcional)</span><input id="cb-nota" placeholder="Ej. talla equivocada, cambio por otra marca"></label>',
+        '<label class="campo"><span>Nota (opcional)</span><input id="cb-nota" placeholder="Ej. cambio por otra presentación"></label>',
       botones: [
         { texto: 'Cancelar', clase: 'boton-secundario' },
         {
@@ -210,20 +219,33 @@
         U.$('.modal', raiz).classList.add('modal-ancho');
         var btnOk = U.$('.modal-acciones .boton-primario', raiz);
         var metodoPago = 'EFECTIVO';
+        var recibido = '';
         var devolver = false;
 
+        function filaHTML(l, i) {
+          var d = l.cantidad - l.antes;
+          var nuevo = l.antes === 0;
+          return '<tr class="' + (d < 0 ? 'fila-devuelve' : d > 0 ? 'fila-lleva' : '') + '">' +
+            '<td>' + U.esc(l.nombre) + (d < 0 ? ' <span class="etiqueta etiqueta-alerta">devuelve ' + (-d) + '</span>' : d > 0 && !nuevo ? ' <span class="etiqueta">lleva ' + d + ' más</span>' : '') + '</td>' +
+            (nuevo ? '' : '<td class="num">' + l.antes + '</td>') +
+            '<td class="num"><div class="controles-cantidad">' +
+            '<button type="button" class="boton-icono" data-menos="' + i + '" aria-label="Restar">' + U.icono('menos') + '</button>' +
+            '<input class="cantidad" type="number" min="0" step="1" value="' + l.cantidad + '" data-cant="' + i + '" aria-label="Cantidad">' +
+            '<button type="button" class="boton-icono" data-mas="' + i + '" aria-label="Sumar">' + U.icono('mas') + '</button></div></td>' +
+            '<td class="num">' + U.dinero(d > 0 ? precioNuevo(l) : l.precio) + '</td>' +
+            (nuevo ? '<td class="num">' + U.dinero(l.cantidad * precioNuevo(l)) + '</td>' +
+              '<td><button type="button" class="boton-icono" data-quitar="' + i + '" aria-label="Quitar">' + U.icono('borrar') + '</button></td>' : '') +
+            '</tr>';
+        }
+
         function pintarFilas() {
-          U.$('#cb-filas', raiz).innerHTML = lineas.map(function (l, i) {
-            var d = l.cantidad - l.antes;
-            return '<tr class="' + (d < 0 ? 'fila-devuelve' : d > 0 ? 'fila-lleva' : '') + '">' +
-              '<td>' + U.esc(l.nombre) + (d < 0 ? ' <span class="etiqueta etiqueta-alerta">devuelve ' + (-d) + '</span>' : d > 0 ? ' <span class="etiqueta">lleva ' + d + '</span>' : '') + '</td>' +
-              '<td class="num">' + l.antes + '</td>' +
-              '<td class="num"><div class="controles-cantidad">' +
-              '<button type="button" class="boton-icono" data-menos="' + i + '" aria-label="Restar">' + U.icono('menos') + '</button>' +
-              '<input class="cantidad" type="number" min="0" step="1" value="' + l.cantidad + '" data-cant="' + i + '" aria-label="Cantidad">' +
-              '<button type="button" class="boton-icono" data-mas="' + i + '" aria-label="Sumar">' + U.icono('mas') + '</button></div></td>' +
-              '<td class="num">' + U.dinero(d > 0 ? precioNuevo(l) : l.precio) + '</td></tr>';
-          }).join('');
+          var originales = [], nuevos = [];
+          lineas.forEach(function (l, i) { (l.antes > 0 ? originales : nuevos).push(filaHTML(l, i)); });
+          U.$('#cb-filas', raiz).innerHTML = originales.join('');
+          U.$('#cb-nuevos', raiz).innerHTML = nuevos.length
+            ? '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Se lleva</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th><th></th></tr></thead>' +
+              '<tbody>' + nuevos.join('') + '</tbody></table></div>'
+            : '<p class="tenue pequeno cb-ayuda">Aún no ha agregado productos. Si solo devuelve, deje esto vacío.</p>';
           pintarResumen();
         }
 
@@ -231,16 +253,21 @@
           var dif = diferencia();
           var cambios = lineas.some(function (l) { return l.cantidad !== l.antes; });
           U.$('#cb-resumen', raiz).innerHTML =
-            '<div><span>Valor de lo que tenía</span><strong>' + U.dinero(valorActual) + '</strong></div>' +
-            '<div><span>Diferencia</span><strong class="' + (dif < 0 ? 'alerta' : '') + '">' + U.dinero(dif) + '</strong></div>';
+            '<div><span>Devuelve</span><strong>' + U.dinero(valorDevuelve()) + '</strong></div>' +
+            '<div><span>Se lleva</span><strong>' + U.dinero(valorLleva()) + '</strong></div>' +
+            '<div><span>' + (dif > 0 ? 'Cliente paga' : dif < 0 ? 'Saldo a favor' : 'Diferencia') + '</span><strong class="' + (dif > 0 ? 'ok' : dif < 0 ? 'alerta' : '') + '">' + U.dinero(Math.abs(dif)) + '</strong></div>';
           var html = '';
           if (!cambios) {
             html = '<p class="tenue">Aún no hay cambios.</p>';
           } else if (dif > 0) {
-            html = '<div class="aviso-inline"><span>El cliente paga la diferencia: <strong>' + U.dinero(dif) + '</strong></span>' +
-              '<label class="campo cb-metodo"><span>Método</span><select id="cb-metodo">' +
+            html = '<div class="aviso-inline cb-paga"><span>El cliente paga el excedente: <strong>' + U.dinero(dif) + '</strong></span>' +
+              '<div class="fila-doble"><label class="campo cb-metodo"><span>Método de pago</span><select id="cb-metodo">' +
               POS.Ventas.METODOS_PAGO.map(function (m) { return '<option' + (m === metodoPago ? ' selected' : '') + '>' + m + '</option>'; }).join('') +
-              '</select></label></div>';
+              '</select></label>' +
+              (metodoPago === 'EFECTIVO'
+                ? '<label class="campo"><span>Paga con (opcional)</span><input id="cb-recibido" type="number" min="0" step="any" inputmode="numeric" placeholder="' + dif + '" value="' + U.esc(recibido) + '"></label>'
+                : '') +
+              '</div><div id="cb-vueltas" class="pequeno"></div></div>';
           } else if (dif < 0) {
             html = '<div class="aviso-inline cb-favor"><div><strong>Saldo a favor del cliente: ' + U.dinero(-dif) + '</strong><br>' +
               '<span class="pequeno">Norma del negocio: <b>no se devuelve dinero</b>. La diferencia queda registrada como saldo no devuelto.</span></div>' +
@@ -258,8 +285,18 @@
           }
           U.$('#cb-diferencia', raiz).innerHTML = html;
           btnOk.disabled = !cambios;
+          btnOk.textContent = dif > 0 ? 'Registrar y cobrar ' + U.dinero(dif) : 'Registrar cambio';
           var sel = U.$('#cb-metodo', raiz);
-          if (sel) sel.addEventListener('change', function () { metodoPago = sel.value; });
+          if (sel) sel.addEventListener('change', function () { metodoPago = sel.value; pintarResumen(); });
+          var rec = U.$('#cb-recibido', raiz);
+          function pintarVueltas() {
+            var caja = U.$('#cb-vueltas', raiz);
+            if (!caja) return;
+            var r = Number(recibido);
+            caja.innerHTML = recibido === '' ? '' : r < dif ? '<span class="alerta">Faltan ' + U.dinero(dif - r) + '</span>' : 'Cambio a entregar: <strong>' + U.dinero(r - dif) + '</strong>';
+          }
+          if (rec) rec.addEventListener('input', function () { recibido = rec.value; pintarVueltas(); });
+          pintarVueltas();
           var chk = U.$('#cb-devolver', raiz);
           if (chk) chk.addEventListener('change', function () { devolver = chk.checked; pintarResumen(); });
         }
@@ -275,26 +312,34 @@
           buscar.focus();
         }
 
-        U.$('#cb-filas', raiz).addEventListener('click', function (e) {
+        function alClicFila(e) {
           var b = e.target.closest ? e.target.closest('button') : null;
           if (!b) return;
+          if (b.hasAttribute('data-quitar')) lineas.splice(Number(b.getAttribute('data-quitar')), 1);
           if (b.hasAttribute('data-mas')) lineas[Number(b.getAttribute('data-mas'))].cantidad += 1;
           if (b.hasAttribute('data-menos')) { var l = lineas[Number(b.getAttribute('data-menos'))]; l.cantidad = Math.max(0, l.cantidad - 1); }
+          // Si bajó a 0 un producto agregado, se quita de la lista.
+          lineas = lineas.filter(function (l) { return l.antes > 0 || l.cantidad > 0; });
           pintarFilas();
-        });
-        U.$('#cb-filas', raiz).addEventListener('change', function (e) {
+        }
+        function alCambiarFila(e) {
           if (!e.target.hasAttribute('data-cant')) return;
           var n = Math.floor(Number(e.target.value));
           lineas[Number(e.target.getAttribute('data-cant'))].cantidad = n > 0 ? n : 0;
+          lineas = lineas.filter(function (l) { return l.antes > 0 || l.cantidad > 0; });
           pintarFilas();
+        }
+        ['#cb-filas', '#cb-nuevos'].forEach(function (sel) {
+          U.$(sel, raiz).addEventListener('click', alClicFila);
+          U.$(sel, raiz).addEventListener('change', alCambiarFila);
         });
 
         var buscar = U.$('#cb-buscar', raiz);
         var encontrados = [];
         buscar.addEventListener('input', function () {
-          encontrados = POS.Productos.buscar(buscar.value).slice(0, 8);
+          encontrados = buscar.value.trim() ? POS.Productos.buscar(buscar.value).filter(function (p) { return p.activo !== false; }).slice(0, 8) : [];
           U.$('#cb-resultados', raiz).innerHTML = encontrados.map(function (p, i) {
-            return '<button type="button" class="item-producto" data-agregar="' + i + '"><span class="item-info"><strong>' + U.esc(p.nombre) + '</strong>' +
+            return '<button type="button" class="item-producto" data-agregar="' + i + '"><span class="item-info">' + (p.categoria_nombre ? '<span class="cat-item">' + U.esc(p.categoria_nombre) + '</span>' : '') + '<strong>' + U.esc(p.nombre) + '</strong>' +
               '<small class="tenue">Stock: ' + p.stock + '</small></span><span class="' + (p.precio_venta > 0 ? 'precio' : 'sin-precio') + '">' +
               (p.precio_venta > 0 ? U.dinero(p.precio_venta) : 'Sin precio') + '</span></button>';
           }).join('');

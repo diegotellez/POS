@@ -153,14 +153,17 @@ h += [viñetas([
 ])]
 h += [figura(C + '/u05-historial.jpg', 'Figura 9. Historial de ventas del turno.', alto_max=8 * cm)]
 h += [h2('5.1 Devolver o cambiar productos de una venta')]
-h += [p('Cuando un cliente vuelve para cambiar productos, busque la venta en el Historial y pulse <b>Devolver / Cambiar</b>. Para devolver un solo producto basta con bajar su cantidad y registrar, sin agregar nada. Se abre la lista de '
-        'lo que el cliente tiene hoy de esa venta (incluidos cambios anteriores).')]
+h += [p('Cuando un cliente vuelve para cambiar productos, busque la venta en el Historial y pulse <b>Devolver / Cambiar</b>. '
+        'La ventana tiene tres pasos numerados y parte de lo que el cliente tiene hoy de esa venta (incluidos cambios anteriores).')]
 h += [pasos([
-    'Baje la cantidad de lo que el cliente <b>devuelve</b> (con el botón – o escribiendo la cantidad). La fila se marca "devuelve".',
-    'Agregue lo que <b>lleva a cambio</b> buscándolo o escaneándolo en <i>Agregar producto</i>. La fila se marca "lleva".',
-    'Revise la <b>diferencia</b> y registre el cambio. Si quiere, imprima el comprobante del cambio.',
+    '<b>¿Qué devuelve el cliente?</b> Baje con el botón – (o escribiendo) la cantidad del producto que trae. La fila se marca "devuelve".',
+    '<b>¿Qué se lleva a cambio?</b> En el recuadro punteado, busque por nombre o escanee el código de barras del producto nuevo y tóquelo. '
+    'Aparece en la lista <i>Se lleva</i>, donde puede cambiar la cantidad o quitarlo con la papelera. Si solo devuelve, deje este paso vacío.',
+    '<b>Diferencia.</b> Se ve cuánto <b>devuelve</b>, cuánto <b>se lleva</b> y cuánto <b>paga</b> el cliente. Si se lleva algo más caro, '
+    'elija el método de pago del excedente; en efectivo puede escribir con cuánto paga y el sistema calcula el cambio a entregar.',
+    'Pulse <b>Registrar y cobrar</b> (o <b>Registrar cambio</b> si no hay excedente). Si quiere, imprima el comprobante.',
 ])]
-h += [figura(C + '/u05c-cambio.jpg', 'Figura 10. Cambio: devuelve un producto y lleva otro; el cliente paga la diferencia.', alto_max=11 * cm, recorte=(0.16, 0.08, 0.84, 0.96))]
+h += [figura(C + '/u05c-cambio.jpg', 'Figura 10. Devuelve un producto y se lleva otro más caro: el cliente paga el excedente.', alto_max=11 * cm, recorte=(0.16, 0.08, 0.84, 0.96))]
 h += [tabla(['Diferencia', 'Qué hace el sistema'], [
     ['El cliente lleva más valor', 'Cobra la diferencia con el método de pago elegido (efectivo, tarjeta o transferencia).'],
     ['El cliente lleva menos valor', '<b>Norma: no se devuelve dinero.</b> La diferencia queda registrada como "saldo a favor no devuelto" y así lo dice el comprobante.'],

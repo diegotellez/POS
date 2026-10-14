@@ -414,7 +414,17 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .etiqueta-cambio { background: var(--suave); color: var(--enfasis); }
 .fila-devuelve td { background: var(--alerta-fondo); }
 .fila-lleva td { background: var(--exito-fondo); }
-.cb-resultados { max-height: 180px; margin-bottom: 10px; }
+.cb-resultados { max-height: 220px; overflow-y: auto; margin-bottom: 10px; }
+.cb-paso { display: flex; align-items: center; gap: 8px; font-size: 15px; margin: 16px 0 6px; }
+.cb-paso span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--secundario); color: #fff; font-size: 12px; }
+.cb-ayuda { margin: 0 0 6px; }
+.cb-lleva { border: 1px dashed var(--borde-fuerte); border-radius: 10px; padding: 2px 12px 10px; margin-top: 12px; }
+.cb-lleva .cb-paso { margin-top: 10px; }
+.cb-paga { flex-direction: column; align-items: stretch; background: var(--suave); border-color: var(--borde); color: var(--texto); }
+.cb-paga .fila-doble { margin-top: 6px; flex-direction: row; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.cb-paga .fila-doble .campo { margin: 0; min-width: 0; flex: 1 1 160px; }
+.cb-paga #cb-vueltas { margin-top: 6px; }
+.cb-paga #cb-vueltas:empty { display: none; }
 .cb-resumen { display: flex; gap: 12px; flex-wrap: wrap; margin: 6px 0 10px; }
 .cb-resumen > div { flex: 1 1 160px; background: var(--suave); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; }
 .cb-resumen span { font-size: 12.5px; color: var(--texto-cuerpo); }
