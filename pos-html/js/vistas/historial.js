@@ -24,7 +24,7 @@
       '<label class="campo"><span>Hasta</span><input type="date" id="f-hasta"></label>' +
       '</div>' +
       '<div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
-      '<th>#</th><th>Fecha</th><th>Usuario</th><th>Cliente</th><th class="num">Total</th><th>Pago</th><th>Estado</th><th></th>' +
+      '<th>#</th><th>Fecha</th><th class="col-opc">Usuario</th><th class="col-opc">Cliente</th><th class="num">Total</th><th class="col-opc">Pago</th><th class="col-estado">Estado</th><th class="acciones-venta">Acciones</th>' +
       '</tr></thead><tbody id="filas"></tbody></table></div>' +
       '</section>';
 
@@ -45,20 +45,20 @@
         var anulada = v.estado === 'ANULADA';
         var esCambio = v.tipo === 'CAMBIO';
         return '<tr' + (anulada ? ' class="fila-anulada"' : '') + '>' +
-          '<td>' + v.id + (esCambio ? '<br><span class="etiqueta etiqueta-cambio">CAMBIO de #' + v.venta_origen_id + '</span>' : '') +
+          '<td>' + v.id + (anulada ? '<br><span class="etiqueta etiqueta-alerta solo-angosto">ANULADA</span>' : '') + (esCambio ? '<br><span class="etiqueta etiqueta-cambio">CAMBIO de #' + v.venta_origen_id + '</span>' : '') +
           (!esCambio && v.cambios && v.cambios.length ? '<br><small class="tenue">con ' + v.cambios.length + ' cambio(s)</small>' : '') + '</td>' +
           '<td>' + U.esc(v.fecha_hora) + '</td>' +
-          '<td>' + U.esc(v.nombre_usuario) + '</td>' +
-          '<td>' + U.esc(v.cliente_nombre || v.cliente_documento || '—') + '</td>' +
+          '<td class="col-opc">' + U.esc(v.nombre_usuario) + '</td>' +
+          '<td class="col-opc">' + U.esc(v.cliente_nombre || v.cliente_documento || '—') + '</td>' +
           '<td class="num">' + U.dinero(v.total) + '</td>' +
-          '<td>' + U.esc(v.pagos.map(function (p) { return p.metodo_pago; }).join(', ')) + '</td>' +
-          '<td>' + (anulada ? '<span class="etiqueta etiqueta-alerta" title="' + U.esc(v.motivo_anulacion) + '">ANULADA</span>' : '<span class="etiqueta">COMPLETADA</span>') + '</td>' +
-          '<td class="acciones">' +
+          '<td class="col-opc">' + U.esc(v.pagos.map(function (p) { return p.metodo_pago; }).join(', ')) + '</td>' +
+          '<td class="col-estado">' + (anulada ? '<span class="etiqueta etiqueta-alerta" title="' + U.esc(v.motivo_anulacion) + '">ANULADA</span>' : '<span class="etiqueta">COMPLETADA</span>') + '</td>' +
+          '<td class="acciones acciones-venta"><div class="acciones-fila">' +
           '<button class="boton-icono" data-ver="' + v.id + '" title="Ver detalle" aria-label="Ver detalle">' + U.icono('reporte') + '</button>' +
           '<button class="boton-icono" data-imprimir="' + v.id + '" title="Reimprimir" aria-label="Reimprimir">' + U.icono('imprimir') + '</button>' +
-          (!anulada ? '<button class="boton boton-texto" data-cambiar="' + (esCambio ? v.venta_origen_id : v.id) + '">Cambiar</button>' : '') +
+          (!anulada ? '<button class="boton boton-texto" data-cambiar="' + (esCambio ? v.venta_origen_id : v.id) + '" title="Devolver o cambiar productos de la venta">Devolver / Cambiar</button>' : '') +
           (!anulada && !esCambio && !(v.cambios && v.cambios.length) ? '<button class="boton boton-texto boton-peligro" data-anular="' + v.id + '">Anular</button>' : '') +
-          '</td></tr>';
+          '</div></td></tr>';
       }).join('');
     }
 
@@ -75,7 +75,7 @@
       if (btn.hasAttribute('data-imprimir')) {
         U.imprimirHTML(POS.Documentos.ticketHTML(POS.Ventas.obtener(btn.getAttribute('data-imprimir'))), 380);
       } else if (btn.hasAttribute('data-ver')) {
-        verDetalle(POS.Ventas.obtener(btn.getAttribute('data-ver')));
+        verDetalle(POS.Ventas.obtener(btn.getAttribute('data-ver')), usuario, pintar);
       } else if (btn.hasAttribute('data-anular')) {
         anular(Number(btn.getAttribute('data-anular')), pintar);
       } else if (btn.hasAttribute('data-cambiar')) {
@@ -86,9 +86,20 @@
     pintar();
   }
 
-  function verDetalle(v) {
+  function verDetalle(v, usuario, alTerminar) {
     var esCambio = v.tipo === 'CAMBIO';
+    var activa = v.estado !== 'ANULADA';
+    var origenId = esCambio ? v.venta_origen_id : v.id;
+    // Las acciones también están aquí, por si en pantallas angostas no se ven en la tabla.
+    var botones = [{ texto: 'Cerrar', clase: 'boton-secundario' }];
+    if (activa && !esCambio && !(v.cambios && v.cambios.length)) {
+      botones.unshift({ texto: 'Anular venta', clase: 'boton-texto boton-peligro', accion: function (cerrar) { cerrar(); anular(v.id, alTerminar); } });
+    }
+    if (activa) {
+      botones.push({ texto: 'Devolver / Cambiar productos', clase: 'boton-primario', accion: function (cerrar) { cerrar(); cambiar(origenId, usuario, alTerminar); } });
+    }
     U.modal({
+      botones: botones,
       titulo: esCambio ? 'Cambio #' + v.id + ' (venta #' + v.venta_origen_id + ')' : 'Venta #' + v.id,
       cuerpo:
         '<p class="tenue">' + U.esc(v.fecha_hora) + ' · ' + U.esc(v.nombre_usuario) + '</p>' +

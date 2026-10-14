@@ -146,13 +146,14 @@ h += [viñetas([
     '<b>Filtros</b>: turno, estado (completada / anulada) y rango de fechas.',
     '<b>Ver detalle</b> (icono de documento): productos, precios y pagos de la venta.',
     '<b>Reimprimir</b> (icono de impresora): vuelve a imprimir el ticket.',
-    '<b>Cambiar</b>: registra un cambio de productos de esa venta (sección 5.1).',
+    '<b>Devolver / Cambiar</b>: registra la devolución de uno o varios productos, o un cambio por otros (sección 5.1). '
+    'También está dentro de <b>Ver detalle</b>. En pantallas angostas se ocultan las columnas Usuario, Cliente y Pago para que los botones se vean siempre.',
     '<b>Anular</b>: cancela la venta completa. Pide el <b>motivo</b>, devuelve los productos al inventario y queda registrado en Auditoría. '
-    'Las ventas anuladas no suman en el cierre. Una venta que ya tiene cambios no se anula: se ajusta con Cambiar.',
+    'Las ventas anuladas no suman en el cierre. Una venta que ya tiene cambios no se anula: se ajusta con Devolver / Cambiar.',
 ])]
 h += [figura(C + '/u05-historial.jpg', 'Figura 9. Historial de ventas del turno.', alto_max=8 * cm)]
-h += [h2('5.1 Cambiar productos de una venta')]
-h += [p('Cuando un cliente vuelve para cambiar productos, busque la venta en el Historial y pulse <b>Cambiar</b>. Se abre la lista de '
+h += [h2('5.1 Devolver o cambiar productos de una venta')]
+h += [p('Cuando un cliente vuelve para cambiar productos, busque la venta en el Historial y pulse <b>Devolver / Cambiar</b>. Para devolver un solo producto basta con bajar su cantidad y registrar, sin agregar nada. Se abre la lista de '
         'lo que el cliente tiene hoy de esa venta (incluidos cambios anteriores).')]
 h += [pasos([
     'Baje la cantidad de lo que el cliente <b>devuelve</b> (con el botón – o escribiendo la cantidad). La fila se marca "devuelve".',
@@ -337,7 +338,7 @@ faq = [
     ('Escaneo un producto y no pasa nada.', 'Verifique que el cursor esté en el buscador. Si aparece "No se encontraron productos", el código no está registrado: el administrador lo puede asignar en Precios o crear el producto.'),
     ('El producto dice "Sin precio".', 'El administrador debe asignarle precio en Precios.'),
     ('Me equivoqué en una venta ya cobrada.', 'Anúlela en Historial de ventas indicando el motivo y vuelva a hacer la venta correcta.'),
-    ('Un cliente quiere cambiar un producto.', 'Historial de ventas > Cambiar (sección 5.1). Por norma no se devuelve dinero; solo un administrador puede autorizarlo.'),
+    ('Un cliente quiere cambiar un producto.', 'Historial de ventas > Devolver / Cambiar (sección 5.1). Por norma no se devuelve dinero; solo un administrador puede autorizarlo.'),
     ('Cerré la caja antes de tiempo.', 'El administrador puede reabrir el último turno (sección 6.3).'),
     ('No salió el ticket.', 'Permita las ventanas emergentes del navegador y reimprímalo desde Historial de ventas.'),
     ('No se abrió WhatsApp al cerrar.', 'Use el botón "Enviar resumen por WhatsApp" del resumen de cierre, o el de Reportes.'),

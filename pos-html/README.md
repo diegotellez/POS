@@ -1,9 +1,14 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.1.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.1.1
+
+- Historial: el botón "Devolver / Cambiar" (antes "Cambiar") y "Anular" ya no se
+  salen de la tabla en pantallas angostas, y también están en "Ver detalle".
 
 ## Novedades de la versión 2.1
 
@@ -83,7 +88,7 @@ Son las mismas de la versión Angular + Express:
 - **Ticket** imprimible de 80 mm o 58 mm desde el diálogo de impresión del navegador.
 - **Historial de ventas**: filtros por turno, estado y fechas; detalle,
   reimpresión y anulación con motivo (el stock se devuelve al inventario).
-- **Cambios de productos**: botón "Cambiar" en el historial para editar lo que
+- **Cambios de productos**: botón "Devolver / Cambiar" en el historial (y en el detalle de la venta) para editar lo que
   el cliente se lleva de una venta (devuelve unos productos, lleva otros). Si
   lleva más valor paga la diferencia; si lleva menos, por norma **no se
   devuelve dinero** (queda como saldo no devuelto). Solo un administrador puede

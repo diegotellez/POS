@@ -256,6 +256,19 @@ textarea { resize: vertical; }
 .tabla tbody tr:hover { background: var(--hover); }
 .tabla .num { text-align: right; white-space: nowrap; }
 .tabla .acciones { text-align: right; white-space: nowrap; }
+.tabla .acciones-venta { white-space: normal; }
+.solo-angosto { display: none; }
+.acciones-fila { display: flex; flex-wrap: wrap; gap: 2px 4px; justify-content: flex-end; align-items: center; }
+.acciones-fila .boton-texto { padding: 4px 6px; white-space: nowrap; }
+/* En pantallas angostas (o el panel del artefacto) se ocultan columnas secundarias
+   para que los botones de acción siempre queden a la vista. */
+@media (max-width: 1100px) { .tabla .col-opc { display: none; } }
+@media (max-width: 600px) {
+  .tabla .col-estado { display: none; }
+  .solo-angosto { display: inline-block; }
+  .acciones-fila { flex-direction: column; align-items: flex-end; }
+  .acciones-fila .boton-texto { white-space: normal; text-align: right; }
+}
 .tabla select { min-height: 34px; padding: 5px 8px; width: auto; }
 .fila-anulada td { color: var(--texto-cuerpo); }
 
