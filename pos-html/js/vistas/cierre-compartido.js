@@ -37,7 +37,7 @@
 
       '<div class="secciones">' +
       '<div><h3>Formas de pago</h3>' + filas(r.porMetodoPago.map(function (m) {
-        return [m.metodo_pago.charAt(0) + m.metodo_pago.slice(1).toLowerCase(), $(m.total)];
+        return [POS.Ventas.nombreMetodo(m.metodo_pago), $(m.total)];
       })) + '</div>' +
       '<div><h3>Arqueo de caja' + (cuadre ? ' <span class="etiqueta ' + (a.diferencia < 0 ? 'etiqueta-alerta' : '') + '">' + cuadre + '</span>' : '') + '</h3>' +
       filas([
@@ -57,7 +57,7 @@
 
       (r.gastos.cantidad
         ? '<h3>Gastos y pedidos pagados (' + $(r.gastos.total) + ')</h3>' + filas(r.gastos.lista.map(function (g) {
-          return [U.esc(g.concepto) + ' <small class="tenue">' + U.esc(g.metodo_pago.toLowerCase()) + '</small>', $(g.monto)];
+          return [U.esc(g.concepto) + ' <small class="tenue">' + U.esc(POS.Ventas.nombreMetodo(g.metodo_pago).toLowerCase()) + '</small>', $(g.monto)];
         }))
         : '') +
       '<h3>Productos vendidos (' + r.porProducto.length + ')</h3>' +

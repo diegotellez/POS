@@ -10,7 +10,7 @@
 
   var CLAVE = 'pos_html_db_v1';
   var VERSION = 1;
-  var TABLAS = ['categorias', 'productos', 'usuarios', 'turnos', 'clientes', 'ventas', 'movimientos', 'auditoria', 'gastos'];
+  var TABLAS = ['categorias', 'productos', 'usuarios', 'turnos', 'clientes', 'ventas', 'movimientos', 'auditoria', 'gastos', 'empleados'];
 
   var CONFIG_POR_DEFECTO = {
     nombreNegocio: 'Mi Negocio',
@@ -22,7 +22,12 @@
     whatsapp: '',
     // Dirección donde el dueño abre el detalle de un cierre enviado por WhatsApp.
     urlApp: 'https://claude.ai/artifact/8ZBPh1mwVLqgRbQRSP2zg6',
-    mensajeTicket: '¡Gracias por su compra!'
+    mensajeTicket: '¡Gracias por su compra!',
+    // Cajón monedero: 'ninguno', 'impresion' (el driver de la impresora lo abre al imprimir)
+    // o 'serial' (orden ESC/POS directa por Web Serial, Chrome/Edge).
+    cajonModo: 'ninguno',
+    cajonBaudios: 9600,
+    cajonPin: 0
   };
 
   var memoria = null; // copia en memoria si localStorage no está disponible

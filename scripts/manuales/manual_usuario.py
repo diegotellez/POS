@@ -65,19 +65,34 @@ h += [p('Si la base quedó mal (se contó mal o se abrió con un valor equivocad
         '<b>¿La base quedó mal? Corregir la base inicial</b>, escriba el valor correcto y el motivo, y pulse <b>Guardar base</b>. '
         'Lo puede hacer el cajero o el administrador mientras el turno esté abierto; el cambio queda en Auditoría.')]
 h += [h2('3.2 Registrar gastos y pedidos pagados')]
-h += [p('Cuando se paga algo con dinero de la caja (un pedido al proveedor, un domicilio, un servicio, un adelanto), regístrelo '
+h += [p('Cuando se paga algo con dinero de la caja (un pedido, un servicio, un sueldo o un adelanto), regístrelo '
         'en <b>Turno de caja &gt; Gastos y pedidos pagados en este turno</b>:')]
 h += [pasos([
-    'Escriba el <b>concepto</b> (qué se pagó y, si aplica, la factura o el proveedor).',
-    'Elija el <b>tipo</b> (Pedido a proveedor, Servicios, Domicilios y transporte, Aseo y cafetería, Nómina y adelantos u Otros).',
-    'Escriba el <b>valor</b> y <b>con qué se pagó</b>: efectivo de la caja, tarjeta o transferencia.',
-    'Pulse <b>Registrar</b>. El gasto aparece en la lista del turno.',
+    'Elija el <b>tipo</b>: <b>Pedidos</b>, <b>Servicios</b>, <b>Sueldos</b> u Otros.',
+    'Escriba el <b>valor</b> y <b>con qué se pagó</b>: efectivo de la caja, Nequi, QR o transferencia.',
+    'Para Pedidos, Servicios y Otros escriba el <b>concepto</b> (qué se pagó y, si aplica, la factura o el proveedor).',
+    'Pulse <b>Registrar</b>. El gasto aparece en la lista del turno. Si se pagó en efectivo, el cajón se abre (si está configurado).',
 ])]
 h += [figura(C + '/u06b-gastos.jpg', 'Figura 3. Gastos del turno y corrección de la base.', alto_max=13 * cm, recorte=(0.18, 0.0, 0.72, 1.0))]
 h += [caja('Así afecta la caja', ['Lo pagado en <b>efectivo</b> sale del cajón: se descuenta del efectivo esperado al cerrar. Lo pagado por '
-           'transferencia o tarjeta queda registrado pero no cambia el efectivo del cajón.',
+           'Nequi, QR o transferencia queda registrado pero no cambia el efectivo del cajón.',
            'El sistema no deja registrar un pago en efectivo mayor al dinero que debería haber en la caja. Si un gasto se registró por '
            'error, un administrador puede <b>anularlo</b> (con motivo) mientras el turno está abierto.'], 'nota')]
+
+h += [h2('3.3 Sueldos semanales y adelantos')]
+h += [p('Los sueldos se liquidan por semana, de lunes a domingo. Un administrador registra una sola vez a cada empleado con su '
+        '<b>sueldo semanal</b> en <b>Respaldo y configuración &gt; Empleados y sueldo semanal</b>. Después, cualquier usuario '
+        'registra los pagos desde el turno:')]
+h += [pasos([
+    'En <b>Tipo</b> elija <b>Sueldos</b>.',
+    'Elija el <b>empleado</b>, si es un <b>Adelanto</b> o el <b>Pago de la semana</b>, y la <b>semana</b> (esta, la pasada o la anterior).',
+    'Debajo se ve el sueldo semanal, los adelantos ya entregados, lo pagado y lo <b>pendiente</b>. Con "Pago de la semana" el '
+    'valor se llena solo con lo pendiente (sueldo menos adelantos).',
+    'Escriba una nota si quiere (por ejemplo "transporte") y pulse <b>Registrar</b>.',
+])]
+h += [figura(C + '/u06c-sueldos.jpg', 'Figura 3b. Pago de la semana: el sistema descuenta el adelanto y sugiere lo pendiente.', alto_max=12 * cm)]
+h += [p('La tabla <b>Sueldos de la semana</b> resume a cada empleado. Si un pago haría que reciba más que su sueldo semanal, el '
+        'sistema pide confirmación. Los sueldos aparecen como gasto tipo "Sueldos" en el cierre, el WhatsApp y los reportes.')]
 
 # ------------------------------------------------------------------ 4
 h += [CondPageBreak(12 * cm), h1('4. Vender')]
@@ -119,15 +134,17 @@ h += [figura(C + '/u19-no-encontrado.jpg', 'Figura 6. Código no registrado: el 
 h += [PageBreak(), h2('4.4 Cobrar')]
 h += [pasos([
     'Pulse <b>Cobrar</b> o la tecla <b>F2</b>.',
-    'Por defecto se registra todo en <b>EFECTIVO</b>. Para otro medio, cámbielo en la lista <i>Método</i>.',
+    'Por defecto se registra todo en <b>Efectivo</b>. Para otro medio (<b>Nequi</b>, <b>QR</b> o <b>Transferencia</b>), cámbielo en la lista <i>Método</i>.',
     '<b>Pago mixto</b>: escriba el monto del primer medio y pulse <b>Agregar otro método de pago</b>; el sistema propone el valor que falta.',
     'Para calcular el cambio, escriba el <b>efectivo recibido</b>: el sistema muestra el <b>cambio a devolver</b>.',
     'Opcional: despliegue <b>Datos del cliente</b> y escriba nombre y documento (aparecen en el ticket).',
     'Cuando diga "Los pagos cuadran con el total", pulse <b>Confirmar venta</b> (o Enter).',
 ])]
-h += [figura(C + '/u03-pago.jpg', 'Figura 7. Registro de pago mixto (efectivo y tarjeta) con cálculo del cambio.', alto_max=8.8 * cm, recorte=(0.3, 0.09, 0.7, 0.9))]
+h += [caja('Cajón monedero', 'Si el pago incluye efectivo, el cajón se abre solo (si el administrador lo configuró). Con Nequi, QR o '
+           'transferencia no se abre. Para abrirlo sin una venta use <b>Abrir cajón</b>, debajo del botón Cobrar: pide confirmación y queda en Auditoría.', 'nota')]
+h += [figura(C + '/u03-pago.jpg', 'Figura 7. Registro de pago mixto (efectivo y Nequi) con cálculo del cambio.', alto_max=8.8 * cm, recorte=(0.3, 0.09, 0.7, 0.9))]
 h += [h2('4.5 Imprimir el ticket')]
-texto45 = [p('Al confirmar, el sistema pregunta si desea imprimir el comprobante. Pulse <b>Imprimir ticket</b> para abrir el diálogo '
+texto45 = [p('Al confirmar, el sistema pregunta si desea imprimir el comprobante (si el cajón está en modo "Al imprimir" y se pagó en efectivo, el ticket se imprime solo). Pulse <b>Imprimir ticket</b> para abrir el diálogo '
              'de impresión (elija la impresora térmica) o <b>No imprimir</b>.'),
            p('Si algún producto queda con stock bajo o agotado, aparece un aviso naranja. El ticket se puede reimprimir '
              'después desde el Historial de ventas.')]
@@ -165,7 +182,7 @@ h += [pasos([
 ])]
 h += [figura(C + '/u05c-cambio.jpg', 'Figura 10. Devuelve un producto y se lleva otro más caro: el cliente paga el excedente.', alto_max=11 * cm, recorte=(0.16, 0.08, 0.84, 0.96))]
 h += [tabla(['Diferencia', 'Qué hace el sistema'], [
-    ['El cliente lleva más valor', 'Cobra la diferencia con el método de pago elegido (efectivo, tarjeta o transferencia).'],
+    ['El cliente lleva más valor', 'Cobra la diferencia con el método de pago elegido (efectivo, Nequi, QR o transferencia).'],
     ['El cliente lleva menos valor', '<b>Norma: no se devuelve dinero.</b> La diferencia queda registrada como "saldo a favor no devuelto" y así lo dice el comprobante.'],
     ['Caso excepcional', 'Un <b>administrador</b> puede marcar "devolver el dinero", indicando el método y el <b>motivo</b> (obligatorio). Queda en Auditoría.'],
     ['Sin diferencia', 'Solo se ajusta el inventario.'],
@@ -189,8 +206,8 @@ h += [p('El sistema calcula el <b>efectivo esperado</b> = base inicial + ventas 
         'y lo compara con lo contado:')]
 h += [tabla(['Resultado', 'Significado'], [
     ['Cuadre exacto', 'Lo contado es igual a lo esperado.'],
-    ['FALTANTE (en rojo)', 'Hay menos dinero del esperado. Revise vueltos, ventas en efectivo registradas como tarjeta o retiros sin registrar.'],
-    ['SOBRANTE', 'Hay más dinero del esperado. Revise ventas no registradas o pagos con tarjeta registrados como efectivo.'],
+    ['FALTANTE (en rojo)', 'Hay menos dinero del esperado. Revise vueltos, ventas en efectivo registradas como Nequi o QR, o retiros sin registrar.'],
+    ['SOBRANTE', 'Hay más dinero del esperado. Revise ventas no registradas o pagos por Nequi o QR registrados como efectivo.'],
 ], [4, 12])]
 h += [h2('6.2 Envío del cierre al dueño')]
 h += [p('Si el administrador configuró el número de WhatsApp, al cerrar se abre WhatsApp con un mensaje ya escrito. <b>Solo '
@@ -280,7 +297,13 @@ h += [p('En la pestaña <b>Ventas mensuales</b> elija el mes. Verá el total ven
         'ventas, el ticket promedio, el mejor día, los gastos del mes y el resultado de <b>ventas menos gastos</b>. Debajo están el '
         'gráfico de ventas por día (pase el mouse por una barra para ver el detalle), las ventas por categoría y por método de '
         'pago, los gastos por tipo, el detalle por día y todos los productos vendidos en el mes. También se puede imprimir o '
-        'guardar como PDF y exportar a CSV.')]
+        'guardar como PDF y <b>descargar en Excel</b>.')]
+h += [tabla(['Hoja del Excel', 'Contenido'], [
+    ['Categoría', 'Categoría y subcategoría, unidades vendidas, total y porcentaje del mes.'],
+    ['Método', 'Efectivo, Nequi, QR y transferencia: número de pagos, valor y porcentaje.'],
+    ['Día a día', 'Todos los días del mes: número de ventas, total vendido, gastos y ventas menos gastos, con totales.'],
+    ['Detalle', 'Una fila por producto vendido: fecha, hora, venta, cajero, categoría, producto, código, cantidad, precio, subtotal y forma de pago. Tiene filtros.'],
+], [3.5, 12.5])]
 h += [figura(C + '/u14b-mensual.jpg', 'Figura 21. Reporte de ventas mensuales.', alto_max=14 * cm)]
 h += [tabla(['Botón (reporte por turno)', 'Qué hace'], [
     ['Imprimir / Guardar PDF', 'Abre el reporte para imprimir o guardarlo como PDF (en el diálogo de impresión elija "Guardar como PDF").'],

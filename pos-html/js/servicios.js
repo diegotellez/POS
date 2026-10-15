@@ -10,7 +10,17 @@
   var PREFIJO_CODIGO_INTERNO = '2';
   var LONGITUD_CODIGO_INTERNO = 6;
   var ROLES = ['CAJERO', 'ADMINISTRADOR'];
-  var METODOS_PAGO = ['EFECTIVO', 'TARJETA', 'TRANSFERENCIA'];
+  var METODOS_PAGO = ['EFECTIVO', 'NEQUI', 'QR', 'TRANSFERENCIA'];
+  // Métodos que ya no se ofrecen pero pueden estar en ventas antiguas (se siguen reportando).
+  var METODOS_HISTORICOS = ['TARJETA'];
+  var NOMBRES_METODO = { EFECTIVO: 'Efectivo', NEQUI: 'Nequi', QR: 'QR', TRANSFERENCIA: 'Transferencia', TARJETA: 'Tarjeta' };
+  function nombreMetodo(m) { return NOMBRES_METODO[m] || String(m || ''); }
+  // Lista ordenada de métodos con valor: primero los vigentes, luego cualquier otro registrado.
+  function metodosConValor(porMetodo) {
+    var orden = METODOS_PAGO.concat(METODOS_HISTORICOS);
+    Object.keys(porMetodo).forEach(function (m) { if (orden.indexOf(m) === -1) orden.push(m); });
+    return orden.filter(function (m) { return porMetodo[m]; }).map(function (m) { return { metodo_pago: m, total: U.redondear(porMetodo[m]) }; });
+  }
   var CLAVE_SESION = 'pos_html_sesion';
   var ITERACIONES_HASH = 500;
 
@@ -729,6 +739,7 @@
 
   var Ventas = {
     METODOS_PAGO: METODOS_PAGO,
+    nombreMetodo: nombreMetodo,
 
     crear: function (datos) {
       var usuarioId = usuarioActualId();
@@ -980,25 +991,113 @@
   };
 
   // ======================= Gastos del turno =======================
-  var TIPOS_GASTO = ['Pedido a proveedor', 'Servicios', 'Domicilios y transporte', 'Aseo y cafetería', 'Nómina y adelantos', 'Otros'];
+  var TIPOS_GASTO = ['Pedidos', 'Servicios', 'Sueldos', 'Otros'];
+  var CLASES_SUELDO = { ADELANTO: 'Adelanto', PAGO_SEMANA: 'Pago de la semana' };
+  var MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  function fechaISO(d) {
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  // Lunes (YYYY-MM-DD) de la semana de la fecha dada; los sueldos se liquidan de lunes a domingo.
+  function lunesDe(fecha) {
+    var p = String(fecha || U.ahora()).slice(0, 10).split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return fechaISO(d);
+  }
+  function nombreSemana(lunes) {
+    var p = lunes.split('-');
+    var ini = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    var fin = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + 6);
+    return ini.getDate() + ' ' + MESES_CORTOS[ini.getMonth()] + ' al ' + fin.getDate() + ' ' + MESES_CORTOS[fin.getMonth()];
+  }
+
+  // ======================= Empleados (sueldo semanal) =======================
+  var Empleados = {
+    listar: function (filtros) {
+      filtros = filtros || {};
+      return DB.datos().empleados.filter(function (e) { return !filtros.soloActivos || e.activo; })
+        .map(copia).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+    },
+    guardar: function (datos) {
+      Auth.requerirAdmin();
+      var usuarioId = usuarioActualId();
+      var nombre = String(datos.nombre || '').trim();
+      if (!nombre) falla('Escribe el nombre del empleado');
+      var sueldo = U.redondear(datos.sueldoSemanal);
+      if (!(sueldo >= 0)) falla('Sueldo semanal inválido');
+      return DB.tx(function (db) {
+        var dup = db.empleados.filter(function (e) { return e.nombre.toLowerCase() === nombre.toLowerCase() && e.id !== Number(datos.id); })[0];
+        if (dup) falla('Ya existe un empleado llamado ' + nombre);
+        var e;
+        if (datos.id) {
+          e = DB.buscarPorId(db, 'empleados', datos.id);
+          if (!e) falla('Empleado no encontrado');
+          e.nombre = nombre;
+          e.sueldo_semanal = sueldo;
+          e.activo = datos.activo !== false;
+        } else {
+          e = DB.insertar(db, 'empleados', { nombre: nombre, sueldo_semanal: sueldo, activo: true });
+        }
+        auditar(db, usuarioId, 'Empleado', 'Empleado ' + nombre + ': sueldo semanal ' + sueldo + (e.activo ? '' : ' (inactivo)'));
+        return copia(e);
+      });
+    }
+  };
+
+  // Lo pagado a cada empleado en una semana (adelantos y pagos), sin gastos anulados.
+  function resumenSueldos(db, lunes) {
+    return db.empleados.filter(function (e) {
+      return e.activo || db.gastos.some(function (g) { return g.empleado_id === e.id && g.semana === lunes && g.estado !== 'ANULADO'; });
+    }).map(function (e) {
+      var adelantos = 0, pagos = 0;
+      db.gastos.forEach(function (g) {
+        if (g.empleado_id !== e.id || g.semana !== lunes || g.estado === 'ANULADO') return;
+        if (g.clase_sueldo === 'ADELANTO') adelantos += g.monto; else pagos += g.monto;
+      });
+      return {
+        empleado_id: e.id, nombre: e.nombre, sueldo_semanal: e.sueldo_semanal,
+        adelantos: U.redondear(adelantos), pagado: U.redondear(pagos),
+        pendiente: U.redondear(e.sueldo_semanal - adelantos - pagos)
+      };
+    }).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+  }
 
   var Gastos = {
     TIPOS: TIPOS_GASTO,
+    CLASES_SUELDO: CLASES_SUELDO,
+    lunesDe: lunesDe,
+    nombreSemana: nombreSemana,
+
+    // Sueldos de la semana (lunes YYYY-MM-DD; por defecto la actual).
+    sueldosSemana: function (lunes) {
+      return resumenSueldos(DB.datos(), lunes || lunesDe());
+    },
 
     // Registra un gasto o pedido pagado en el turno abierto. Si se paga en
     // efectivo, sale del cajón y se descuenta del efectivo esperado del arqueo.
     registrar: function (datos) {
       var usuarioId = usuarioActualId();
       var concepto = String(datos.concepto || '').trim();
-      if (!concepto) falla('Escribe el concepto del gasto (qué se pagó)');
+      var tipo = TIPOS_GASTO.indexOf(datos.tipo) === -1 ? 'Otros' : datos.tipo;
+      var esSueldo = tipo === 'Sueldos';
+      if (!concepto && !esSueldo) falla('Escribe el concepto del gasto (qué se pagó)');
       var monto = U.redondear(datos.monto);
       if (!(monto > 0)) falla('El valor del gasto debe ser mayor a cero');
       var metodo = datos.metodoPago || 'EFECTIVO';
       if (METODOS_PAGO.indexOf(metodo) === -1) falla('Método de pago inválido');
-      var tipo = TIPOS_GASTO.indexOf(datos.tipo) === -1 ? 'Otros' : datos.tipo;
+      var claseSueldo = null, semana = null, empleado = null;
       return DB.tx(function (db) {
         var turno = db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; })[0];
         if (!turno) falla('Abre un turno de caja para registrar gastos');
+        if (esSueldo) {
+          empleado = DB.buscarPorId(db, 'empleados', datos.empleadoId);
+          if (!empleado) falla('Elige el empleado al que se le paga');
+          claseSueldo = datos.claseSueldo === 'PAGO_SEMANA' ? 'PAGO_SEMANA' : 'ADELANTO';
+          semana = lunesDe(datos.semana || U.ahora());
+          concepto = CLASES_SUELDO[claseSueldo] + ' · ' + empleado.nombre + ' (semana del ' + nombreSemana(semana) + ')' +
+            (concepto ? ' · ' + concepto : '');
+        }
         if (metodo === 'EFECTIVO' && monto > efectivoEsperadoTurno(db, turno) + EPSILON) {
           falla('No hay suficiente efectivo en caja para ese pago (disponible: ' + efectivoEsperadoTurno(db, turno).toFixed(0) + ')');
         }
@@ -1009,6 +1108,9 @@
           tipo: tipo,
           concepto: concepto,
           proveedor: String(datos.proveedor || '').trim() || null,
+          empleado_id: empleado ? empleado.id : null,
+          clase_sueldo: claseSueldo,
+          semana: semana,
           monto: monto,
           metodo_pago: metodo,
           estado: 'REGISTRADO',
@@ -1061,6 +1163,33 @@
     MESES: MESES,
 
     // Meses (AAAA-MM) con ventas o gastos, del más reciente al más antiguo.
+    // Una fila por producto vendido o cambiado en el mes (para la hoja "Detalle" del Excel).
+    detalleMes: function (mes) {
+      var db = DB.datos();
+      var filas = [];
+      db.ventas.filter(function (v) { return v.estado === 'COMPLETADA' && v.fecha_hora.slice(0, 7) === mes; }).forEach(function (v) {
+        var metodos = v.pagos.map(function (pg) { return nombreMetodo(pg.metodo_pago); }).join(' + ');
+        v.detalle.forEach(function (x) {
+          var p = DB.buscarPorId(db, 'productos', x.producto_id);
+          var c = p && p.categoria_id ? DB.buscarPorId(db, 'categorias', p.categoria_id) : null;
+          var raiz = c;
+          while (raiz && raiz.categoria_padre_id) raiz = DB.buscarPorId(db, 'categorias', raiz.categoria_padre_id) || raiz;
+          filas.push({
+            fecha: v.fecha_hora.slice(0, 10), hora: v.fecha_hora.slice(11, 16), venta_id: v.id,
+            tipo: v.tipo === 'CAMBIO' ? 'Cambio de #' + v.venta_origen_id : 'Venta',
+            cajero: nombreUsuario(db, v.usuario_id),
+            categoria_principal: raiz ? raiz.nombre : 'Sin categoría',
+            categoria: c ? c.nombre : 'Sin categoría',
+            producto: p ? p.nombre : '#' + x.producto_id,
+            codigo: p ? (p.codigo_barras || p.codigo_interno || '') : '',
+            cantidad: x.cantidad, precio: x.precio_unitario, subtotal: x.subtotal,
+            metodos: metodos
+          });
+        });
+      });
+      return filas;
+    },
+
     mesesDisponibles: function () {
       var db = DB.datos();
       var vistos = {};
@@ -1138,7 +1267,7 @@
           .sort(function (a, b) { return b.total - a.total; }),
         neto: U.redondear(total - totalGastos),
         dias: dias,
-        porMetodoPago: METODOS_PAGO.filter(function (m) { return porMetodo[m]; }).map(function (m) { return { metodo_pago: m, total: U.redondear(porMetodo[m]) }; }),
+        porMetodoPago: metodosConValor(porMetodo),
         porCategoria: ordenar(porCategoria).map(function (x) { x.total = U.redondear(x.total); return x; }),
         porProducto: ordenar(porProducto).map(function (x) { x.total = U.redondear(x.total); return x; })
       };
@@ -1184,9 +1313,7 @@
           saldoRetenido: U.redondear(cambios.reduce(function (a, v) { return a + (v.saldo_retenido || 0); }, 0)),
           devuelto: U.redondear(-cambios.reduce(function (a, v) { return a + (v.motivo_reembolso ? v.diferencia : 0); }, 0))
         },
-        porMetodoPago: METODOS_PAGO.filter(function (m) { return porMetodo[m]; }).map(function (m) {
-          return { metodo_pago: m, total: U.redondear(porMetodo[m]) };
-        }),
+        porMetodoPago: metodosConValor(porMetodo),
         porUsuario: Object.keys(porUsuario).map(function (k) { return porUsuario[k]; }),
         porProducto: Object.keys(porProducto).map(function (k) { return porProducto[k]; })
           .filter(function (x) { return x.cantidad !== 0; })
@@ -1223,7 +1350,7 @@
           (r.cantidadAnuladas ? ', ' + r.cantidadAnuladas + ' anulada' + (r.cantidadAnuladas === 1 ? '' : 's') : '') + ')'
       ];
       r.porMetodoPago.forEach(function (m) {
-        lineas.push('• ' + m.metodo_pago.charAt(0) + m.metodo_pago.slice(1).toLowerCase() + ': ' + U.dinero(m.total));
+        lineas.push('• ' + nombreMetodo(m.metodo_pago) + ': ' + U.dinero(m.total));
       });
       if (r.cambios && r.cambios.cantidad) {
         lineas.push('Cambios de productos: ' + r.cambios.cantidad +
@@ -1388,6 +1515,16 @@
   };
 
   // ======================= Auditoría =======================
+  // Registro de aperturas del cajón monedero (las manuales quedan en Auditoría).
+  var Cajon = {
+    registrarApertura: function (motivo) {
+      var usuarioId = usuarioActualId();
+      DB.tx(function (db) {
+        auditar(db, usuarioId, 'AperturaCajon', String(motivo || 'Apertura manual del cajón'));
+      });
+    }
+  };
+
   var Auditoria = {
     listar: function () {
       Auth.requerirAdmin();
@@ -1419,6 +1556,11 @@
         db.config.whatsapp = String(datos.whatsapp || '').replace(/[^\d]/g, '');
         if (datos.urlApp !== undefined) db.config.urlApp = String(datos.urlApp || '').trim().replace(/#.*$/, '');
         db.config.mensajeTicket = String(datos.mensajeTicket || '');
+        if (datos.cajonModo !== undefined) {
+          db.config.cajonModo = ['ninguno', 'impresion', 'serial'].indexOf(datos.cajonModo) !== -1 ? datos.cajonModo : 'ninguno';
+          db.config.cajonBaudios = Number(datos.cajonBaudios) > 0 ? Number(datos.cajonBaudios) : 9600;
+          db.config.cajonPin = Number(datos.cajonPin) === 1 ? 1 : 0;
+        }
         auditar(db, usuarioId, 'Configuracion', 'Configuración actualizada');
       });
     }
@@ -1447,7 +1589,7 @@
           '<td class="der">' + U.dinero(d.subtotal) + '</td></tr>';
       }).join('');
       var pagos = venta.pagos.map(function (p) {
-        return '<div class="fila"><span>' + U.esc(p.metodo_pago) + '</span><span>' + U.dinero(p.monto) + '</span></div>';
+        return '<div class="fila"><span>' + U.esc(nombreMetodo(p.metodo_pago)) + '</span><span>' + U.dinero(p.monto) + '</span></div>';
       }).join('');
       var cliente = venta.cliente_nombre || venta.cliente_documento
         ? '<div>Cliente: ' + U.esc(venta.cliente_nombre || '') + (venta.cliente_documento ? ' (' + U.esc(venta.cliente_documento) + ')' : '') + '</div>'
@@ -1479,6 +1621,23 @@
         '</body></html>';
     },
 
+    // Comprobante de egreso (gasto pagado con dinero de la caja); firma de quien recibe.
+    egresoHTML: function (g) {
+      var cfg = DB.config();
+      var ancho = cfg.anchoTicket || 80;
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Egreso #' + g.id + '</title><style>' +
+        '@page{size:' + ancho + 'mm auto;margin:0}' +
+        'body{width:' + (ancho - 6) + 'mm;font-family:"Courier New",monospace;font-size:12px;margin:0;padding:3mm;color:#111}' +
+        'h2{text-align:center;margin:4px 0;font-size:15px}.centro{text-align:center}hr{border:none;border-top:1px dashed #111}' +
+        '.fila{display:flex;justify-content:space-between}.total{font-weight:bold;font-size:14px}.firma{margin-top:28px;border-top:1px solid #111;text-align:center}' +
+        '</style></head><body>' + encabezadoNegocio(cfg) +
+        '<hr><div class="centro"><b>COMPROBANTE DE EGRESO</b></div><div>Egreso #' + g.id + '</div><div>' + U.esc(g.fecha_hora) + '</div>' +
+        '<hr><div>' + U.esc(g.tipo) + '</div><div>' + U.esc(g.concepto) + '</div><hr>' +
+        '<div class="fila total"><span>VALOR</span><span>' + U.dinero(g.monto) + '</span></div>' +
+        '<div class="fila"><span>Pagado con</span><span>' + U.esc(nombreMetodo(g.metodo_pago)) + '</span></div>' +
+        '<div class="firma">Recibí</div></body></html>';
+    },
+
     reporteHTML: function (r) {
       var cfg = DB.config();
       function lista(items, fn) {
@@ -1502,7 +1661,7 @@
           (r.cambios.saldoRetenido ? ' · saldo a favor no devuelto: ' + U.dinero(r.cambios.saldoRetenido) : '') +
           (r.cambios.devuelto ? ' · dinero devuelto: ' + U.dinero(r.cambios.devuelto) : '') : '') + '</p>' +
         '<h2>Desglose por método de pago</h2>' +
-        lista(r.porMetodoPago, function (m) { return '<li>' + U.esc(m.metodo_pago) + ': ' + U.dinero(m.total) + '</li>'; }) +
+        lista(r.porMetodoPago, function (m) { return '<li>' + U.esc(nombreMetodo(m.metodo_pago)) + ': ' + U.dinero(m.total) + '</li>'; }) +
         '<h2>Desglose por usuario</h2>' +
         lista(r.porUsuario, function (u) { return '<li>' + U.esc(u.nombre_usuario) + ': ' + U.dinero(u.total) + ' (' + u.cantidad_ventas + ' ventas)</li>'; }) +
         '<h2>Productos vendidos</h2>' +
@@ -1516,7 +1675,7 @@
         (r.gastos.cantidad
           ? '<table><thead><tr><th>Concepto</th><th>Tipo</th><th>Pago</th><th class="num">Valor</th></tr></thead><tbody>' +
             r.gastos.lista.map(function (g) {
-              return '<tr><td>' + U.esc(g.concepto) + '</td><td>' + U.esc(g.tipo) + '</td><td>' + U.esc(g.metodo_pago) + '</td><td class="num">' + U.dinero(g.monto) + '</td></tr>';
+              return '<tr><td>' + U.esc(g.concepto) + '</td><td>' + U.esc(g.tipo) + '</td><td>' + U.esc(nombreMetodo(g.metodo_pago)) + '</td><td class="num">' + U.dinero(g.monto) + '</td></tr>';
             }).join('') + '</tbody></table><p>Total gastos: <strong>' + U.dinero(r.gastos.total) + '</strong></p>'
           : '<p class="tenue">Sin gastos registrados</p>') +
         '<h2>Arqueo de caja</h2>' +
@@ -1542,8 +1701,10 @@
     Ventas: Ventas,
     Reportes: Reportes,
     Gastos: Gastos,
+    Empleados: Empleados,
     Usuarios: Usuarios,
     Auditoria: Auditoria,
+    Cajon: Cajon,
     Config: Config,
     Documentos: Documentos,
     etiquetaDiferencia: etiquetaDiferencia

@@ -16,7 +16,7 @@ h += [p('Este manual explica cómo instalar, configurar y mantener el <b>Sistema
         '<font face="Mono">index.html</font>.')]
 h += [h2('1.1 Qué incluye')]
 h += [viñetas([
-    'Punto de venta con lector de código de barras, pagos mixtos (efectivo, tarjeta, transferencia) y ticket imprimible.',
+    'Punto de venta con lector de código de barras, pagos mixtos (efectivo, Nequi, QR, transferencia) y ticket imprimible.',
     'Turnos de caja con apertura, arqueo al cierre y envío del cierre al dueño por WhatsApp.',
     'Catálogo de droguería precargado: 17 productos de ejemplo con precio y 288 productos habituales sin precio, en 23 categorías.',
     'Carga rápida de precios, incluso pegando mensajes o audios transcritos de WhatsApp.',
@@ -49,8 +49,8 @@ h += [tabla(['Elemento', 'Requisito', 'Recomendación'], [
 h += [h2('2.2 Periféricos opcionales')]
 h += [tabla(['Periférico', 'Cómo se conecta', 'Notas'], [
     ['Lector de código de barras USB', 'Se conecta y funciona como un teclado.', 'Debe estar configurado para enviar <b>Enter</b> al final de cada lectura (la mayoría viene así de fábrica).'],
-    ['Impresora térmica de tickets (58 u 80 mm)', 'Instálela como impresora normal del sistema operativo con su controlador.', 'El sistema imprime con el diálogo de impresión del navegador; no usa comandos ESC/POS directos.'],
-    ['Cajón monedero', 'Conectado a la impresora térmica.', 'Si la impresora abre el cajón al imprimir, funcionará al imprimir el ticket.'],
+    ['Impresora térmica de tickets (58 u 80 mm)', 'Instálela como impresora normal del sistema operativo con su controlador.', 'El sistema imprime con el diálogo de impresión del navegador. Para el cajón puede enviar la orden ESC/POS directa (sección 4.4).'],
+    ['Cajón monedero', 'Conectado a la impresora térmica (cable RJ11/RJ12).', 'Se abre solo al cobrar en efectivo. Ver la sección 4.4.'],
 ], [4, 5, 7])]
 
 # ------------------------------------------------------------------ 3
@@ -81,12 +81,12 @@ h += [h2('3.3 Usar la versión en línea (artefacto de Claude)')]
 h += [p('El sistema también está publicado como artefacto de claude.ai. Esa versión funciona igual, pero guarda sus propios '
         'datos en el navegador de quien la abre. Hay dos diferencias: el visor no permite imprimir directamente (muestra una '
         'vista previa) y las descargas piden confirmación. Para trabajar en la caja se recomienda la versión local (ZIP).'),
-      p('El artefacto se usa también para que el dueño vea el detalle de los cierres enviados por WhatsApp (sección 4.4). '
+      p('El artefacto se usa también para que el dueño vea el detalle de los cierres enviados por WhatsApp (sección 4.6). '
         'Para que el dueño pueda abrirlo, compártale el artefacto desde el menú <b>Compartir</b> de claude.ai.')]
 h += [h2('3.4 Publicar en un sitio web propio (opcional)')]
 h += [p('La carpeta <font face="Mono">pos-html</font> se puede subir tal cual a cualquier hosting de archivos estáticos '
         '(GitHub Pages, Netlify, el hosting de su página web). No requiere configuración del servidor. Si lo hace, cambie '
-        'la dirección del enlace de cierres en la configuración (sección 4.4).')]
+        'la dirección del enlace de cierres en la configuración (sección 4.6).')]
 
 # ------------------------------------------------------------------ 4
 h += [PageBreak(), h1('4. Configuración inicial')]
@@ -128,7 +128,33 @@ h += [pasos([
 ])]
 h += [caja('Consejo', 'Si el navegador bloquea la ventana del ticket, permita las ventanas emergentes para el sistema '
            '(icono en la barra de direcciones &gt; <i>Permitir siempre</i>). En modo aplicación normalmente no se bloquea.')]
-h += [h2('4.4 WhatsApp del dueño y enlace de cierres')]
+h += [h2('4.4 Cajón monedero: apertura automática al cobrar en efectivo')]
+h += [p('El cajón se conecta a la impresora de tickets y se abre cuando la impresora recibe la orden de apertura. Se abre solo '
+        'cuando se cobra en efectivo: ventas, cambios en los que el cliente paga el excedente en efectivo y gastos pagados en '
+        'efectivo. Con Nequi, QR o transferencia no se abre. Se configura en <b>Respaldo y configuración &gt; Cajón monedero</b>:')]
+h += [tabla(['Modo', 'Cómo funciona', 'Qué configurar'], [
+    ['Al imprimir', 'Al cobrar en efectivo el ticket se imprime sin preguntar y el controlador de la impresora abre el cajón.',
+     'Windows: <i>Dispositivos e impresoras</i> &gt; clic derecho en la impresora &gt; <i>Preferencias de impresión</i> &gt; activar '
+     '<b>Abrir cajón</b> (Cash drawer) antes o después de imprimir. Para que no salga la ventana de impresión, cree un acceso directo '
+     'de Chrome con <code>--kiosk-printing</code> (imprime directo en la impresora predeterminada).'],
+    ['Directo (USB/serial)', 'Envía la orden ESC/POS de apertura directamente, sin imprimir. Funciona en Chrome o Edge en el PC.',
+     'Pulse <b>Conectar impresora</b> y elija el puerto de la impresora (impresoras con puerto COM virtual o serial). '
+     'Velocidad 9600 y pin 2 sirven para la mayoría; si no abre, pruebe pin 5 u otra velocidad.'],
+    ['No abrir', 'El cajón se abre a mano o con la llave.', '—'],
+], [3, 6, 7])]
+h += [figura(C + '/u16b-cajon.jpg', 'Figura 3b. Configuración del cajón monedero.', alto_max=9 * cm)]
+h += [viñetas([
+    'Use <b>Probar apertura</b> para comprobar la configuración.',
+    'En Ventas aparece el botón <b>Abrir cajón</b> para abrirlo sin una venta (por ejemplo, para dar cambio). Pide confirmación y '
+    'queda registrado en Auditoría.',
+    'Dentro del artefacto de Claude la conexión directa no está disponible; use el sistema instalado en el PC.',
+])]
+h += [h2('4.5 Empleados y sueldo semanal')]
+h += [p('En <b>Respaldo y configuración &gt; Empleados y sueldo semanal</b> registre a cada empleado con su sueldo semanal. Se usan '
+        'en el turno para registrar adelantos y el pago de la semana (lunes a domingo). Un empleado que ya no trabaja se desmarca '
+        'como <i>Activo</i>: deja de aparecer en la lista, pero sus pagos se conservan.')]
+h += [figura(C + '/u16c-empleados.jpg', 'Figura 3c. Empleados y sueldo semanal.', alto_max=7 * cm)]
+h += [h2('4.6 WhatsApp del dueño y enlace de cierres')]
 h += [p('Al cerrar la caja, el sistema abre WhatsApp con el número configurado y un mensaje corto ya escrito: lo vendido, '
         'las formas de pago, el cuadre de caja y un enlace <b>"Ver detalle"</b>. El enlace abre una página de solo lectura con '
         'todo el cierre (productos, arqueo, cajeros) sin iniciar sesión, porque el cierre viaja dentro del enlace.')]
@@ -138,11 +164,11 @@ h += [viñetas([
     'Si publica el sistema en su propio sitio (sección 3.4), cambie <i>Enlace de la app para ver cierres</i> por esa dirección.',
     'WhatsApp no permite que una página envíe mensajes sola: siempre hay que tocar <b>Enviar</b>. Para envío 100 % automático se necesita la API de WhatsApp Business con un servidor.',
 ])]
-h += [h2('4.5 Lector de código de barras')]
+h += [h2('4.7 Lector de código de barras')]
 h += [p('Conecte el lector, abra <b>Ventas</b>, haga clic en el buscador y escanee un producto. Si el producto aparece en '
         'el ticket, está listo. Si solo se escribe el número sin agregarse, configure el lector para enviar <b>Enter</b> (sufijo '
         'CR) con el manual de su fabricante.')]
-h += [h2('4.6 Catálogo y precios')]
+h += [h2('4.8 Catálogo y precios')]
 h += [p('El catálogo base trae 288 productos habituales de droguería sin precio. Un producto sin precio no se puede vender, así '
         'que antes de abrir la caja asigne precios en la pantalla <b>Precios</b> (vea el Manual del Usuario, sección Precios):')]
 h += [viñetas([
@@ -152,7 +178,7 @@ h += [viñetas([
     'Revise las categorías en <b>Categorías</b> y desactive los productos que no maneja (Productos &gt; icono de papelera).',
     'Configure el <b>stock mínimo</b> de los productos que quiera vigilar; solo esos generan alertas de stock bajo.',
 ])]
-h += [h2('4.7 Inventario inicial')]
+h += [h2('4.9 Inventario inicial')]
 h += [p('Registre las existencias actuales en <b>Inventario &gt; Compras (entrada de mercancía)</b>, producto por producto, '
         'con la referencia "Inventario inicial". A partir de ahí cada venta descuenta del stock y cada compra lo suma.')]
 
@@ -229,6 +255,7 @@ h += [tabla(['Síntoma', 'Causa probable', 'Solución'], [
     ['Aviso "Este navegador no permite guardar datos".', 'Ventana privada o almacenamiento bloqueado.',
      'Use una ventana normal y permita los datos del sitio en la configuración del navegador.'],
     ['No sale la ventana del ticket.', 'Ventanas emergentes bloqueadas.', 'Permita las ventanas emergentes para el sistema.'],
+    ['El cajón no abre al cobrar en efectivo.', 'Modo del cajón o controlador.', 'Revise el modo en Cajón monedero y pulse Probar apertura. Modo "Al imprimir": active Abrir cajón en las preferencias de la impresora. Modo directo: Conectar impresora de nuevo, pin 5 u otra velocidad.'],
     ['El ticket sale en hoja carta o con márgenes.', 'Opciones de impresión.', 'Márgenes: Ninguno, sin encabezados; papel de 80/58 mm (sección 4.3).'],
     ['El lector escribe el código pero no agrega el producto.', 'El lector no envía Enter, o el código no está registrado.',
      'Configure el sufijo Enter. Si aparece "No se encontraron productos", asigne el código en Precios o créelo con "Agregar producto nuevo".'],

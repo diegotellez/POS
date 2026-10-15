@@ -30,7 +30,7 @@ const OUT = process.argv[2];
     await page.click('.modal .boton-primario'); await page.click('.modal .boton-secundario');
   };
   await vender(['7705260181591', '7705260181591', '7709378657979']);
-  await vender(['7705632122337', '7702527601892'], async () => { await page.fill('[data-campo=monto][data-i="0"]', '0'); await page.selectOption('[data-campo=metodo][data-i="0"]', 'TARJETA'); await page.fill('[data-campo=monto][data-i="0"]', '45400'); });
+  await vender(['7705632122337', '7702527601892'], async () => { await page.fill('[data-campo=monto][data-i="0"]', '0'); await page.selectOption('[data-campo=metodo][data-i="0"]', 'NEQUI'); await page.fill('[data-campo=monto][data-i="0"]', '45400'); });
   await vender(['7704710497466', '7703423667128', '7705432319487']);
   // pantalla de venta con ticket
   await page.fill('#busqueda', '7705260181591'); await page.press('#busqueda', 'Enter');
@@ -55,10 +55,21 @@ const OUT = process.argv[2];
   await page.fill('#busqueda', '');
   // gastos del turno
   await ir('Turno de caja');
-  const gasto = async (c, t, m, met) => { await page.fill('#form-gasto [name=concepto]', c); await page.selectOption('#form-gasto [name=tipo]', t); await page.fill('#form-gasto [name=monto]', m); await page.selectOption('#form-gasto [name=metodoPago]', met); await page.click('#form-gasto button'); };
-  await gasto('Pedido Distribuidora Andina factura 4581', 'Pedido a proveedor', '32000', 'EFECTIVO');
-  await gasto('Domicilio a cliente', 'Domicilios y transporte', '4000', 'EFECTIVO');
-  await gasto('Pedido Tecnoquímicas', 'Pedido a proveedor', '85000', 'TRANSFERENCIA');
+  const gasto = async (c, t, m, met) => { await page.selectOption('#form-gasto [name=tipo]', t); await page.fill('#form-gasto [name=concepto]', c); await page.fill('#form-gasto [name=monto]', m); await page.selectOption('#form-gasto [name=metodoPago]', met); await page.click('#form-gasto button[type=submit]'); await page.waitForTimeout(150); };
+  await gasto('Pedido Distribuidora Andina factura 4581', 'Pedidos', '32000', 'EFECTIVO');
+  await gasto('Recibo de energía', 'Servicios', '4000', 'EFECTIVO');
+  await gasto('Pedido Tecnoquímicas', 'Pedidos', '85000', 'TRANSFERENCIA');
+  // sueldos: empleados con sueldo semanal y un adelanto
+  await page.evaluate(() => { POS.Empleados.guardar({ nombre: 'Laura Gómez', sueldoSemanal: 300000 }); POS.Empleados.guardar({ nombre: 'Andrés Ruiz', sueldoSemanal: 280000 }); });
+  await ir('Ventas'); await ir('Turno de caja');
+  await page.selectOption('#form-gasto [name=tipo]', 'Sueldos'); await page.selectOption('#form-gasto [name=empleadoId]', { label: 'Laura Gómez · $300.000/semana' });
+  await page.selectOption('#form-gasto [name=claseSueldo]', 'ADELANTO'); await page.fill('#form-gasto [name=monto]', '20000'); await page.fill('#form-gasto [name=notaSueldo]', 'transporte');
+  await page.click('#form-gasto button[type=submit]'); await page.waitForTimeout(150);
+  await page.selectOption('#form-gasto [name=tipo]', 'Sueldos'); await page.selectOption('#form-gasto [name=empleadoId]', { label: 'Laura Gómez · $300.000/semana' });
+  await page.selectOption('#form-gasto [name=claseSueldo]', 'PAGO_SEMANA');
+  await limpiar(); await page.waitForTimeout(150);
+  await page.locator('.gastos-turno').screenshot({ path: OUT + '/u06c-sueldos.jpg', type: 'jpeg', quality: 85 });
+  await page.selectOption('#form-gasto [name=tipo]', 'Pedidos'); await page.fill('#form-gasto [name=monto]', '');
   await page.click('details.ajuste-base summary');
   await foto('u06b-gastos', { fullPage: true });
   // historial
@@ -93,6 +104,9 @@ const OUT = process.argv[2];
   await ir('Usuarios'); await foto('u15-usuarios');
   // respaldo
   await ir('Respaldo y configuración'); await foto('u16-respaldo');
+  await page.selectOption('#form-cajon [name=cajonModo]', 'impresion'); await limpiar();
+  await page.locator('#form-cajon').locator('xpath=..').screenshot({ path: OUT + '/u16b-cajon.jpg', type: 'jpeg', quality: 85 });
+  await page.locator('#form-empleado').locator('xpath=..').screenshot({ path: OUT + '/u16c-empleados.jpg', type: 'jpeg', quality: 85 });
   // turno abierto y cierre
   await ir('Turno de caja'); await page.fill('[name=efectivo]', '103500'); await foto('u07a-cerrar');
   await page.click('#form-cerrar button'); await foto('u07b-confirmar');

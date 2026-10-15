@@ -62,6 +62,7 @@
       '<button class="boton boton-secundario" id="btn-vaciar">Vaciar</button>' +
       '<button class="boton boton-primario boton-pill" id="btn-cobrar">' + U.icono('ok') + ' Cobrar <kbd>F2</kbd></button>' +
       '</div>' +
+      (DB.config().cajonModo !== 'ninguno' ? '<button type="button" class="boton boton-texto btn-cajon" id="btn-cajon">Abrir cajón</button>' : '') +
       '</section>' +
       '</div>';
 
@@ -293,6 +294,11 @@
       pintarCarrito();
     });
 
+    var btnCajon = U.$('#btn-cajon', cont);
+    if (btnCajon) btnCajon.addEventListener('click', function () {
+      U.confirmar('¿Abrir el cajón sin una venta? Queda registrado en Auditoría.', function () { Cajon.abrirManual(); }, 'Abrir cajón');
+    });
+
     U.$('#btn-vaciar', cont).addEventListener('click', function () {
       if (!carrito.length) return;
       U.confirmar('¿Vaciar el ticket actual?', function () {
@@ -382,7 +388,12 @@
                 return a.nombre + (a.agotado ? ' (agotado)' : ' (' + a.stock + ')');
               }).join(', '), 'alerta', 7000);
             }
-            ofrecerTicket(resultado.venta);
+            // Cobro con efectivo: se abre el cajón (directo o imprimiendo el ticket).
+            var conEfectivo = resultado.venta.pagos.some(function (p) { return p.metodo_pago === 'EFECTIVO' && p.monto > 0; });
+            var impreso = conEfectivo && Cajon.porEfectivo(function () {
+              U.imprimirHTML(POS.Documentos.ticketHTML(resultado.venta), 380);
+            });
+            if (!impreso) ofrecerTicket(resultado.venta);
             alTerminar();
           }
         }
@@ -415,7 +426,7 @@
             return '<div class="fila-pago">' +
               '<label class="campo"><span>Método</span><select data-i="' + i + '" data-campo="metodo">' +
               POS.Ventas.METODOS_PAGO.map(function (m) {
-                return '<option value="' + m + '"' + (m === p.metodoPago ? ' selected' : '') + '>' + m + '</option>';
+                return '<option value="' + m + '"' + (m === p.metodoPago ? ' selected' : '') + '>' + POS.Ventas.nombreMetodo(m) + '</option>';
               }).join('') + '</select></label>' +
               '<label class="campo"><span>Monto</span><input type="number" min="0" step="any" data-i="' + i + '" data-campo="monto" value="' + p.monto + '"></label>' +
               (pagos.length > 1 ? '<button type="button" class="boton-icono" data-quitar="' + i + '" aria-label="Quitar pago">' + U.icono('cerrar') + '</button>' : '') +
@@ -445,7 +456,7 @@
           pintar();
         });
         U.$('#btn-otro-pago', raiz).addEventListener('click', function () {
-          pagos.push({ metodoPago: 'TARJETA', monto: Math.max(U.redondear(total - totalPagado()), 0) });
+          pagos.push({ metodoPago: 'NEQUI', monto: Math.max(U.redondear(total - totalPagado()), 0) });
           pintar();
         });
         U.$('#recibido', raiz).addEventListener('input', function (e) {

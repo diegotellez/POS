@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION_APP = '2.2';
+  var VERSION_APP = '2.3';
 
   var App = {
     version: VERSION_APP,

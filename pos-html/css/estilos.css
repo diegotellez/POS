@@ -493,10 +493,17 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 
 /* Gastos del turno y categorías en ventas */
 .gastos-turno { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--borde); }
-.form-gasto { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 12px; }
-.form-gasto .campo { margin-bottom: 0; }
-.form-gasto .campo:first-child { grid-column: 1 / -1; }
-@media (max-width: 760px) { .form-gasto { grid-template-columns: 1fr 1fr; } }
+.form-gasto { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-items: end; margin-bottom: 12px; }
+.form-gasto .campo, .form-gasto .aviso-inline { margin-bottom: 0; }
+.form-gasto .g-ancho { grid-column: 1 / -1; }
+.form-gasto .g-doble { grid-column: span 2; }
+.form-gasto .g-sueldo { display: none; }
+.form-gasto.es-sueldo .g-sueldo { display: block; }
+.form-gasto.es-sueldo .aviso-inline.g-sueldo { display: flex; }
+.form-gasto.es-sueldo .g-normal { display: none; }
+.info-sueldo { font-size: 13px; color: var(--texto-cuerpo); }
+.sueldos-semana { margin: 4px 0 18px; }
+@media (max-width: 760px) { .form-gasto { grid-template-columns: 1fr 1fr; } .form-gasto .g-doble { grid-column: 1 / -1; } }
 .cab-categorias { display: flex; justify-content: space-between; align-items: center; min-height: 24px; margin-bottom: 4px; }
 .cab-categorias .boton-texto { padding: 2px 6px; min-height: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
@@ -513,3 +520,8 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .fila-ajuste-base .campo { margin-bottom: 0; flex: 1 1 140px; }
 
 .version-app { text-align: center; margin: 12px 0 0; }
+.dos-columnas + .dos-columnas { margin-top: 16px; }
+.cajon-impresion { margin: 0 0 12px; line-height: 1.5; }
+.tabla td input[name=nombre] { width: 100%; min-width: 120px; }
+.tabla td input[name=sueldo] { width: 120px; text-align: right; }
+.btn-cajon { margin-top: 6px; align-self: center; }

@@ -6,6 +6,54 @@
   var ultimoCierre = null;
   var ultimoCierreUsuarioId = null;
 
+  // Semana de sueldos elegida en el formulario (lunes YYYY-MM-DD).
+  var semanaSueldo = null;
+
+  function opcionesSemana(actual) {
+    var hoy = POS.Gastos.lunesDe();
+    var p = hoy.split('-');
+    var base = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    var html = '';
+    for (var i = 0; i < 3; i++) {
+      var d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - 7 * i);
+      var l = POS.Gastos.lunesDe(d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate());
+      html += '<option value="' + l + '"' + (l === actual ? ' selected' : '') + '>' + (i === 0 ? 'Esta semana' : i === 1 ? 'Semana pasada' : 'Hace 2 semanas') +
+        ' (' + POS.Gastos.nombreSemana(l) + ')</option>';
+    }
+    return html;
+  }
+
+  function formularioGasto() {
+    var empleados = POS.Empleados.listar({ soloActivos: true });
+    return '<form id="form-gasto" class="form-gasto">' +
+      '<label class="campo"><span>Tipo</span><select name="tipo">' + POS.Gastos.TIPOS.map(function (t) { return '<option>' + U.esc(t) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="campo"><span>Valor</span><input name="monto" type="number" min="0" step="any" required inputmode="numeric"></label>' +
+      '<label class="campo"><span>Pagado con</span><select name="metodoPago">' + POS.Ventas.METODOS_PAGO.map(function (m) { return '<option value="' + m + '">' + POS.Ventas.nombreMetodo(m) + '</option>'; }).join('') + '</select></label>' +
+      '<button class="boton boton-primario" type="submit">' + U.icono('mas') + ' Registrar</button>' +
+      '<label class="campo g-ancho g-normal"><span>Concepto</span><input name="concepto" placeholder="Ej. Pedido Droguería Andina factura 4581"></label>' +
+      (empleados.length
+        ? '<label class="campo g-doble g-sueldo"><span>Empleado</span><select name="empleadoId">' +
+            empleados.map(function (e) { return '<option value="' + e.id + '">' + U.esc(e.nombre) + ' · ' + U.dinero(e.sueldo_semanal) + '/semana</option>'; }).join('') + '</select></label>' +
+          '<label class="campo g-sueldo"><span>Es</span><select name="claseSueldo"><option value="ADELANTO">Adelanto</option><option value="PAGO_SEMANA">Pago de la semana</option></select></label>' +
+          '<label class="campo g-sueldo"><span>Semana</span><select name="semana">' + opcionesSemana(semanaSueldo || POS.Gastos.lunesDe()) + '</select></label>' +
+          '<div class="g-ancho g-sueldo info-sueldo" id="info-sueldo"></div>' +
+          '<label class="campo g-ancho g-sueldo"><span>Nota (opcional)</span><input name="notaSueldo" placeholder="Ej. adelanto para transporte"></label>'
+        : '<p class="g-ancho g-sueldo aviso-inline">No hay empleados registrados. Un administrador los agrega, con su sueldo semanal, en Respaldo y configuración &gt; Empleados.</p>') +
+      '</form>';
+  }
+
+  function panelSueldos() {
+    var lunes = semanaSueldo || POS.Gastos.lunesDe();
+    var filas = POS.Gastos.sueldosSemana(lunes);
+    if (!filas.length) return '';
+    return '<div class="sueldos-semana"><h3>Sueldos · semana del ' + U.esc(POS.Gastos.nombreSemana(lunes)) + '</h3>' +
+      '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Empleado</th><th class="num">Sueldo</th><th class="num">Adelantos</th><th class="num">Pagado</th><th class="num">Pendiente</th></tr></thead><tbody>' +
+      filas.map(function (f) {
+        return '<tr><td>' + U.esc(f.nombre) + '</td><td class="num">' + U.dinero(f.sueldo_semanal) + '</td><td class="num">' + U.dinero(f.adelantos) + '</td>' +
+          '<td class="num">' + U.dinero(f.pagado) + '</td><td class="num ' + (f.pendiente < 0 ? 'alerta' : f.pendiente === 0 ? 'ok' : '') + '"><strong>' + U.dinero(f.pendiente) + '</strong></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+  }
+
   function render(cont, usuario) {
     if (ultimoCierre && ultimoCierreUsuarioId !== usuario.id) ultimoCierre = null;
     var turno = POS.Turnos.actual();
@@ -38,22 +86,16 @@
 
         '<div class="gastos-turno">' +
         '<h3>' + U.icono('caja') + ' Gastos y pedidos pagados en este turno</h3>' +
-        '<p class="tenue pequeno">Registre lo que se paga con dinero de la caja (pedidos a proveedores, domicilios, servicios…). ' +
+        '<p class="tenue pequeno">Registre lo que se paga con dinero de la caja: pedidos, servicios y sueldos. ' +
         'Lo pagado en efectivo se descuenta del efectivo esperado al cerrar.</p>' +
-        '<form id="form-gasto" class="form-gasto">' +
-        '<label class="campo"><span>Concepto</span><input name="concepto" required placeholder="Ej. Pedido Droguería Andina factura 4581"></label>' +
-        '<label class="campo"><span>Tipo</span><select name="tipo">' + POS.Gastos.TIPOS.map(function (t) { return '<option>' + U.esc(t) + '</option>'; }).join('') + '</select></label>' +
-        '<label class="campo"><span>Valor</span><input name="monto" type="number" min="0" step="any" required></label>' +
-        '<label class="campo"><span>Pagado con</span><select name="metodoPago">' + POS.Ventas.METODOS_PAGO.map(function (m) { return '<option>' + m + '</option>'; }).join('') + '</select></label>' +
-        '<button class="boton boton-primario" type="submit">' + U.icono('mas') + ' Registrar</button>' +
-        '</form>' +
+        formularioGasto() +
         (gastos.length
           ? '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Hora</th><th>Concepto</th><th>Tipo</th><th>Pago</th><th class="num">Valor</th><th></th></tr></thead><tbody>' +
             gastos.map(function (g) {
               var anulado = g.estado === 'ANULADO';
               return '<tr' + (anulado ? ' class="fila-anulada"' : '') + '><td>' + U.esc(g.fecha_hora.slice(11, 16)) + '</td>' +
                 '<td>' + U.esc(g.concepto) + '<br><small class="tenue">' + U.esc(g.nombre_usuario) + '</small></td>' +
-                '<td>' + U.esc(g.tipo) + '</td><td>' + U.esc(g.metodo_pago) + '</td>' +
+                '<td>' + U.esc(g.tipo) + '</td><td>' + U.esc(POS.Ventas.nombreMetodo(g.metodo_pago)) + '</td>' +
                 '<td class="num">' + U.dinero(g.monto) + '</td>' +
                 '<td class="acciones">' + (anulado
                   ? '<span class="etiqueta etiqueta-alerta" title="' + U.esc(g.motivo_anulacion) + '">ANULADO</span>'
@@ -62,6 +104,7 @@
             }).join('') + '</tbody></table></div>'
           : '<p class="tenue pequeno">Aún no hay gastos en este turno.</p>') +
         '</div>' +
+        panelSueldos() +
         '<h3>Cerrar turno (arqueo)</h3>' +
         '<p class="tenue">Cuenta el efectivo que hay en caja e ingrésalo. El sistema calcula la diferencia contra lo esperado.</p>' +
         '<form id="form-cerrar" class="form-linea">' +
@@ -161,13 +204,45 @@
 
     var fGasto = U.$('#form-gasto', cont);
     if (fGasto) {
+      // Sueldos: muestra cuánto lleva pagado el empleado en la semana y sugiere el saldo.
+      var infoSueldo = function () {
+        var esSueldo = fGasto.tipo.value === 'Sueldos';
+        fGasto.classList.toggle('es-sueldo', esSueldo);
+        fGasto.concepto.required = !esSueldo;
+        var caja = U.$('#info-sueldo', fGasto);
+        if (!esSueldo || !caja) return;
+        semanaSueldo = fGasto.semana.value;
+        var f = POS.Gastos.sueldosSemana(semanaSueldo).filter(function (x) { return x.empleado_id === Number(fGasto.empleadoId.value); })[0];
+        if (!f) { caja.innerHTML = ''; return; }
+        caja.innerHTML = 'Sueldo semanal <strong>' + U.dinero(f.sueldo_semanal) + '</strong> · adelantos ' + U.dinero(f.adelantos) +
+          ' · pagado ' + U.dinero(f.pagado) + ' · <span class="' + (f.pendiente <= 0 ? 'alerta' : 'ok') + '">pendiente <strong>' + U.dinero(f.pendiente) + '</strong></span>';
+        if (fGasto.claseSueldo.value === 'PAGO_SEMANA' && f.pendiente > 0) fGasto.monto.value = f.pendiente;
+      };
+      ['tipo', 'empleadoId', 'claseSueldo', 'semana'].forEach(function (n) {
+        if (fGasto[n]) fGasto[n].addEventListener('change', infoSueldo);
+      });
+      infoSueldo();
       fGasto.addEventListener('submit', function (e) {
         e.preventDefault();
         try {
-          var g = POS.Gastos.registrar(U.leerForm(fGasto));
+          var datos = U.leerForm(fGasto);
+          if (datos.tipo === 'Sueldos') {
+            datos.concepto = datos.notaSueldo;
+            var f = POS.Gastos.sueldosSemana(datos.semana).filter(function (x) { return x.empleado_id === Number(datos.empleadoId); })[0];
+            if (f && Number(datos.monto) > f.pendiente + 0.01 &&
+                !window.confirm('Con este pago ' + f.nombre + ' recibiría más que su sueldo semanal (pendiente: ' + U.dinero(f.pendiente) + '). ¿Registrar de todas formas?')) {
+              return;
+            }
+          }
+          var g = POS.Gastos.registrar(datos);
           U.aviso('Gasto registrado: ' + g.concepto + ' ' + U.dinero(g.monto), 'ok');
+          if (g.metodo_pago === 'EFECTIVO') {
+            Cajon.porEfectivo(function () {
+              U.imprimirHTML(POS.Documentos.egresoHTML(g), 380);
+            });
+          }
           render(cont, usuario);
-          var c = U.$('#form-gasto [name=concepto]', cont);
+          var c = U.$('#form-gasto [name=monto]', cont);
           if (c) c.focus();
         } catch (err) { U.error(err); }
       });

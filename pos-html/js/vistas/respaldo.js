@@ -8,6 +8,126 @@
     return (bytes / 1024).toFixed(0) + ' KB';
   }
 
+  function seccionCajon(cfg) {
+    var modo = cfg.cajonModo || 'ninguno';
+    function op(v, t) { return '<option value="' + v + '"' + (modo === v ? ' selected' : '') + '>' + t + '</option>'; }
+    return '<section class="tarjeta">' +
+      '<h2>' + U.icono('caja') + ' Cajón monedero</h2>' +
+      '<p class="tenue pequeno">El cajón va conectado a la impresora de tickets y se abre solo al cobrar en efectivo (ventas, cambios con excedente y gastos en efectivo).</p>' +
+      '<form id="form-cajon">' +
+      '<label class="campo"><span>Cómo se abre</span><select name="cajonModo">' +
+      op('ninguno', 'No abrir automáticamente') +
+      op('impresion', 'Al imprimir: el ticket se imprime solo y la impresora abre el cajón') +
+      op('serial', 'Directo: orden ESC/POS por USB/serial (Chrome o Edge)') +
+      '</select></label>' +
+      '<div class="cajon-impresion tenue pequeno">En Windows: <b>Panel de control &gt; Dispositivos e impresoras</b>, clic derecho en la impresora de tickets &gt; ' +
+      '<b>Preferencias de impresión</b> y active <b>Abrir cajón</b> (Cash drawer / Open drawer) antes o después de imprimir. ' +
+      'Para que el ticket salga sin la ventana de impresión, abra el POS en Chrome con la opción <code>--kiosk-printing</code> (ver el manual de instalación).</div>' +
+      '<div class="cajon-serial">' +
+      '<div class="fila-doble">' +
+      '<label class="campo"><span>Velocidad (baudios)</span><select name="cajonBaudios">' +
+      [9600, 19200, 38400, 115200].map(function (b) { return '<option' + (Number(cfg.cajonBaudios) === b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></label>' +
+      '<label class="campo"><span>Pin del cajón</span><select name="cajonPin"><option value="0"' + (cfg.cajonPin !== 1 ? ' selected' : '') + '>Pin 2 (lo normal)</option><option value="1"' + (cfg.cajonPin === 1 ? ' selected' : '') + '>Pin 5</option></select></label>' +
+      '</div>' +
+      '<p class="tenue pequeno" id="estado-serial"></p>' +
+      '<button type="button" class="boton boton-secundario" id="btn-conectar-cajon">Conectar impresora</button> ' +
+      '</div>' +
+      '<div class="acciones-reporte">' +
+      '<button class="boton boton-primario" type="submit">Guardar</button>' +
+      '<button type="button" class="boton boton-secundario" id="btn-probar-cajon">Probar apertura</button>' +
+      '</div>' +
+      '</form></section>';
+  }
+
+  function activarCajon(cont, cfg) {
+    var f = U.$('#form-cajon', cont);
+    function mostrar() {
+      U.$('.cajon-impresion', f).style.display = f.cajonModo.value === 'impresion' ? '' : 'none';
+      U.$('.cajon-serial', f).style.display = f.cajonModo.value === 'serial' ? '' : 'none';
+      var estado = U.$('#estado-serial', f);
+      if (!Cajon.serialDisponible()) {
+        estado.innerHTML = '<span class="alerta">Este navegador no permite la conexión directa. Use Chrome o Edge en el PC (dentro del artefacto no funciona).</span>';
+      } else {
+        Cajon.conectado().then(function (ok) {
+          estado.innerHTML = ok ? '<span class="ok">Impresora autorizada.</span>' : 'Aún no hay impresora autorizada: pulse "Conectar impresora" y elíjala de la lista.';
+        });
+      }
+    }
+    f.cajonModo.addEventListener('change', mostrar);
+    mostrar();
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      try {
+        POS.Config.guardar(Object.assign(POS.Config.obtener(), U.leerForm(f)));
+        U.aviso('Cajón configurado', 'ok');
+        App.renderizar();
+      } catch (err) { U.error(err); }
+    });
+    U.$('#btn-conectar-cajon', f).addEventListener('click', function () {
+      Cajon.conectar().then(function () { U.aviso('Impresora autorizada', 'ok'); mostrar(); }, function (err) {
+        if (err && err.name === 'NotFoundError') return; // canceló la selección
+        U.aviso(err.message, 'error', 6000);
+      });
+    });
+    U.$('#btn-probar-cajon', f).addEventListener('click', function () {
+      var modo = f.cajonModo.value;
+      if (modo === 'serial') {
+        Cajon.abrir().then(function () { U.aviso('Orden de apertura enviada', 'ok'); }, function (err) { U.aviso(err.message, 'error', 6000); });
+      } else if (modo === 'impresion') {
+        U.imprimirHTML('<!doctype html><meta charset="utf-8"><style>body{font:12px monospace;margin:0;padding:4px}</style><div>Prueba de cajón · ' + U.esc(U.ahora()) + '</div>', 300);
+      } else {
+        U.aviso('Elija un modo de apertura primero', 'alerta');
+      }
+    });
+  }
+
+  function seccionEmpleados() {
+    var lista = POS.Empleados.listar();
+    return '<section class="tarjeta">' +
+      '<h2>' + U.icono('usuarios') + ' Empleados y sueldo semanal</h2>' +
+      '<p class="tenue pequeno">Se usan en Turno de caja &gt; Gastos &gt; Sueldos para registrar adelantos y el pago de la semana (lunes a domingo).</p>' +
+      '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Nombre</th><th class="num">Sueldo semanal</th><th>Activo</th><th></th></tr></thead><tbody>' +
+      (lista.length ? lista.map(function (e) {
+        return '<tr data-emp="' + e.id + '"><td><input name="nombre" value="' + U.esc(e.nombre) + '"></td>' +
+          '<td class="num"><input name="sueldo" type="number" min="0" step="any" value="' + e.sueldo_semanal + '"></td>' +
+          '<td><input type="checkbox" name="activo"' + (e.activo ? ' checked' : '') + ' aria-label="Activo"></td>' +
+          '<td><button type="button" class="boton boton-texto" data-guardar-emp="' + e.id + '">Guardar</button></td></tr>';
+      }).join('') : '<tr><td colspan="4" class="tenue vacio">Aún no hay empleados.</td></tr>') +
+      '</tbody></table></div>' +
+      '<form id="form-empleado" class="form-linea">' +
+      '<label class="campo"><span>Nombre</span><input name="nombre" required placeholder="Ej. Laura Gómez"></label>' +
+      '<label class="campo"><span>Sueldo semanal</span><input name="sueldoSemanal" type="number" min="0" step="any" required></label>' +
+      '<button class="boton boton-primario" type="submit">' + U.icono('mas') + ' Agregar</button>' +
+      '</form></section>';
+  }
+
+  function activarEmpleados(cont) {
+    var f = U.$('#form-empleado', cont);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      try {
+        var emp = POS.Empleados.guardar(U.leerForm(f));
+        U.aviso('Empleado ' + emp.nombre + ' agregado', 'ok');
+        App.renderizar();
+      } catch (err) { U.error(err); }
+    });
+    U.$$('[data-guardar-emp]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var fila = b.closest('tr');
+        try {
+          POS.Empleados.guardar({
+            id: Number(b.getAttribute('data-guardar-emp')),
+            nombre: U.$('[name=nombre]', fila).value,
+            sueldoSemanal: U.$('[name=sueldo]', fila).value,
+            activo: U.$('[name=activo]', fila).checked
+          });
+          U.aviso('Empleado actualizado', 'ok');
+          App.renderizar();
+        } catch (err) { U.error(err); }
+      });
+    });
+  }
+
   function render(cont) {
     var cfg = POS.Config.obtener();
     var tam = DB.tamano();
@@ -61,7 +181,11 @@
       '<p class="tenue">Borra todos los datos de este navegador y vuelve a los datos de ejemplo.</p>' +
       '<button class="boton boton-secundario boton-peligro" id="btn-reiniciar">Borrar todos los datos</button>' +
       '</section>' +
-      '</div>';
+      '</div>' +
+      '<div class="dos-columnas">' + seccionCajon(cfg) + seccionEmpleados() + '</div>';
+
+    activarCajon(cont, cfg);
+    activarEmpleados(cont);
 
     var form = U.$('#form-config', cont);
     form.addEventListener('submit', function (e) {

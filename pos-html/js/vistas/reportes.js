@@ -79,7 +79,7 @@
         '</div>' +
         '<div class="secciones">' +
         '<div><h3>Por método de pago</h3>' +
-        lista(r.porMetodoPago, function (m) { return '<li>' + U.esc(m.metodo_pago) + ': ' + U.dinero(m.total) + '</li>'; }) + '</div>' +
+        lista(r.porMetodoPago, function (m) { return '<li>' + U.esc(POS.Ventas.nombreMetodo(m.metodo_pago)) + ': ' + U.dinero(m.total) + '</li>'; }) + '</div>' +
         '<div><h3>Por usuario</h3>' +
         lista(r.porUsuario, function (u) { return '<li>' + U.esc(u.nombre_usuario) + ': ' + U.dinero(u.total) + ' (' + u.cantidad_ventas + ' ventas)</li>'; }) + '</div>' +
         '<div><h3>Arqueo de caja</h3>' +
@@ -91,7 +91,7 @@
         (r.gastos.cantidad
           ? '<h3>Gastos y pedidos pagados</h3><div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Concepto</th><th>Tipo</th><th>Pago</th><th class="num">Valor</th></tr></thead><tbody>' +
             r.gastos.lista.map(function (g) {
-              return '<tr><td>' + U.esc(g.concepto) + '</td><td>' + U.esc(g.tipo) + '</td><td>' + U.esc(g.metodo_pago) + '</td><td class="num">' + U.dinero(g.monto) + '</td></tr>';
+              return '<tr><td>' + U.esc(g.concepto) + '</td><td>' + U.esc(g.tipo) + '</td><td>' + U.esc(POS.Ventas.nombreMetodo(g.metodo_pago)) + '</td><td class="num">' + U.dinero(g.monto) + '</td></tr>';
             }).join('') + '</tbody></table></div>'
           : '') +
         '<h3>Productos vendidos (' + r.porProducto.length + ')</h3>' +
@@ -160,7 +160,7 @@
           return '<tr><td>' + U.esc(c.nombre) + '</td><td class="num">' + c.cantidad + '</td><td class="num">' + U.dinero(c.total) + '</td></tr>';
         })) : '<p class="tenue">Sin ventas</p>') + '</div>' +
         '<div><h3>Por método de pago</h3>' + (r.porMetodoPago.length ? tabla(['Método', 'Total'], r.porMetodoPago.map(function (m) {
-          return '<tr><td>' + U.esc(m.metodo_pago) + '</td><td class="num">' + U.dinero(m.total) + '</td></tr>';
+          return '<tr><td>' + U.esc(POS.Ventas.nombreMetodo(m.metodo_pago)) + '</td><td class="num">' + U.dinero(m.total) + '</td></tr>';
         })) : '<p class="tenue">Sin ventas</p>') +
         (r.gastosPorTipo.length ? '<h3>Gastos por tipo</h3>' + tabla(['Tipo', 'Total'], r.gastosPorTipo.map(function (g) {
           return '<tr><td>' + U.esc(g.tipo) + '</td><td class="num">' + U.dinero(g.total) + '</td></tr>';
@@ -174,11 +174,11 @@
         })) : '<p class="tenue">Sin ventas.</p>') +
         '<div class="acciones-reporte">' +
         '<button class="boton boton-primario" id="btn-pdf-mes">' + U.icono('imprimir') + ' Imprimir / Guardar PDF</button>' +
-        '<button class="boton boton-secundario" id="btn-csv-mes">' + U.icono('descargar') + ' Exportar (CSV)</button>' +
+        '<button class="boton boton-secundario" id="btn-xlsx-mes">' + U.icono('descargar') + ' Descargar Excel</button>' +
         '</div>';
       activarTooltip(U.$('#mensual', cont));
       U.$('#btn-pdf-mes', cont).addEventListener('click', function () { U.imprimirHTML(htmlMensual(r), 900); });
-      U.$('#btn-csv-mes', cont).addEventListener('click', function () { csvMensual(r); });
+      U.$('#btn-xlsx-mes', cont).addEventListener('click', function () { excelMensual(r); });
     }
     U.$('#sel-mes', cont).addEventListener('change', function (e) { mesElegido = e.target.value; pintar(); });
     pintar();
@@ -256,23 +256,64 @@
       }) + '</table>' +
       '<h2>Por categoría</h2><table><tr><th>Categoría</th><th class="num">Unid.</th><th class="num">Total</th></tr>' +
       filas(r.porCategoria, function (c) { return '<tr><td>' + U.esc(c.nombre) + '</td><td class="num">' + c.cantidad + '</td><td class="num">' + U.dinero(c.total) + '</td></tr>'; }) + '</table>' +
-      '<h2>Por método de pago</h2><table>' + filas(r.porMetodoPago, function (m) { return '<tr><td>' + U.esc(m.metodo_pago) + '</td><td class="num">' + U.dinero(m.total) + '</td></tr>'; }) + '</table>' +
+      '<h2>Por método de pago</h2><table>' + filas(r.porMetodoPago, function (m) { return '<tr><td>' + U.esc(POS.Ventas.nombreMetodo(m.metodo_pago)) + '</td><td class="num">' + U.dinero(m.total) + '</td></tr>'; }) + '</table>' +
       (r.gastosPorTipo.length ? '<h2>Gastos por tipo</h2><table>' + filas(r.gastosPorTipo, function (g) { return '<tr><td>' + U.esc(g.tipo) + '</td><td class="num">' + U.dinero(g.total) + '</td></tr>'; }) + '</table>' : '') +
       '<h2>Productos vendidos</h2><table><tr><th>Producto</th><th class="num">Unid.</th><th class="num">Total</th></tr>' +
       filas(r.porProducto, function (p) { return '<tr><td>' + U.esc(p.nombre) + '</td><td class="num">' + p.cantidad + '</td><td class="num">' + U.dinero(p.total) + '</td></tr>'; }) + '</table>' +
       '<p class="tenue">Generado: ' + U.esc(U.ahora()) + '</p></body></html>';
   }
 
-  function csvMensual(r) {
-    var filas = [['seccion', 'concepto', 'cantidad', 'valor']];
-    r.dias.forEach(function (d) { filas.push(['dia', d.fecha, d.ventas, d.total]); });
-    r.dias.forEach(function (d) { if (d.gastos) filas.push(['gastos_dia', d.fecha, '', d.gastos]); });
-    r.porCategoria.forEach(function (c) { filas.push(['categoria', c.nombre, c.cantidad, c.total]); });
-    r.porMetodoPago.forEach(function (m) { filas.push(['metodo_pago', m.metodo_pago, '', m.total]); });
-    r.gastosPorTipo.forEach(function (g) { filas.push(['gasto_tipo', g.tipo, '', g.total]); });
-    r.porProducto.forEach(function (p) { filas.push(['producto', p.nombre, p.cantidad, p.total]); });
-    var csv = '\ufeff' + filas.map(function (f) { return f.map(celdaCSV).join(';'); }).join('\r\n');
-    U.descargar('ventas-' + r.mes + '.csv', csv, 'text/csv;charset=utf-8');
+  // Excel del mes con las hojas Categoría, Método, Día a día y Detalle.
+  function excelMensual(r) {
+    var detalle = POS.Reportes.detalleMes(r.mes);
+    var $ = function (v) { return { v: U.redondear(v), s: 'moneda' }; };
+    var T = function (v) { return { v: U.redondear(v), s: 'totalMoneda' }; };
+    var pct = function (v, total) { return { v: total ? Math.round((v / total) * 10000) / 10000 : 0, s: 'pct' }; };
+
+    // Categoría: principal y subcategoría, con unidades, total y participación.
+    var cats = {};
+    detalle.forEach(function (d) {
+      var k = d.categoria_principal + '|' + d.categoria;
+      var c = cats[k] || (cats[k] = { principal: d.categoria_principal, sub: d.categoria === d.categoria_principal ? '' : d.categoria, unidades: 0, total: 0 });
+      c.unidades += d.cantidad;
+      c.total += d.subtotal;
+    });
+    var listaCats = Object.keys(cats).map(function (k) { return cats[k]; }).sort(function (a, b) {
+      return a.principal.localeCompare(b.principal, 'es') || b.total - a.total;
+    });
+    var hojaCat = [['Categoría', 'Subcategoría', 'Unidades', 'Total vendido', '% del mes']].concat(
+      listaCats.map(function (c) { return [c.principal, c.sub, c.unidades, $(c.total), pct(c.total, r.total)]; }),
+      [[{ v: 'TOTAL', s: 'total' }, { v: '', s: 'total' }, { v: listaCats.reduce(function (a, c) { return a + c.unidades; }, 0), s: 'total' }, T(r.total), { v: '', s: 'total' }]]);
+
+    // Método de pago, con número de pagos.
+    var nPagos = {};
+    POS.Ventas.listar({ desde: r.mes + '-01', hasta: r.mes + '-31', estado: 'COMPLETADA' }).forEach(function (v) {
+      v.pagos.forEach(function (pg) { nPagos[pg.metodo_pago] = (nPagos[pg.metodo_pago] || 0) + 1; });
+    });
+    var totalMetodos = r.porMetodoPago.reduce(function (a, m) { return a + m.total; }, 0);
+    var hojaMetodo = [['Método de pago', 'Número de pagos', 'Valor', '% del mes']].concat(
+      r.porMetodoPago.map(function (m) { return [POS.Ventas.nombreMetodo(m.metodo_pago), nPagos[m.metodo_pago] || 0, $(m.total), pct(m.total, totalMetodos)]; }),
+      [[{ v: 'TOTAL', s: 'total' }, { v: r.porMetodoPago.reduce(function (a, m) { return a + (nPagos[m.metodo_pago] || 0); }, 0), s: 'total' }, T(totalMetodos), { v: '', s: 'total' }]]);
+
+    // Día a día: todos los días del mes.
+    var hojaDias = [['Fecha', 'Día', 'Ventas', 'Total vendido', 'Gastos', 'Ventas menos gastos']].concat(
+      r.dias.map(function (d) { return [d.fecha, d.semana, d.ventas, $(d.total), $(d.gastos), $(d.total - d.gastos)]; }),
+      [[{ v: 'TOTAL', s: 'total' }, { v: '', s: 'total' }, { v: r.cantidadVentas, s: 'total' }, T(r.total), T(r.gastos), T(r.neto)]]);
+
+    // Detalle: una fila por producto de cada venta o cambio.
+    var hojaDetalle = [['Fecha', 'Hora', 'Venta #', 'Tipo', 'Cajero', 'Categoría', 'Subcategoría', 'Producto', 'Código', 'Cantidad', 'Precio', 'Subtotal', 'Pago']].concat(
+      detalle.map(function (d) {
+        return [d.fecha, d.hora, d.venta_id, d.tipo, d.cajero, d.categoria_principal, d.categoria === d.categoria_principal ? '' : d.categoria,
+          d.producto, d.codigo, d.cantidad, $(d.precio), $(d.subtotal), d.metodos];
+      }));
+
+    var bytes = XLSX.libro([
+      { nombre: 'Categoría', filas: hojaCat, anchos: [30, 32, 11, 16, 11] },
+      { nombre: 'Método', filas: hojaMetodo, anchos: [20, 17, 16, 11] },
+      { nombre: 'Día a día', filas: hojaDias, anchos: [12, 7, 9, 16, 14, 20] },
+      { nombre: 'Detalle', filas: hojaDetalle, anchos: [11, 7, 9, 14, 12, 26, 28, 40, 15, 9, 12, 13, 20], filtro: true }
+    ]);
+    U.descargar('ventas-' + r.mes + '.xlsx', bytes, XLSX.TIPO);
   }
 
   function celdaCSV(v) {

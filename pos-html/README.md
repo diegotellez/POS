@@ -1,9 +1,24 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.2** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.3** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.3
+
+- **Cajón monedero**: se abre solo al cobrar en efectivo (ventas, cambios con
+  excedente en efectivo y gastos en efectivo). Dos modos: "Al imprimir" (el
+  ticket se imprime solo y el controlador de la impresora abre el cajón) o
+  "Directo" (orden ESC/POS por Web Serial en Chrome/Edge). Botón "Abrir cajón"
+  en Ventas, registrado en Auditoría.
+- **Formas de pago**: Efectivo, Nequi, QR y Transferencia (Tarjeta se reemplazó
+  por Nequi; las ventas antiguas con tarjeta se siguen reportando).
+- **Gastos**: tipos Pedidos, Servicios, Sueldos y Otros. Sueldos semanales por
+  empleado con adelantos: el pago de la semana sugiere lo pendiente (sueldo
+  menos adelantos) y hay un resumen por empleado.
+- **Ventas mensuales en Excel** (.xlsx) con las hojas Categoría, Método, Día a
+  día y Detalle.
 
 ## Novedades de la versión 2.2
 
@@ -85,7 +100,7 @@ Son las mismas de la versión Angular + Express:
 
 - **Ventas**: búsqueda por nombre y lectura de código de barras con lector USB
   (Enter agrega el producto), carrito, cobro con varios métodos de pago
-  (efectivo, tarjeta, transferencia), cálculo del cambio, datos opcionales del
+  (efectivo, Nequi, QR, transferencia), cálculo del cambio, datos opcionales del
   cliente y atajo **F2** para cobrar. El ticket en curso se guarda en el
   navegador: no se pierde al cambiar de pantalla, recargar o cerrar sesión.
   Si un producto buscado o escaneado no existe, el administrador lo crea ahí
@@ -104,7 +119,7 @@ Son las mismas de la versión Angular + Express:
 - **Turno de caja**: apertura con base inicial (la puede poner un cajero si no
   está el administrador, y corregirla después con motivo) y cierre con arqueo
   (efectivo esperado contra contado, marcando faltante o sobrante).
-- **Gastos y pedidos pagados** en cada turno: concepto, tipo, valor y método de
+- **Gastos y pedidos pagados** en cada turno: tipo (Pedidos, Servicios, Sueldos u Otros), valor y método de
   pago. Lo pagado en efectivo se descuenta del efectivo esperado; aparecen en el
   cierre, el WhatsApp del dueño y los reportes. El administrador los puede anular. El resumen
   del cierre lista **todos** los productos vendidos. Si hay un número de
@@ -124,7 +139,8 @@ Son las mismas de la versión Angular + Express:
   historial de movimientos y alertas de stock bajo.
 - **Ventas mensuales**: total, ventas, promedio diario, ticket promedio, mejor
   día, gráfico por día, por categoría, por método de pago, gastos y ventas menos
-  gastos; imprimible y exportable a CSV.
+  gastos; imprimible y descargable en Excel (hojas Categoría, Método, Día a día
+  y Detalle).
 - **Categorías al vender**: arriba de Ventas están todas las categorías en orden
   alfabético, a la vista sin scroll; debajo, la barra de búsqueda. Se pueden
   elegir una o varias categorías (cada una incluye sus subcategorías) y la
@@ -175,6 +191,8 @@ js/util.js          formato, íconos SVG, avisos y diálogos
 js/db.js            almacenamiento en localStorage con transacciones
 js/catalogo-base.js catálogo base de droguería (sin precios)
 js/precios-texto.js interpreta listas de precios en lenguaje natural (WhatsApp)
+js/cajon.js         apertura del cajón monedero (impresión o ESC/POS por Web Serial)
+js/xlsx.js          generador de Excel (.xlsx) sin librerías
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
 js/vistas/*.js      una pantalla por archivo

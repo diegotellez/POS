@@ -51,7 +51,7 @@
           '<td class="col-opc">' + U.esc(v.nombre_usuario) + '</td>' +
           '<td class="col-opc">' + U.esc(v.cliente_nombre || v.cliente_documento || '—') + '</td>' +
           '<td class="num">' + U.dinero(v.total) + '</td>' +
-          '<td class="col-opc">' + U.esc(v.pagos.map(function (p) { return p.metodo_pago; }).join(', ')) + '</td>' +
+          '<td class="col-opc">' + U.esc(v.pagos.map(function (p) { return POS.Ventas.nombreMetodo(p.metodo_pago); }).join(', ')) + '</td>' +
           '<td class="col-estado">' + (anulada ? '<span class="etiqueta etiqueta-alerta" title="' + U.esc(v.motivo_anulacion) + '">ANULADA</span>' : '<span class="etiqueta">COMPLETADA</span>') + '</td>' +
           '<td class="acciones acciones-venta"><div class="acciones-fila">' +
           '<button class="boton-icono" data-ver="' + v.id + '" title="Ver detalle" aria-label="Ver detalle">' + U.icono('reporte') + '</button>' +
@@ -116,7 +116,7 @@
             (v.nota ? '<br>Nota: ' + U.esc(v.nota) : '') + '</p>'
           : '<p><strong>Total: ' + U.dinero(v.total) + '</strong>' +
             (v.cambios && v.cambios.length ? '<br><span class="tenue">Cambios registrados: ' + v.cambios.map(function (c) { return '#' + c; }).join(', ') + '</span>' : '') + '</p>') +
-        '<p>' + v.pagos.map(function (p) { return U.esc(p.metodo_pago) + ': ' + U.dinero(p.monto); }).join('<br>') + '</p>' +
+        '<p>' + v.pagos.map(function (p) { return U.esc(POS.Ventas.nombreMetodo(p.metodo_pago)) + ': ' + U.dinero(p.monto); }).join('<br>') + '</p>' +
         (v.estado === 'ANULADA'
           ? '<p class="alerta">Anulada el ' + U.esc(v.fecha_hora_anulacion) + '. Motivo: ' + U.esc(v.motivo_anulacion) + '</p>'
           : '')
@@ -208,9 +208,11 @@
               (cambio.diferencia > 0 ? '. Cobrado: ' + U.dinero(cambio.diferencia) : '') +
               (cambio.saldo_retenido ? '. Saldo no devuelto: ' + U.dinero(cambio.saldo_retenido) : '') +
               (cambio.motivo_reembolso ? '. Devuelto: ' + U.dinero(-cambio.diferencia) : ''), 'ok', 6000);
-            U.confirmar('¿Imprimir el comprobante del cambio?', function () {
-              U.imprimirHTML(POS.Documentos.ticketHTML(cambio), 380);
-            }, 'Imprimir');
+            var imprimir = function () { U.imprimirHTML(POS.Documentos.ticketHTML(cambio), 380); };
+            var conEfectivo = cambio.pagos.some(function (p) { return p.metodo_pago === 'EFECTIVO' && p.monto !== 0; });
+            if (!(conEfectivo && Cajon.porEfectivo(imprimir))) {
+              U.confirmar('¿Imprimir el comprobante del cambio?', imprimir, 'Imprimir');
+            }
             alTerminar();
           }
         }
@@ -262,7 +264,7 @@
           } else if (dif > 0) {
             html = '<div class="aviso-inline cb-paga"><span>El cliente paga el excedente: <strong>' + U.dinero(dif) + '</strong></span>' +
               '<div class="fila-doble"><label class="campo cb-metodo"><span>Método de pago</span><select id="cb-metodo">' +
-              POS.Ventas.METODOS_PAGO.map(function (m) { return '<option' + (m === metodoPago ? ' selected' : '') + '>' + m + '</option>'; }).join('') +
+              POS.Ventas.METODOS_PAGO.map(function (m) { return '<option value="' + m + '"' + (m === metodoPago ? ' selected' : '') + '>' + POS.Ventas.nombreMetodo(m) + '</option>'; }).join('') +
               '</select></label>' +
               (metodoPago === 'EFECTIVO'
                 ? '<label class="campo"><span>Paga con (opcional)</span><input id="cb-recibido" type="number" min="0" step="any" inputmode="numeric" placeholder="' + dif + '" value="' + U.esc(recibido) + '"></label>'
@@ -275,7 +277,7 @@
                 ? '<label class="check"><input type="checkbox" id="cb-devolver"' + (devolver ? ' checked' : '') + '> Caso excepcional: devolver el dinero</label>' +
                   (devolver
                     ? '<div class="fila-doble"><label class="campo"><span>Devolver por</span><select id="cb-metodo-dev">' +
-                      POS.Ventas.METODOS_PAGO.map(function (m) { return '<option>' + m + '</option>'; }).join('') + '</select></label>' +
+                      POS.Ventas.METODOS_PAGO.map(function (m) { return '<option value="' + m + '">' + POS.Ventas.nombreMetodo(m) + '</option>'; }).join('') + '</select></label>' +
                       '<label class="campo"><span>Motivo (obligatorio)</span><input id="cb-motivo" placeholder="Ej. producto defectuoso"></label></div>'
                     : '')
                 : '<span class="pequeno tenue">Solo un administrador puede autorizar una devolución de dinero.</span>') +
