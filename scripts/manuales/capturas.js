@@ -103,6 +103,20 @@ const OUT = process.argv[2];
   // usuarios
   await ir('Usuarios'); await foto('u15-usuarios');
   // respaldo
+  // compras: importar líneas de una factura
+  await ir('Compras');
+  await page.click('#cf-pegar');
+  await page.fill('#cf-texto', JSON.stringify({ proveedor: 'Distribuidora Farmacéutica Roma S.A.', numero: 'FI-1100828977', fecha: '10.09.2026', condicion: 'CREDITO', vencimiento: '09.10.2026', lineas: [
+    { codigo: '2000017003', descripcion: 'DICLOFENACO 1% X 50 GR GEL - VITALIS (117)', cantidad: 0, bonificacion: 2, costo: 0, lote: 'S30515', vencimiento: '01.12.2028' },
+    { codigo: '1000017003', descripcion: 'DICLOFENACO 1% X 50 GR GEL - VITALIS (117)', cantidad: 2, costo: 15643, lote: 'S30515', vencimiento: '01.12.2028' },
+    { codigo: '5000007163', descripcion: 'CIPROFLOXACINA 500 MG X 10 TABS - LAFRANCOL - AG (420)', cantidad: 3, costo: 8614, lote: '25C125', vencimiento: '01.11.2027' },
+    { codigo: '1000022588', descripcion: 'LAGRIMAS ARTIFICIALES X 15 ML (CARBOXIMETILCELULOSA) - VITAL', cantidad: 3, costo: 31808, lote: 'O260222', vencimiento: '01.02.2028' },
+    { codigo: '1000028670', ean: '7703038518747', descripcion: 'ESOMEPRAZOL 20 MG X 100 TABS - LAPROFF (105)', cantidad: 1, costo: 71691, lote: 'A0486', vencimiento: '31.01.2028' }] }));
+  await page.click('.modal .boton-primario'); await page.waitForTimeout(300);
+  await page.check('[data-fila="0"] [data-c=verificado]');
+  await page.fill('[data-fila="1"] [data-c=precioVenta]', '11500'); await page.press('[data-fila="1"] [data-c=precioVenta]', 'Tab');
+  await foto('u13d-factura');
+  await page.click('#cf-descartar'); await page.click('.modal .boton-primario');
   await ir('Respaldo y configuración'); await foto('u16-respaldo');
   await page.selectOption('#form-cajon [name=cajonModo]', 'impresion'); await limpiar();
   await page.locator('#form-cajon').locator('xpath=..').screenshot({ path: OUT + '/u16b-cajon.jpg', type: 'jpeg', quality: 85 });

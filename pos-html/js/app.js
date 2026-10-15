@@ -6,13 +6,13 @@
 (function (global) {
   'use strict';
 
-  var VERSION_APP = '2.3.1';
+  var VERSION_APP = '2.4';
 
   var App = {
     version: VERSION_APP,
     vistas: {},
     // Orden del menú lateral
-    menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
+    menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'compras', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
     limpiezas: []
   };
 

@@ -187,7 +187,7 @@ h += [viñetas([
     'Configure el <b>stock mínimo</b> de los productos que quiera vigilar; solo esos generan alertas de stock bajo.',
 ])]
 h += [h2('4.9 Inventario inicial')]
-h += [p('Registre las existencias actuales en <b>Inventario &gt; Compras (entrada de mercancía)</b>, producto por producto, '
+h += [p('Registre las existencias actuales en <b>Inventario &gt; Entrada rápida</b> (o con una factura en <b>Compras</b>), producto por producto, '
         'con la referencia "Inventario inicial". A partir de ahí cada venta descuenta del stock y cada compra lo suma.')]
 
 # ------------------------------------------------------------------ 5

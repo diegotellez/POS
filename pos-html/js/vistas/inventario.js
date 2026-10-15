@@ -28,7 +28,7 @@
           U.esc(bajo.map(function (p) { return p.nombre + ' (' + p.stock + ')'; }).join(', ')) + '</span></div>'
         : '') +
       '<div class="pestanas" role="tablist">' +
-      '<button role="tab" data-p="entrada">Compras (entrada de mercancía)</button>' +
+      '<button role="tab" data-p="entrada">Entrada rápida</button>' +
       '<button role="tab" data-p="ajuste">Ajuste manual</button>' +
       '<button role="tab" data-p="movimientos">Historial de movimientos</button>' +
       '</div>' +
@@ -45,6 +45,7 @@
 
       if (pestana === 'entrada') {
         panel.innerHTML =
+          '<p class="tenue pequeno">Para una factura de proveedor completa use <a href="#/compras">Compras &gt; Cargar factura</a>: carga todas las líneas, bonificaciones, costos y vencimientos de una vez.</p>' +
           '<form class="form-inventario" id="form-entrada">' +
           '<label class="campo"><span>Producto</span><select name="productoId" required>' + opcionesProductos() + '</select>' +
           '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-compra">' + U.icono('mas') + ' Nuevo producto</button></label>' +

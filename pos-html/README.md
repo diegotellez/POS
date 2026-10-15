@@ -1,9 +1,22 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.3.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.4** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.4
+
+- **Compras: cargar factura completa** de una vez, con borrador que se guarda
+  solo. Líneas buscando o escaneando, importando el **XML de factura
+  electrónica (DIAN)** o pegando JSON/CSV (por ejemplo, el que prepara Claude
+  desde una foto). Cantidad, bonificación, costo, precio de venta con margen,
+  lote, vencimiento y casilla de verificado por línea.
+- Recuerda el código de cada producto en cada proveedor; une la bonificación con
+  la compra (proveedores que usan el primer dígito del código, como Roma).
+- "Crear todos los que faltan" para la primera factura de un proveedor.
+- Facturas a crédito por pagar (el pago queda como gasto Pedidos) y aviso de
+  productos próximos a vencer (no bloquea la venta).
 
 ## Novedades de la versión 2.3.1
 
@@ -201,7 +214,7 @@ js/cajon.js         apertura del cajón monedero (impresión o ESC/POS por Web S
 js/xlsx.js          generador de Excel (.xlsx) sin librerías
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
-js/vistas/*.js      una pantalla por archivo
+js/vistas/*.js      una pantalla por archivo (compras.js: carga de facturas)
 docs/*.pdf          manuales de instalación y de usuario
 ```
 

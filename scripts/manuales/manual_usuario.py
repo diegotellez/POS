@@ -271,19 +271,39 @@ h += [p('Las categorías ordenan el catálogo y permiten filtrar en Precios. Pue
 h += [figura(C + '/u20-categorias.jpg', 'Figura 17. Árbol de categorías con cantidad de productos.', alto_max=9 * cm)]
 
 # ------------------------------------------------------------------ 10
-h += [PageBreak(), h1('10. Inventario (administrador)')]
-h += [h2('10.1 Compras (entrada de mercancía)')]
+h += [PageBreak(), h1('10. Compras e inventario (administrador)')]
+h += [h2('10.1 Cargar una factura de compra')]
+h += [p('En <b>Compras</b> se carga la factura completa del proveedor de una sola vez. El borrador se guarda solo: puede salir de la '
+        'pantalla, atender una venta y volver sin perder nada.')]
 h += [pasos([
-    'Entre a <b>Inventario &gt; Compras (entrada de mercancía)</b>.',
-    'Elija el producto. Si llegó un producto que no existe, pulse <b>+ Nuevo producto</b>: se crea ahí mismo y queda seleccionado.',
-    'Escriba la <b>cantidad</b> recibida y una <b>referencia</b> (número de factura y proveedor).',
-    'Pulse <b>Registrar entrada</b>. El stock se suma y queda en el historial de movimientos.',
+    'Elija el <b>proveedor</b> (o <b>+ Nuevo</b>), escriba el <b>número de factura</b>, la fecha y si es de contado o a <b>crédito</b> (con la fecha de vencimiento del pago).',
+    'Agregue las líneas de una de estas formas: <b>buscando o escaneando</b> cada producto (por nombre, código de barras o código del proveedor); '
+    '<b>Importar XML</b> de la factura electrónica que llega al correo; o <b>Pegar líneas</b> (el texto que le prepare Claude a partir de una foto, o una tabla de Excel).',
+    'En cada línea revise <b>cantidad</b>, <b>bonificación</b> (unidades de obsequio), <b>costo</b> y <b>precio de venta</b>. El sistema muestra el margen (en rojo si es menor al 15 % '
+    'o negativo) y avisa si el costo subió. Lote y vencimiento son opcionales.',
+    'Marque la casilla <b>✓</b> de cada línea a medida que verifica la mercancía (igual que el resaltado en la factura de papel).',
+    'Pulse <b>Guardar factura y sumar al inventario</b>. El stock sube con lo comprado más lo bonificado, y si cambió el precio de venta se actualiza.',
 ])]
-h += [figura(C + '/u13-compras.jpg', 'Figura 18. Registro de una compra.', alto_max=6.5 * cm, recorte=(0.18, 0.07, 1.0, 0.5))]
-h += [h2('10.2 Ajuste manual')]
+h += [figura(C + '/u13d-factura.jpg', 'Figura 18. Carga de una factura: bonificación junto a la compra, margen y verificación por línea.', alto_max=11 * cm)]
+h += [tabla(['Situación', 'Qué hace el sistema'], [
+    ['Primera factura de un proveedor', 'Los productos que no reconoce quedan "Sin emparejar": pulse <b>Elegir producto</b> o <b>Crear</b>, o <b>Crear todos los que faltan</b> para crearlos de una vez con el nombre y el código de barras de la factura.'],
+    ['Facturas siguientes', 'El sistema recuerda el código de cada producto en ese proveedor y empareja las líneas solo.'],
+    ['Bonificaciones (ej. Roma: 1000016141 y 2000016141)', 'Si al crear el proveedor marcó que el primer dígito indica el tipo de línea, la bonificación se suma a la misma línea del producto.'],
+    ['"revisar" en una línea', 'Se emparejó por el nombre: confirme que es la misma presentación.'],
+    ['Factura repetida', 'No se deja guardar dos veces el mismo número del mismo proveedor.'],
+    ['Factura a crédito', 'Queda en <b>Facturas a crédito por pagar</b>. Al pagarla, <b>Registrar pago</b> la anota como gasto tipo Pedidos en el turno abierto.'],
+    ['Vencimientos', '<b>Próximos a vencer</b> lista los lotes que vencen en 6 meses. Es solo un aviso: no impide vender.'],
+], [5, 11])]
+h += [h2('10.2 Entrada rápida de un producto')]
+h += [pasos([
+    'Para sumar un solo producto sin factura, entre a <b>Inventario &gt; Entrada rápida</b>.',
+    'Elija el producto (o <b>+ Nuevo producto</b>), escriba la <b>cantidad</b> y una <b>referencia</b>, y pulse <b>Registrar entrada</b>.',
+])]
+h += [figura(C + '/u13-compras.jpg', 'Figura 18b. Entrada rápida de un producto.', alto_max=6.5 * cm, recorte=(0.18, 0.07, 1.0, 0.5))]
+h += [h2('10.3 Ajuste manual')]
 h += [p('Para corregir el stock después de un conteo físico, una merma o un vencimiento: elija el producto (se muestra su stock '
         'actual), escriba el <b>nuevo stock</b> real y el <b>motivo</b>. El ajuste queda en Auditoría.')]
-h += [h2('10.3 Historial de movimientos')]
+h += [h2('10.4 Historial de movimientos')]
 h += [p('Lista los últimos 500 movimientos: compras (Entrada), ventas, anulaciones y ajustes manuales, con fecha, cantidad y referencia.')]
 h += [figura(C + '/u13c-movimientos.jpg', 'Figura 19. Historial de movimientos de inventario.', alto_max=8 * cm)]
 

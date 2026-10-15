@@ -525,3 +525,27 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .tabla td input[name=nombre] { width: 100%; min-width: 120px; }
 .tabla td input[name=sueldo] { width: 120px; text-align: right; }
 .btn-cajon { margin-top: 6px; align-self: center; }
+
+/* Compras: carga de factura */
+.cf-encabezado { display: grid; grid-template-columns: 2fr 1.4fr 1fr 1fr 1fr; gap: 10px; align-items: end; }
+.cf-encabezado .campo { margin-bottom: 8px; }
+.cf-prov { display: flex; gap: 4px; align-items: center; }
+.cf-prov select { flex: 1; min-width: 0; }
+.cf-barra { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.cf-barra .campo-busqueda { flex: 1 1 360px; margin-bottom: 8px; }
+.cf-importar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.cf-resultados { max-height: 260px; overflow-y: auto; margin-bottom: 8px; }
+.cf-tabla input { width: 84px; text-align: right; }
+.cf-tabla input[type=date] { width: 130px; text-align: left; }
+.cf-tabla input[type=checkbox] { width: 18px; height: 18px; }
+.cf-tabla .cf-cod { width: 150px; text-align: left; font-size: 12px; margin-top: 4px; }
+.cf-tabla .cf-lote { width: 90px; text-align: left; }
+.cf-tabla .cf-prod { min-width: 220px; }
+.cf-tabla tr.cf-ok td { background: color-mix(in srgb, var(--ok) 10%, transparent); }
+.cf-tabla tr.cf-sin td { background: color-mix(in srgb, var(--alerta, #e8590c) 8%, transparent); }
+.cf-resumen { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0 6px; }
+.cf-resumen > div { flex: 1 1 140px; background: var(--suave); border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; }
+.cf-resumen span { font-size: 12.5px; color: var(--texto-cuerpo); }
+.cf-resumen strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.cf-texto { width: 100%; font-family: monospace; font-size: 12px; }
+@media (max-width: 900px) { .cf-encabezado { grid-template-columns: 1fr 1fr; } }

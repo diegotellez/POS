@@ -1012,6 +1012,191 @@
     return ini.getDate() + ' ' + MESES_CORTOS[ini.getMonth()] + ' al ' + fin.getDate() + ' ' + MESES_CORTOS[fin.getMonth()];
   }
 
+  // ======================= Compras a proveedores =======================
+  // Fecha de vencimiento escrita como 01.06.2029, 01/06/2029 o 2029-06-01 -> 2029-06-01.
+  function fechaCompra(texto) {
+    var t = String(texto || '').trim();
+    if (!t) return null;
+    var m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2);
+    m = t.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})$/);
+    if (m) {
+      var anio = m[3].length === 2 ? '20' + m[3] : m[3];
+      return anio + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+    }
+    m = t.match(/^(\d{1,2})[.\/-](\d{4})$/); // 06/2029 -> último día no importa: día 01
+    if (m) return m[2] + '-' + ('0' + m[1]).slice(-2) + '-01';
+    return null;
+  }
+
+  // Algunos proveedores usan el primer dígito del código para el tipo de línea
+  // (1000016141 compra, 2000016141 bonificación): se compara sin ese prefijo.
+  function codigoNormalizado(proveedor, codigo) {
+    var c = String(codigo || '').trim();
+    if (!c) return '';
+    if (proveedor && proveedor.codigo_sin_prefijo && /^\d{8,}$/.test(c)) c = c.slice(1).replace(/^0+/, '') || '0';
+    return c.toUpperCase();
+  }
+
+  var Proveedores = {
+    listar: function () {
+      return DB.datos().proveedores.map(copia).sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
+    },
+    guardar: function (datos) {
+      Auth.requerirAdmin();
+      var usuarioId = usuarioActualId();
+      var nombre = String(datos.nombre || '').trim();
+      if (!nombre) falla('Escribe el nombre del proveedor');
+      return DB.tx(function (db) {
+        var dup = db.proveedores.filter(function (x) { return x.nombre.toLowerCase() === nombre.toLowerCase() && x.id !== Number(datos.id); })[0];
+        if (dup) falla('Ya existe el proveedor ' + nombre);
+        var pr;
+        if (datos.id) {
+          pr = DB.buscarPorId(db, 'proveedores', datos.id);
+          if (!pr) falla('Proveedor no encontrado');
+        } else {
+          pr = DB.insertar(db, 'proveedores', { nombre: nombre });
+        }
+        pr.nombre = nombre;
+        pr.nit = String(datos.nit || '').trim() || null;
+        pr.codigo_sin_prefijo = !!datos.codigoSinPrefijo;
+        auditar(db, usuarioId, 'Proveedor', 'Proveedor ' + nombre);
+        return copia(pr);
+      });
+    }
+  };
+
+  var Compras = {
+    fecha: fechaCompra,
+
+    // Busca el producto de una línea de factura: primero por el código del
+    // proveedor ya aprendido, luego por código de barras (EAN).
+    emparejar: function (proveedorId, codigo, ean) {
+      var db = DB.datos();
+      var pr = DB.buscarPorId(db, 'proveedores', proveedorId);
+      var cod = codigoNormalizado(pr, codigo);
+      if (cod) {
+        var m = db.codigos_proveedor.filter(function (x) { return x.proveedor_id === Number(proveedorId) && x.codigo === cod; })[0];
+        var p = m && DB.buscarPorId(db, 'productos', m.producto_id);
+        if (p && p.activo) return { producto: conCategoria(db, p), via: 'codigo' };
+      }
+      var e = String(ean || '').replace(/\D/g, '');
+      if (e.length >= 8) {
+        var pe = db.productos.filter(function (x) { return x.activo && x.codigo_barras && x.codigo_barras.replace(/^0+/, '') === e.replace(/^0+/, ''); })[0];
+        if (pe) return { producto: conCategoria(db, pe), via: 'ean' };
+      }
+      return null;
+    },
+
+    codigoNormalizado: function (proveedorId, codigo) {
+      return codigoNormalizado(DB.buscarPorId(DB.datos(), 'proveedores', proveedorId), codigo);
+    },
+
+    // Registra la factura completa en una sola operación: suma stock (compra +
+    // bonificación), guarda costo, precio de venta, lotes y aprende los códigos.
+    registrar: function (datos) {
+      Auth.requerirAdmin();
+      var usuarioId = usuarioActualId();
+      var numero = String(datos.numero || '').trim();
+      if (!numero) falla('Escribe el número de la factura');
+      var lineas = (datos.lineas || []).filter(function (l) { return Number(l.cantidad) > 0 || Number(l.bonificacion) > 0; });
+      if (!lineas.length) falla('La factura no tiene productos');
+      return DB.tx(function (db) {
+        var pr = DB.buscarPorId(db, 'proveedores', datos.proveedorId);
+        if (!pr) falla('Elige el proveedor');
+        if (db.compras.some(function (c) { return c.proveedor_id === pr.id && c.numero.toUpperCase() === numero.toUpperCase() && c.estado !== 'ANULADA'; })) {
+          falla('La factura ' + numero + ' de ' + pr.nombre + ' ya está registrada');
+        }
+        var compra = DB.insertar(db, 'compras', {
+          proveedor_id: pr.id, numero: numero, fecha: fechaCompra(datos.fecha) || U.ahora().slice(0, 10),
+          condicion: datos.condicion === 'CREDITO' ? 'CREDITO' : 'CONTADO', vencimiento: fechaCompra(datos.vencimiento),
+          fecha_registro: U.ahora(), usuario_id: usuarioId, total: 0, unidades: 0, bonificadas: 0,
+          estado: datos.condicion === 'CREDITO' ? 'PENDIENTE' : 'PAGADA', pago_gasto_id: null, lineas: []
+        });
+        var total = 0, unidades = 0, bonif = 0, preciosCambiados = 0;
+        lineas.forEach(function (l) {
+          var p = DB.buscarPorId(db, 'productos', l.productoId);
+          if (!p) falla('Hay una línea sin producto: ' + (l.descripcion || ''));
+          var cant = Math.max(0, U.numero(l.cantidad) || 0);
+          var regalo = Math.max(0, U.numero(l.bonificacion) || 0);
+          var costo = U.redondear(U.numero(l.costo) || 0);
+          var entra = cant + regalo;
+          p.stock += entra;
+          if (costo > 0) p.costo = costo;
+          var pv = U.redondear(U.numero(l.precioVenta) || 0);
+          if (pv > 0 && pv !== p.precio_venta) {
+            auditar(db, usuarioId, 'AjustePrecio', 'Producto ' + p.nombre + ' (#' + p.id + '): ' + p.precio_venta + ' -> ' + pv + ' (factura ' + numero + ')');
+            p.precio_venta = pv;
+            preciosCambiados++;
+          }
+          movimiento(db, p.id, 'ENTRADA', entra, 'Factura ' + numero + ' · ' + pr.nombre + (regalo ? ' (incluye ' + regalo + ' bonificadas)' : ''));
+          var venc = fechaCompra(l.vencimiento);
+          if (venc || String(l.lote || '').trim()) {
+            DB.insertar(db, 'lotes', { producto_id: p.id, lote: String(l.lote || '').trim() || null, vencimiento: venc, cantidad: entra, compra_id: compra.id });
+          }
+          var cod = codigoNormalizado(pr, l.codigoProveedor);
+          if (cod) {
+            var m = db.codigos_proveedor.filter(function (x) { return x.proveedor_id === pr.id && x.codigo === cod; })[0];
+            if (m) m.producto_id = p.id;
+            else DB.insertar(db, 'codigos_proveedor', { proveedor_id: pr.id, codigo: cod, producto_id: p.id });
+          }
+          total += cant * costo;
+          unidades += cant;
+          bonif += regalo;
+          compra.lineas.push({ producto_id: p.id, codigo_proveedor: String(l.codigoProveedor || '') || null, descripcion: String(l.descripcion || '') || null,
+            cantidad: cant, bonificacion: regalo, costo: costo, subtotal: U.redondear(cant * costo), lote: String(l.lote || '').trim() || null, vencimiento: venc,
+            verificado: !!l.verificado });
+        });
+        compra.total = U.redondear(total);
+        compra.unidades = unidades;
+        compra.bonificadas = bonif;
+        auditar(db, usuarioId, 'CompraFactura', 'Factura ' + numero + ' de ' + pr.nombre + ': ' + compra.lineas.length + ' líneas, ' +
+          (unidades + bonif) + ' unidades (' + bonif + ' bonificadas), total ' + compra.total + (preciosCambiados ? ', ' + preciosCambiados + ' precios actualizados' : ''));
+        return copia(compra);
+      });
+    },
+
+    listar: function () {
+      var db = DB.datos();
+      return db.compras.map(function (c) {
+        var r = copia(c);
+        var pr = DB.buscarPorId(db, 'proveedores', c.proveedor_id);
+        r.proveedor = pr ? pr.nombre : '—';
+        return r;
+      }).reverse();
+    },
+
+    // Paga una factura a crédito: queda como gasto tipo Pedidos en el turno abierto.
+    pagar: function (id, metodoPago) {
+      Auth.requerirAdmin();
+      var c = DB.buscarPorId(DB.datos(), 'compras', id);
+      if (!c) falla('Factura no encontrada');
+      if (c.estado !== 'PENDIENTE') falla('La factura ya está pagada');
+      var pr = DB.buscarPorId(DB.datos(), 'proveedores', c.proveedor_id);
+      var g = Gastos.registrar({ tipo: 'Pedidos', concepto: 'Pago factura ' + c.numero + ' · ' + (pr ? pr.nombre : ''), monto: c.total, metodoPago: metodoPago });
+      DB.tx(function (db) {
+        var x = DB.buscarPorId(db, 'compras', id);
+        x.estado = 'PAGADA';
+        x.pago_gasto_id = g.id;
+        x.fecha_pago = U.ahora();
+      });
+      return g;
+    },
+
+    // Lotes que vencen dentro de `dias` (o ya vencidos) de productos con stock. Solo informativo.
+    proximosAVencer: function (dias) {
+      var db = DB.datos();
+      var hoy = U.ahora().slice(0, 10);
+      var d = new Date();
+      d.setDate(d.getDate() + (dias || 180));
+      var limite = fechaISO(d);
+      return db.lotes.filter(function (l) { return l.vencimiento && l.vencimiento <= limite; }).map(function (l) {
+        var p = DB.buscarPorId(db, 'productos', l.producto_id);
+        return p && p.stock > 0 ? { producto: p.nombre, stock: p.stock, lote: l.lote, vencimiento: l.vencimiento, vencido: l.vencimiento < hoy, cantidad: l.cantidad } : null;
+      }).filter(Boolean).sort(function (a, b) { return a.vencimiento < b.vencimiento ? -1 : 1; });
+    }
+  };
+
   // ======================= Empleados (sueldo semanal) =======================
   var Empleados = {
     listar: function (filtros) {
@@ -1702,6 +1887,8 @@
     Reportes: Reportes,
     Gastos: Gastos,
     Empleados: Empleados,
+    Proveedores: Proveedores,
+    Compras: Compras,
     Usuarios: Usuarios,
     Auditoria: Auditoria,
     Cajon: Cajon,
