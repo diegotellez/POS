@@ -35,6 +35,7 @@
       '<div class="acciones-reporte">' +
       '<button class="boton boton-primario" type="submit">Guardar</button>' +
       '<button type="button" class="boton boton-secundario" id="btn-probar-cajon">Probar apertura</button>' +
+      '<button type="button" class="boton boton-secundario" id="btn-ticket-prueba">Imprimir ticket de prueba</button>' +
       '</div>' +
       '</form></section>';
   }
@@ -68,6 +69,14 @@
         if (err && err.name === 'NotFoundError') return; // canceló la selección
         U.aviso(err.message, 'error', 6000);
       });
+    });
+    U.$('#btn-ticket-prueba', f).addEventListener('click', function () {
+      var c = POS.Config.obtener();
+      var ancho = c.anchoTicket || 80;
+      U.imprimirHTML('<!doctype html><html><head><meta charset="utf-8"><title>Prueba</title><style>@page{size:' + ancho + 'mm auto;margin:0}' +
+        'body{width:' + (ancho - 6) + 'mm;font-family:"Courier New",monospace;font-size:12px;margin:0;padding:3mm}h2{text-align:center;margin:4px 0}</style></head><body>' +
+        '<h2>' + U.esc(c.nombreNegocio) + '</h2><div>TICKET DE PRUEBA</div><div>' + U.esc(U.ahora()) + '</div><div>Papel: ' + ancho + ' mm</div>' +
+        '<div>' + Array(33).join('-') + '</div><div>Si lee esto, la impresora funciona.</div></body></html>', 300);
     });
     U.$('#btn-probar-cajon', f).addEventListener('click', function () {
       var modo = f.cajonModo.value;

@@ -119,6 +119,14 @@ h += [tabla(['Campo', 'Para qué sirve', 'Ejemplo'], [
 ], [4, 7, 5])]
 h += [figura(C + '/u16-respaldo.jpg', 'Figura 3. Configuración y respaldo.', alto_max=9.5 * cm)]
 h += [h2('4.3 Impresora de tickets')]
+h += [p('Antes de usar el POS, compruebe que Windows imprime en la térmica:')]
+h += [pasos([
+    'Conecte y encienda la impresora. Abra <b>Configuración &gt; Bluetooth y dispositivos &gt; Impresoras y escáneres</b> y elija la impresora (por ejemplo POS-58).',
+    'Entre a <b>Propiedades de impresora &gt; Puertos</b>: debe estar marcado <b>USB001</b> (o USB002…, "Puerto de impresora virtual para USB"). '
+    'Si está marcado <b>FILE:</b> o "Imprimir a un archivo", al imprimir aparecerá una ventana para guardar un archivo en lugar de imprimir.',
+    'En la pestaña General pulse <b>Imprimir página de prueba</b>. Si no sale, reinstale el controlador del fabricante con la impresora conectada.',
+    'En el POS, ponga <b>Ancho del ticket: 58 mm</b> (o 80 mm) en Configuración y use <b>Imprimir ticket de prueba</b> (en Cajón monedero).',
+])]
 h += [p('El ticket se abre en una ventana y el navegador muestra su diálogo de impresión. La primera vez configure:')]
 h += [pasos([
     'Destino: la impresora térmica.',
@@ -255,6 +263,7 @@ h += [tabla(['Síntoma', 'Causa probable', 'Solución'], [
     ['Aviso "Este navegador no permite guardar datos".', 'Ventana privada o almacenamiento bloqueado.',
      'Use una ventana normal y permita los datos del sitio en la configuración del navegador.'],
     ['No sale la ventana del ticket.', 'Ventanas emergentes bloqueadas.', 'Permita las ventanas emergentes para el sistema.'],
+    ['Al elegir la impresora (POS58/POS80) aparece una ventana para guardar un archivo en vez de imprimir.', 'El controlador quedó con el puerto FILE: o "Imprimir a un archivo".', 'Windows: Impresoras y escáneres &gt; la impresora &gt; Propiedades de impresora &gt; Puertos: marque <b>USB001</b> (Puerto de impresora virtual para USB) con la impresora encendida y conectada; desmarque "Imprimir a un archivo". Pruebe con "Imprimir página de prueba" y luego con "Imprimir ticket de prueba" del POS.'],
     ['El cajón no abre al cobrar en efectivo.', 'Modo del cajón o controlador.', 'Revise el modo en Cajón monedero y pulse Probar apertura. Modo "Al imprimir": active Abrir cajón en las preferencias de la impresora. Modo directo: Conectar impresora de nuevo, pin 5 u otra velocidad.'],
     ['El ticket sale en hoja carta o con márgenes.', 'Opciones de impresión.', 'Márgenes: Ninguno, sin encabezados; papel de 80/58 mm (sección 4.3).'],
     ['El lector escribe el código pero no agrega el producto.', 'El lector no envía Enter, o el código no está registrado.',

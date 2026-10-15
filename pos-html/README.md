@@ -1,9 +1,15 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.3** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.3.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.3.1
+
+- Botón "Imprimir ticket de prueba" (Respaldo y configuración > Cajón monedero).
+- Manual de instalación: cómo revisar el puerto USB de la impresora térmica en
+  Windows (si al imprimir pide guardar un archivo, el puerto quedó en FILE:).
 
 ## Novedades de la versión 2.3
 
