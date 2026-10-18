@@ -1,11 +1,11 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.6** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.6.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
 
-## En preparación (próxima versión)
+## Novedades de la versión 2.6.1
 
 - **Turnos por usuario**: cada usuario abre su propio turno con su base, vende,
   registra gastos y cambios en él y lo cierra con su arqueo (por ejemplo, el

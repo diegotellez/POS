@@ -1,5 +1,5 @@
 {
-  "version": "2.6",
+  "version": "2.6.1",
   "fecha": "2026-10-18",
-  "notas": "Carga de pedidos desde el ZIP de la factura electrónica, ayudante de Windows para el cajón, nombre y versión en el inicio y opción para iniciar la fase productiva."
+  "notas": "Turnos por usuario con número fijo (Turno 1 admin, Turno 2 cajero), una sola categoría al vender y lectura más robusta del ZIP de facturas."
 }

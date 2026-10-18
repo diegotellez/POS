@@ -20,7 +20,7 @@ pdfmetrics.registerFont(TTFont('Mono', F + 'DejaVuSansMono.ttf'))
 from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
 # Versión que se imprime en la portada de los manuales.
-VERSION = '2.6'
+VERSION = '2.6.1'
 FECHA_VERSION = 'Octubre de 2026'
 registerFontFamily('Sans', normal='Sans', bold='Sans-Bold', italic='Sans', boldItalic='Sans-Bold')
 
