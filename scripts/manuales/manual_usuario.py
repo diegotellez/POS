@@ -126,6 +126,8 @@ h += [caja('El ticket no se pierde', 'El ticket en curso queda guardado aunque c
 h += [h2('4.3 Productos sin precio o que no existen')]
 h += [viñetas([
     'Un producto que dice <b>"Sin precio"</b> no se puede vender. Pida al administrador que le asigne precio en la pantalla Precios.',
+    'Un producto <b>AGOTADO</b> (stock 0) no se puede vender, y no se puede llevar más cantidad de la que hay. Registre primero la compra. '
+    'Si el negocio prefiere vender aunque el sistema marque 0, el administrador activa <i>Permitir vender productos sin stock</i> en Configuración.',
     'Si escanea o busca algo que <b>no existe</b>, el sistema lo indica. El administrador verá el botón <b>Agregar como producto nuevo</b> '
     '(el código escaneado queda escrito): al guardarlo con precio, pasa directo al ticket sin perder lo que ya estaba.',
 ])]
@@ -143,7 +145,7 @@ h += [pasos([
 h += [caja('Cajón monedero', 'Si el pago incluye efectivo, el cajón se abre solo (si el administrador lo configuró). Con Nequi, QR o '
            'transferencia no se abre. Para abrirlo sin una venta use <b>Abrir cajón</b>, debajo del botón Cobrar: pide confirmación y queda en Auditoría.', 'nota')]
 h += [figura(C + '/u03-pago.jpg', 'Figura 7. Registro de pago mixto (efectivo y Nequi) con cálculo del cambio.', alto_max=8.8 * cm, recorte=(0.3, 0.09, 0.7, 0.9))]
-h += [h2('4.5 Imprimir el ticket')]
+h += [CondPageBreak(9 * cm), h2('4.5 Imprimir el ticket')]
 texto45 = [p('Al confirmar, el sistema pregunta si desea imprimir el comprobante (si el cajón está en modo "Al imprimir" y se pagó en efectivo, el ticket se imprime solo). Pulse <b>Imprimir ticket</b> para abrir el diálogo '
              'de impresión (elija la impresora térmica) o <b>No imprimir</b>.'),
            p('Si algún producto queda con stock bajo o agotado, aparece un aviso naranja. El ticket se puede reimprimir '
@@ -220,14 +222,19 @@ h += [p('Avise al administrador: en <b>Turno de caja</b> verá <b>¿Cerraste la 
 
 # ------------------------------------------------------------------ 7
 h += [PageBreak(), h1('7. Productos (administrador)')]
-h += [p('En <b>Productos</b> se ve todo el catálogo con código, categoría, precio, stock y stock mínimo. El stock en naranja '
-        'indica que está en el mínimo o por debajo.')]
+h += [p('En <b>Productos</b> se ve todo el catálogo con código, categoría, <b>precio de compra</b>, <b>precio de venta</b>, '
+        '<b>ganancia</b> (calculada), stock y stock mínimo. El stock en naranja indica que está en el mínimo o por debajo; la ganancia '
+        'en rojo, que el producto se vende por debajo del costo.')]
 h += [figura(C + '/u09-productos.jpg', 'Figura 13. Catálogo de productos filtrado.', alto_max=8 * cm)]
 h += [viñetas([
-    '<b>Nuevo producto</b>: nombre (obligatorio), código de barras, descripción, categoría, precio, stock mínimo y stock inicial. '
+    '<b>Nuevo producto</b>: nombre (obligatorio), código de barras, descripción, categoría, precio de compra, precio de venta, stock mínimo y stock inicial. '
+    'Mientras escribe los precios se muestra la <b>ganancia por unidad</b> (venta menos compra) con el porcentaje sobre la venta y sobre el costo. '
     'El <b>código interno</b> se genera solo (2000xx).',
+    'El <b>precio de compra</b> también se actualiza solo al cargar una factura en Compras.',
     '<b>Editar</b> (lápiz): cambia los datos. El stock no se edita aquí: se modifica con compras o ajustes en Inventario.',
-    '<b>Desactivar</b> (papelera): el producto deja de aparecer en ventas, pero se conserva en el historial. Con <i>Mostrar inactivos</i> se puede reactivar.',
+    '<b>Desactivar</b>: el producto deja de aparecer en ventas, pero se conserva. Con <i>Mostrar inactivos</i> se puede reactivar.',
+    '<b>Eliminar</b> (papelera roja): borra el producto. Si ya tiene ventas o compras, no se borra sino que se desactiva, para conservar el historial. '
+    'Con las casillas de la izquierda se pueden <b>eliminar varios</b> a la vez (por ejemplo, productos del catálogo base que no maneja).',
     '<b>Stock mínimo</b>: cuando el stock llega a ese número, el sistema avisa. Con 0 no se generan alertas.',
 ])]
 h += [figura(C + '/u10-producto-form.jpg', 'Figura 14. Formulario de producto.', alto_max=10 * cm, recorte=(0.3, 0.03, 0.7, 0.97))]

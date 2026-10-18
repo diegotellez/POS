@@ -1,5 +1,5 @@
 {
-  "version": "2.4.1",
+  "version": "2.5",
   "fecha": "2026-10-18",
-  "notas": "Versión inicial con actualizaciones automáticas."
+  "notas": "Compras por factura, ganancia por producto, no vende sin stock, ticket ajustado a la impresora y actualizaciones automáticas."
 }

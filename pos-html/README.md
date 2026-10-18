@@ -1,9 +1,21 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.4.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.5** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.5
+
+- **Actualizaciones automáticas**: instalado desde la dirección web, el POS
+  funciona sin internet y avisa cuando hay una versión nueva. Botón para pasar
+  los datos desde la copia en carpeta.
+- **Productos**: eliminar de verdad (los que tienen historial se desactivan),
+  eliminar varios a la vez, precio de compra y ganancia calculada.
+- **No se vende sin stock** (configurable en Configuración).
+- **Cajón** al confirmar la venta en efectivo; la ventana del ticket se cierra sola.
+- **Ticket** al ancho que imprime la térmica (48 mm en papel de 58 mm), sin
+  margen izquierdo y con letra más oscura; ancho y margen ajustables.
 
 ## Novedades de la versión 2.4.1
 
