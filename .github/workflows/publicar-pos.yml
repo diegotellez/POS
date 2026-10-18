@@ -1,0 +1,46 @@
+# Publica el POS (carpeta pos-html) en GitHub Pages cuando se sube a la rama
+# "produccion". Los equipos que tienen el POS instalado desde la dirección web
+# detectan la versión nueva y muestran el aviso "Hay una versión nueva".
+name: Publicar POS
+
+on:
+  push:
+    branches: [produccion]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Revisar que la lista de archivos del service worker esté al día
+        run: |
+          python3 scripts/version.py --archivos
+          if ! git diff --quiet -- pos-html/sw.js; then
+            echo "::error::pos-html/sw.js no coincide con los archivos de pos-html. Ejecute: python3 scripts/version.py <versión> --notas \"...\""
+            git diff -- pos-html/sw.js
+            exit 1
+          fi
+          python3 -c "import json;v=json.load(open('pos-html/version.json'));print('Versión a publicar:', v['version'])"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pos-html
+
+      - id: despliegue
+        uses: actions/deploy-pages@v4

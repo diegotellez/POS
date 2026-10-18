@@ -554,3 +554,14 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .barra-seleccion:not(:empty) { margin: 0 0 10px; padding: 8px 12px; background: var(--suave); border-radius: 8px; }
 .ganancia-form { margin: -4px 0 12px; font-size: 13.5px; }
 .boton-icono.boton-peligro { color: var(--alerta); }
+
+/* Aviso de versión nueva */
+.aviso-version {
+  position: fixed; left: 50%; top: 12px; transform: translateX(-50%); z-index: 2000; width: min(760px, calc(100% - 24px));
+  display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  background: var(--secundario); color: #fff; border-radius: 10px; padding: 12px 16px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}
+.aviso-version small { opacity: 0.8; }
+.aviso-version .boton-texto { color: #fff; }
+.aviso-version-botones { display: flex; gap: 8px; }
+.actualizaciones { margin-top: 16px; }

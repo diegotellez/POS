@@ -69,7 +69,19 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
 - Cambios de productos desde el historial (sin devolución de dinero, salvo excepción autorizada).
 - Productos de la vitrina de maquillaje y de la nevera en el catálogo base.
 
-## Cómo usarlo
+## Instalación en línea con actualizaciones automáticas (recomendada)
+
+Abra `https://diegotellez.github.io/POS/` en Chrome o Edge e instálelo como
+aplicación (ícono **Instalar** de la barra de direcciones, o *Respaldo y
+configuración > Actualizaciones automáticas*). Queda guardado en el equipo y
+funciona sin internet; cuando se publica una versión nueva aparece el aviso
+**"Hay una versión nueva · Actualizar ahora"**. Los datos no se tocan.
+
+Para pasar los datos desde la copia en carpeta: *Respaldo y configuración >
+Actualizaciones automáticas > Pasar a la versión con actualizaciones*.
+Cómo se publica una versión: `scripts/PUBLICAR.md`.
+
+## Cómo usarlo (copia en carpeta)
 
 1. Copia la carpeta `pos-html/` al equipo (o a una USB).
 2. Abre `index.html` con doble clic en Chrome, Edge, Firefox o Safari.
@@ -219,6 +231,10 @@ js/cajon.js         apertura del cajón monedero (impresión o ESC/POS por Web S
 js/xlsx.js          generador de Excel (.xlsx) sin librerías
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
+js/actualizaciones.js modo sin internet, aviso de versión nueva, instalar y pasar datos
+sw.js               service worker (copia en el equipo; lista generada por scripts/version.py)
+manifest.webmanifest, iconos/  datos e íconos para instalar como aplicación
+version.json        versión publicada y notas del aviso
 js/vistas/*.js      una pantalla por archivo (compras.js: carga de facturas)
 docs/*.pdf          manuales de instalación y de usuario
 ```

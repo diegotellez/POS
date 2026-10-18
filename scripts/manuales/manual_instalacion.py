@@ -83,10 +83,23 @@ h += [p('El sistema también está publicado como artefacto de claude.ai. Esa ve
         'vista previa) y las descargas piden confirmación. Para trabajar en la caja se recomienda la versión local (ZIP).'),
       p('El artefacto se usa también para que el dueño vea el detalle de los cierres enviados por WhatsApp (sección 4.6). '
         'Para que el dueño pueda abrirlo, compártale el artefacto desde el menú <b>Compartir</b> de claude.ai.')]
-h += [h2('3.4 Publicar en un sitio web propio (opcional)')]
-h += [p('La carpeta <font face="Mono">pos-html</font> se puede subir tal cual a cualquier hosting de archivos estáticos '
-        '(GitHub Pages, Netlify, el hosting de su página web). No requiere configuración del servidor. Si lo hace, cambie '
-        'la dirección del enlace de cierres en la configuración (sección 4.6).')]
+h += [h2('3.4 Instalación en línea con actualizaciones automáticas (recomendada)')]
+h += [p('El POS también se publica en <font face="Mono">https://diegotellez.github.io/POS/</font>. Abierto desde esa dirección, '
+        'queda <b>guardado en el equipo</b> (funciona sin internet) y <b>se actualiza solo</b>: cuando se publica una versión nueva, '
+        'al abrir el POS con internet aparece el aviso <i>"Hay una versión nueva · Actualizar ahora"</i>. Los datos no se tocan.')]
+h += [pasos([
+    'Abra Chrome o Edge en el equipo de la caja y entre a la dirección de arriba.',
+    'Instálelo como aplicación: icono <b>Instalar</b> de la barra de direcciones, o <b>Respaldo y configuración &gt; Actualizaciones '
+    'automáticas &gt; Instalar como aplicación</b>. Queda un ícono en el escritorio; abra el POS siempre desde ahí.',
+    'Si ya usaba la copia en carpeta (ZIP), pase los datos una sola vez: en la copia de la carpeta entre a <b>Respaldo y configuración '
+    '&gt; Actualizaciones automáticas &gt; Pasar a la versión con actualizaciones</b> y confirme en la ventana que se abre. '
+    'Si su copia es anterior y no tiene ese botón, use Descargar respaldo y Restaurar respaldo.',
+    'Para el cajón al confirmar el pago, use en el acceso directo la dirección web en lugar de la carpeta: '
+    '<font face="Mono">--kiosk-printing --app="https://diegotellez.github.io/POS/"</font> (sección 4.4).',
+])]
+h += [caja('Importante', 'La copia en línea y la copia en carpeta guardan sus datos por separado. Después de pasar los datos, '
+           'use solo la versión en línea en ese equipo. El código del POS está en internet, pero los datos (ventas, clientes, precios) '
+           'nunca salen del equipo.', 'nota')]
 
 # ------------------------------------------------------------------ 4
 h += [PageBreak(), h1('4. Configuración inicial')]
@@ -226,6 +239,10 @@ h += [pasos([
     'Ingrese con admin / admin123 (datos de ejemplo) y restaure el respaldo.',
 ])]
 h += [h2('5.3 Actualizar el sistema a una versión nueva')]
+h += [p('<b>Versión en línea (sección 3.4):</b> no hay que hacer nada. Al abrir el POS con internet, si hay una versión nueva aparece el '
+        'aviso; pulse <b>Actualizar ahora</b> (o <b>Más tarde</b>: se aplica la próxima vez que abra el POS). En <b>Respaldo y configuración '
+        '&gt; Actualizaciones automáticas</b> se ve la versión instalada y está el botón <b>Buscar actualizaciones ahora</b>.')]
+h += [p('<b>Copia en carpeta (ZIP):</b>')]
 h += [pasos([
     'Descargue un respaldo (por seguridad).',
     'Cierre el sistema y reemplace el contenido de la carpeta <font face="Mono">pos-html</font> por el de la versión nueva, <b>en la misma ruta</b>.',

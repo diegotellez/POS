@@ -85,6 +85,56 @@
     });
   }
 
+  function seccionActualizaciones(cfg) {
+    var estado = Actualizaciones.estado();
+    var html = '<section class="tarjeta actualizaciones"><h2>' + U.icono('descargar') + ' Actualizaciones automáticas</h2>';
+    if (estado === 'archivo') {
+      html += '<p>Esta copia se abrió desde <b>una carpeta del equipo</b>: funciona, pero <b>no se actualiza sola</b>.</p>' +
+        '<p class="tenue pequeno">La versión en línea queda guardada en el equipo (funciona sin internet) y recibe las versiones nuevas automáticamente. ' +
+        'El botón abre la versión en línea y le pasa los datos de este equipo (productos, ventas, usuarios, configuración); allí confirma.</p>' +
+        '<div class="acciones-reporte"><button type="button" class="boton boton-primario" id="btn-pasar-online">Pasar a la versión con actualizaciones</button></div>';
+    } else if (estado === 'marco') {
+      html += '<p class="tenue">Esta es una vista de demostración. Las actualizaciones automáticas funcionan abriendo el POS desde su dirección web.</p>';
+    } else if (estado === 'sin-soporte') {
+      html += '<p class="alerta">Este navegador no permite el modo sin internet ni las actualizaciones automáticas. Use Chrome o Edge.</p>';
+    } else {
+      html += '<p class="ok"><b>Activas.</b> Versión ' + U.esc(App.version) + '. El POS queda guardado en el equipo y funciona sin internet; ' +
+        'cuando hay una versión nueva aparece un aviso para actualizar.</p>' +
+        (Actualizaciones.instalada() ? '<p class="tenue pequeno">Instalado como aplicación en este equipo.</p>' : '') +
+        '<div class="acciones-reporte"><button type="button" class="boton boton-secundario" id="btn-buscar-act">Buscar actualizaciones ahora</button>' +
+        (Actualizaciones.instalable() && !Actualizaciones.instalada() ? '<button type="button" class="boton boton-primario" id="btn-instalar-app">' + U.icono('descargar') + ' Instalar como aplicación</button>' : '') +
+        '</div>';
+    }
+    html += '<details class="ajuste-base"><summary class="tenue pequeno">Dirección de la versión en línea</summary>' +
+      '<form id="form-url-act" class="form-linea"><label class="campo"><span>Dirección</span><input name="urlActualizaciones" value="' + U.esc(cfg.urlActualizaciones || '') + '"></label>' +
+      '<button class="boton boton-secundario" type="submit">Guardar</button></form></details>';
+    return html + '</section>';
+  }
+
+  function activarActualizaciones(cont) {
+    var b = U.$('#btn-pasar-online', cont);
+    if (b) b.addEventListener('click', function () { Actualizaciones.pasarAOnline(); });
+    var bb = U.$('#btn-buscar-act', cont);
+    if (bb) bb.addEventListener('click', function () {
+      bb.disabled = true;
+      Actualizaciones.buscar().then(function (hay) {
+        U.aviso(hay ? 'Hay una versión nueva: use el aviso de arriba para actualizar.' : 'Ya tiene la última versión (' + App.version + ').', 'ok', 5000);
+      }, function (err) { U.aviso(err.message, 'error', 6000); }).then(function () { bb.disabled = false; });
+    });
+    var bi = U.$('#btn-instalar-app', cont);
+    if (bi) bi.addEventListener('click', function () {
+      Actualizaciones.instalar().then(function (ok) { if (ok) U.aviso('POS instalado: ábralo desde el ícono del escritorio.', 'ok', 6000); App.renderizar(); });
+    });
+    var f = U.$('#form-url-act', cont);
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      try {
+        POS.Config.guardar(Object.assign(POS.Config.obtener(), { urlActualizaciones: f.urlActualizaciones.value }));
+        U.aviso('Dirección guardada', 'ok');
+      } catch (err) { U.error(err); }
+    });
+  }
+
   function seccionEmpleados() {
     var lista = POS.Empleados.listar();
     return '<section class="tarjeta">' +
@@ -193,7 +243,10 @@
       '<button class="boton boton-secundario boton-peligro" id="btn-reiniciar">Borrar todos los datos</button>' +
       '</section>' +
       '</div>' +
-      '<div class="dos-columnas">' + seccionCajon(cfg) + seccionEmpleados() + '</div>';
+      '<div class="dos-columnas">' + seccionCajon(cfg) + seccionEmpleados() + '</div>' +
+      seccionActualizaciones(cfg);
+
+    activarActualizaciones(cont);
 
     activarCajon(cont, cfg);
     activarEmpleados(cont);

@@ -1800,6 +1800,7 @@
         db.config.decimales = dec === 0 ? 0 : 2;
         db.config.anchoTicket = Number(datos.anchoTicket) === 58 ? 58 : 80;
         db.config.whatsapp = String(datos.whatsapp || '').replace(/[^\d]/g, '');
+        if (datos.urlActualizaciones !== undefined) db.config.urlActualizaciones = String(datos.urlActualizaciones || '').trim();
         if (datos.urlApp !== undefined) db.config.urlApp = String(datos.urlApp || '').trim().replace(/#.*$/, '');
         db.config.mensajeTicket = String(datos.mensajeTicket || '');
         if (datos.permitirVentaSinStock !== undefined) db.config.permitirVentaSinStock = !!datos.permitirVentaSinStock;

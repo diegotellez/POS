@@ -22,6 +22,8 @@
     whatsapp: '',
     // Dirección donde el dueño abre el detalle de un cierre enviado por WhatsApp.
     urlApp: 'https://claude.ai/artifact/8ZBPh1mwVLqgRbQRSP2zg6',
+    // Dirección web del POS con actualizaciones automáticas (GitHub Pages).
+    urlActualizaciones: 'https://diegotellez.github.io/POS/',
     mensajeTicket: '¡Gracias por su compra!',
     // Cajón monedero: 'ninguno', 'impresion' (el driver de la impresora lo abre al imprimir)
     // o 'serial' (orden ESC/POS directa por Web Serial, Chrome/Edge).
