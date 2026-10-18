@@ -285,7 +285,8 @@ h += [p('En <b>Compras</b> se carga la factura completa del proveedor de una sol
 h += [pasos([
     'Elija el <b>proveedor</b> (o <b>+ Nuevo</b>), escriba el <b>número de factura</b>, la fecha y si es de contado o a <b>crédito</b> (con la fecha de vencimiento del pago).',
     'Agregue las líneas de una de estas formas: <b>buscando o escaneando</b> cada producto (por nombre, código de barras o código del proveedor); '
-    '<b>Importar XML</b> de la factura electrónica que llega al correo; o <b>Pegar líneas</b> (el texto que le prepare Claude a partir de una foto, o una tabla de Excel).',
+    '<b>Importar ZIP / XML</b>: el ZIP de la factura electrónica tal como llega al correo (descárguelo y súbalo, o arrástrelo a la pantalla; '
+    'se pueden subir varios a la vez y las demás facturas quedan en <b>Facturas por cargar</b>); o <b>Pegar líneas</b> (el texto que le prepare Claude a partir de una foto, o una tabla de Excel).',
     'En cada línea revise <b>cantidad</b>, <b>bonificación</b> (unidades de obsequio), <b>costo</b> y <b>precio de venta</b>. El sistema muestra el margen (en rojo si es menor al 15 % '
     'o negativo) y avisa si el costo subió. Lote y vencimiento son opcionales.',
     'Marque la casilla <b>✓</b> de cada línea a medida que verifica la mercancía (igual que el resaltado en la factura de papel).',

@@ -11,6 +11,10 @@
  *  - 'serial': la orden se envía directo a la impresora por Web Serial
  *    (Chrome o Edge en el PC, impresora con puerto COM virtual o serial).
  *    Se autoriza una sola vez con "Conectar impresora".
+ *  - 'ayudante': para el cajón conectado a la impresora cuando su controlador no
+ *    abre el cajón. El POS abre el enlace poscajon:abrir y el ayudante de Windows
+ *    (carpeta ayudante-cajon, se instala una vez) envía la orden a la impresora
+ *    en modo RAW, sin imprimir.
  */
 (function (global) {
   'use strict';
@@ -49,8 +53,20 @@
     });
   }
 
+  // Abre el enlace poscajon: (lo atiende el ayudante de Windows). La primera vez
+  // Chrome pregunta si permite abrirlo: "Permitir siempre".
+  function enviarAyudante(c) {
+    var a = document.createElement('a');
+    a.href = 'poscajon:abrir' + (c.cajonPin === 1 ? '?pin=1' : '');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 1000);
+  }
+
   var Cajon = {
     serialDisponible: serialDisponible,
+    enviarAyudante: function () { enviarAyudante(cfg()); },
 
     // Pide al usuario elegir el puerto de la impresora (requiere un clic).
     conectar: function () {
@@ -79,6 +95,10 @@
         });
         return false;
       }
+      if (c.cajonModo === 'ayudante') {
+        enviarAyudante(c);
+        return false;
+      }
       if (c.cajonModo === 'impresion' && imprimir) {
         imprimir();
         return true;
@@ -94,7 +114,9 @@
         return;
       }
       POS.Cajon.registrarApertura('Apertura manual del cajón');
-      if (c.cajonModo === 'serial') {
+      if (c.cajonModo === 'ayudante') {
+        enviarAyudante(c);
+      } else if (c.cajonModo === 'serial') {
         enviarSerial(c).then(function () { U.aviso('Cajón abierto', 'ok'); }, function (err) {
           U.aviso('No se pudo abrir el cajón: ' + err.message, 'error', 6000);
         });

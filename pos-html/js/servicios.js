@@ -1807,7 +1807,7 @@
         if (datos.ticketAnchoUtil !== undefined) db.config.ticketAnchoUtil = Math.max(0, Math.min(80, Number(datos.ticketAnchoUtil) || 0));
         if (datos.ticketMargenIzq !== undefined) db.config.ticketMargenIzq = Math.max(0, Math.min(10, Number(datos.ticketMargenIzq) || 0));
         if (datos.cajonModo !== undefined) {
-          db.config.cajonModo = ['ninguno', 'impresion', 'serial'].indexOf(datos.cajonModo) !== -1 ? datos.cajonModo : 'ninguno';
+          db.config.cajonModo = ['ninguno', 'impresion', 'serial', 'ayudante'].indexOf(datos.cajonModo) !== -1 ? datos.cajonModo : 'ninguno';
           db.config.cajonBaudios = Number(datos.cajonBaudios) > 0 ? Number(datos.cajonBaudios) : 9600;
           db.config.cajonPin = Number(datos.cajonPin) === 1 ? 1 : 0;
         }

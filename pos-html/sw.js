@@ -31,6 +31,7 @@ var ARCHIVOS = [
   "js/sha256.js",
   "js/util.js",
   "js/xlsx.js",
+  "js/zip-lector.js",
   "js/vistas/auditoria.js",
   "js/vistas/categorias.js",
   "js/vistas/cierre-compartido.js",

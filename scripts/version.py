@@ -17,13 +17,14 @@ import json
 import os
 import re
 import sys
+import zipfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 APP = os.path.join(RAIZ, 'pos-html')
 MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
          'septiembre', 'octubre', 'noviembre', 'diciembre']
 # Lo que no se guarda de entrada en el equipo (se descarga al usarlo).
-EXCLUIR = ('docs/', 'README.md', 'version.json', 'sw.js')
+EXCLUIR = ('docs/', 'README.md', 'version.json', 'sw.js', 'ayudante-cajon/', 'ayudante-cajon.zip')
 
 
 def leer(ruta):
@@ -42,6 +43,22 @@ def reemplazar(ruta, patron, nuevo, obligatorio=True):
     if not n and obligatorio:
         sys.exit('No se encontró %r en %s' % (patron, ruta))
     escribir(ruta, resultado)
+
+
+def zip_ayudante():
+    # ayudante-cajon.zip se descarga desde Configuración > Cajón monedero. Fecha
+    # fija en el ZIP para que no cambie si los archivos no cambiaron.
+    carpeta = os.path.join(APP, 'ayudante-cajon')
+    if not os.path.isdir(carpeta):
+        return
+    with zipfile.ZipFile(os.path.join(APP, 'ayudante-cajon.zip'), 'w', zipfile.ZIP_DEFLATED) as z:
+        for n in sorted(os.listdir(carpeta)):
+            if n in ('impresora.txt', 'registro.txt'):
+                continue
+            info = zipfile.ZipInfo('ayudante-cajon/' + n, date_time=(2026, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            with open(os.path.join(carpeta, n), 'rb') as f:
+                z.writestr(info, f.read())
 
 
 def archivos():
@@ -64,6 +81,7 @@ def main():
     a = ap.parse_args()
 
     sw = os.path.join(APP, 'sw.js')
+    zip_ayudante()
     lista = archivos()
     bloque = '/* ARCHIVOS-INICIO */\nvar ARCHIVOS = ' + json.dumps(lista, indent=2, ensure_ascii=False) + ';\n/* ARCHIVOS-FIN */'
     reemplazar(sw, r'/\* ARCHIVOS-INICIO \*/.*?/\* ARCHIVOS-FIN \*/', bloque.replace('\\', '\\\\'))

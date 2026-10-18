@@ -18,19 +18,24 @@
       '<label class="campo"><span>Cómo se abre</span><select name="cajonModo">' +
       op('ninguno', 'No abrir automáticamente') +
       op('impresion', 'Al imprimir: el ticket se imprime solo y la impresora abre el cajón') +
+      op('ayudante', 'Ayudante de Windows (recomendado: cajón conectado a la impresora)') +
       op('serial', 'Directo: orden ESC/POS por USB/serial (Chrome o Edge)') +
       '</select></label>' +
       '<div class="cajon-impresion tenue pequeno">En Windows: <b>Panel de control &gt; Dispositivos e impresoras</b>, clic derecho en la impresora de tickets &gt; ' +
       '<b>Preferencias de impresión</b> y active <b>Abrir cajón</b> (Cash drawer / Open drawer) antes o después de imprimir. ' +
       'Para que el ticket salga sin la ventana de impresión, abra el POS en Chrome con la opción <code>--kiosk-printing</code> (ver el manual de instalación).</div>' +
+      '<div class="cajon-ayudante tenue pequeno">Para el cajón conectado a la impresora (cable RJ11 en el puerto DK de la impresora). ' +
+      'Se instala una vez en el PC de la caja: descargue el <a href="ayudante-cajon.zip" download>ayudante del cajón</a>, descomprímalo en ' +
+      '<code>C:\\POS\\ayudante-cajon</code> y ejecute <b>instalar.bat</b> (el cajón se abre en la prueba). Luego pulse Guardar y Probar apertura: ' +
+      'Chrome preguntará si permite abrir "Abrir cajón POS"; marque <b>Permitir siempre</b>. No imprime nada y no depende del controlador de la impresora.</div>' +
       '<div class="cajon-serial">' +
       '<div class="fila-doble">' +
-      '<label class="campo"><span>Velocidad (baudios)</span><select name="cajonBaudios">' +
+      '<label class="campo solo-serial"><span>Velocidad (baudios)</span><select name="cajonBaudios">' +
       [9600, 19200, 38400, 115200].map(function (b) { return '<option' + (Number(cfg.cajonBaudios) === b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></label>' +
       '<label class="campo"><span>Pin del cajón</span><select name="cajonPin"><option value="0"' + (cfg.cajonPin !== 1 ? ' selected' : '') + '>Pin 2 (lo normal)</option><option value="1"' + (cfg.cajonPin === 1 ? ' selected' : '') + '>Pin 5</option></select></label>' +
       '</div>' +
-      '<p class="tenue pequeno" id="estado-serial"></p>' +
-      '<button type="button" class="boton boton-secundario" id="btn-conectar-cajon">Conectar impresora</button> ' +
+      '<p class="tenue pequeno solo-serial" id="estado-serial"></p>' +
+      '<button type="button" class="boton boton-secundario solo-serial" id="btn-conectar-cajon">Conectar impresora</button> ' +
       '</div>' +
       '<div class="acciones-reporte">' +
       '<button class="boton boton-primario" type="submit">Guardar</button>' +
@@ -44,7 +49,10 @@
     var f = U.$('#form-cajon', cont);
     function mostrar() {
       U.$('.cajon-impresion', f).style.display = f.cajonModo.value === 'impresion' ? '' : 'none';
-      U.$('.cajon-serial', f).style.display = f.cajonModo.value === 'serial' ? '' : 'none';
+      // El pin sirve para los modos directo y ayudante; velocidad y conexión, solo para el directo.
+      U.$('.cajon-serial', f).style.display = f.cajonModo.value === 'serial' || f.cajonModo.value === 'ayudante' ? '' : 'none';
+      U.$$('.solo-serial', f).forEach(function (el) { el.style.display = f.cajonModo.value === 'serial' ? '' : 'none'; });
+      U.$('.cajon-ayudante', f).style.display = f.cajonModo.value === 'ayudante' ? '' : 'none';
       var estado = U.$('#estado-serial', f);
       if (!Cajon.serialDisponible()) {
         estado.innerHTML = '<span class="alerta">Este navegador no permite la conexión directa. Use Chrome o Edge en el PC (dentro del artefacto no funciona).</span>';
@@ -75,7 +83,10 @@
     });
     U.$('#btn-probar-cajon', f).addEventListener('click', function () {
       var modo = f.cajonModo.value;
-      if (modo === 'serial') {
+      if (modo === 'ayudante') {
+        Cajon.enviarAyudante();
+        U.aviso('Orden enviada al ayudante. Si Chrome pregunta, marque "Permitir siempre" y pulse Abrir. Si no abre, revise registro.txt en la carpeta del ayudante.', 'ok', 8000);
+      } else if (modo === 'serial') {
         Cajon.abrir().then(function () { U.aviso('Orden de apertura enviada', 'ok'); }, function (err) { U.aviso(err.message, 'error', 6000); });
       } else if (modo === 'impresion') {
         U.imprimirHTML('<!doctype html><meta charset="utf-8"><style>body{font:12px monospace;margin:0;padding:4px}</style><div>Prueba de cajón · ' + U.esc(U.ahora()) + '</div>', 300);

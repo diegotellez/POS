@@ -5,6 +5,16 @@
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
 
+## En preparación (próxima versión)
+
+- **Compras desde el ZIP de la factura electrónica**: subir o arrastrar el ZIP tal
+  como llega al correo (uno o varios); el POS saca el XML y carga la factura. Las
+  demás quedan en "Facturas por cargar"; las ya registradas se avisan.
+- **Cajón con "Ayudante de Windows"** (carpeta `ayudante-cajon`): para el cajón
+  conectado a la impresora cuando el controlador no lo abre. Envía la orden de
+  apertura en modo RAW al confirmar un pago en efectivo.
+- Inicio de sesión con el nombre de la droguería y la versión junto al logo.
+
 ## Novedades de la versión 2.5
 
 - **Actualizaciones automáticas**: instalado desde la dirección web, el POS
@@ -241,6 +251,8 @@ js/catalogo-base.js catálogo base de droguería (sin precios)
 js/precios-texto.js interpreta listas de precios en lenguaje natural (WhatsApp)
 js/cajon.js         apertura del cajón monedero (impresión o ESC/POS por Web Serial)
 js/xlsx.js          generador de Excel (.xlsx) sin librerías
+js/zip-lector.js    abre el ZIP de la factura electrónica en el navegador
+ayudante-cajon/     ayudante de Windows para abrir el cajón (instalar.bat)
 js/servicios.js     reglas de negocio (equivalente a backend/src/services)
 js/app.js           arranque, enrutador (#/ruta) y menú
 js/actualizaciones.js modo sin internet, aviso de versión nueva, instalar y pasar datos

@@ -158,6 +158,12 @@ h += [tabla(['Modo', 'Cómo funciona', 'Qué configurar'], [
      'Windows: <i>Dispositivos e impresoras</i> &gt; clic derecho en la impresora &gt; <i>Preferencias de impresión</i> &gt; activar '
      '<b>Abrir cajón</b> (Cash drawer) antes o después de imprimir. Para que no salga la ventana de impresión, cree un acceso directo '
      'de Chrome con <code>--kiosk-printing</code> (imprime directo en la impresora predeterminada).'],
+    ['Ayudante de Windows (recomendado)', 'Para el cajón conectado a la impresora cuando su controlador no tiene la opción de abrir el cajón. '
+     'Al confirmar un pago en efectivo el POS llama al ayudante, que envía la orden de apertura a la impresora sin imprimir nada.',
+     'Descargue el ayudante (enlace en Cajón monedero, o la carpeta <i>ayudante-cajon</i> del ZIP), cópielo a <code>C:\\POS\\ayudante-cajon</code> y '
+     'ejecute <b>instalar.bat</b>: escriba el nombre de la impresora y el cajón se abre en la prueba. En el POS elija este modo, Guardar y '
+     '<b>Probar apertura</b>; Chrome pregunta si permite abrir "Abrir cajón POS": marque <b>Permitir siempre</b>. Si no abre, revise '
+     '<i>registro.txt</i> en esa carpeta o pruebe el pin 5.'],
     ['Directo (USB/serial)', 'Envía la orden ESC/POS de apertura directamente, sin imprimir. Funciona en Chrome o Edge en el PC.',
      'Pulse <b>Conectar impresora</b> y elija el puerto de la impresora (impresoras con puerto COM virtual o serial). '
      'Velocidad 9600 y pin 2 sirven para la mayoría; si no abre, pruebe pin 5 u otra velocidad.'],

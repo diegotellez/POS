@@ -67,8 +67,8 @@
     raiz.className = 'app-login';
     raiz.innerHTML =
       '<form class="tarjeta login" id="form-login" autocomplete="off">' +
-      '<div class="login-logo">POS</div>' +
-      '<h1>' + U.esc(cfg.nombreNegocio) + '</h1>' +
+      '<div class="login-marca"><div class="login-logo">POS</div>' +
+      '<div class="login-marca-texto"><h1>' + U.esc(cfg.nombreNegocio) + '</h1><span class="tenue">Versión ' + VERSION_APP + '</span></div></div>' +
       '<p class="tenue">Inicia sesión para continuar</p>' +
       '<label class="campo"><span>Usuario</span><input name="usuario" required autocapitalize="off" autocomplete="username"></label>' +
       '<label class="campo"><span>Contraseña</span><input name="password" type="password" required autocomplete="current-password"></label>' +
@@ -79,7 +79,6 @@
       (!DB.persistente
         ? '<p class="nota nota-alerta">Este navegador no permite guardar datos locales (¿modo privado?). Lo que registres se perderá al cerrar la pestaña.</p>'
         : '') +
-      '<p class="tenue pequeno version-app">Versión ' + VERSION_APP + '</p>' +
       '</form>';
     var form = document.getElementById('form-login');
     form.addEventListener('submit', function (e) {
@@ -105,7 +104,7 @@
     raiz.className = 'app-shell';
     raiz.innerHTML =
       '<aside class="lateral" id="lateral">' +
-      '<div class="lateral-logo">POS</div>' +
+      '<div class="lateral-logo">POS <small class="lateral-version">v' + VERSION_APP + '</small></div>' +
       '<nav>' +
       App.menu.filter(function (n) {
         var v = App.vistas[n];

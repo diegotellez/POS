@@ -1,0 +1,28 @@
+AYUDANTE DEL CAJON MONEDERO - SISTEMA POS
+==========================================
+
+Para cajones conectados a la impresora termica (cable tipo telefono RJ11/RJ12
+en el puerto "DK" o "Cash drawer" de la impresora), cuando el controlador de
+la impresora no tiene la opcion "abrir cajon al imprimir".
+
+El POS no puede hablar directo con la impresora: este ayudante recibe la orden
+del POS (enlace poscajon:) y le envia a la impresora el comando de apertura
+(ESC p) sin imprimir nada.
+
+INSTALAR (una sola vez, en el PC de la caja)
+1. Copie esta carpeta a un lugar fijo, por ejemplo C:\POS\ayudante-cajon
+2. Doble clic en instalar.bat
+3. Escriba el nombre de la impresora tal como aparece en la lista (o Enter
+   si la termica es la impresora predeterminada). El cajon debe abrirse en
+   la prueba.
+4. En el POS: Respaldo y configuracion > Cajon monedero > Como se abre:
+   "Ayudante de Windows" > Guardar > Probar apertura.
+5. Chrome preguntara "Abrir Abrir cajon POS?": marque "Permitir siempre" y
+   pulse Abrir. Desde entonces se abre solo al confirmar un pago en efectivo.
+
+SI NO ABRE
+- Revise registro.txt en esta carpeta (dice si envio la orden y a que impresora).
+- Pruebe el pin 5: en el POS, Cajon monedero > Pin del cajon > Pin 5.
+- Revise que el cable del cajon este en el puerto de la impresora, no del PC.
+
+DESINSTALAR: doble clic en desinstalar.bat

@@ -12,6 +12,14 @@
   'use strict';
 
   var CLAVE_BORRADOR = 'pos_html_borrador_compra';
+  // Facturas importadas (ZIP/XML) que esperan turno porque ya hay una en el borrador.
+  var CLAVE_COLA = 'pos_html_cola_facturas';
+  function leerCola() {
+    try { var c = JSON.parse(window.localStorage.getItem(CLAVE_COLA) || '[]'); return Array.isArray(c) ? c : []; } catch (e) { return []; }
+  }
+  function guardarCola(c) {
+    try { if (c.length) window.localStorage.setItem(CLAVE_COLA, JSON.stringify(c)); else window.localStorage.removeItem(CLAVE_COLA); } catch (e) { /* sin almacenamiento */ }
+  }
 
   function borradorVacio() {
     return { proveedorId: '', numero: '', fecha: U.ahora().slice(0, 10), condicion: 'CONTADO', vencimiento: '', lineas: [] };
@@ -233,6 +241,21 @@
     if (!linea.precioVenta) linea.precioVenta = p.precio_venta || '';
   }
 
+  function seccionCola() {
+    var cola = leerCola();
+    if (!cola.length) return '';
+    var ocupado = borrador.lineas.length > 0;
+    return '<section class="tarjeta"><h2>Facturas por cargar (' + cola.length + ')</h2>' +
+      '<p class="tenue pequeno">Llegaron en los archivos importados. ' + (ocupado ? 'Guarde o descarte la factura en curso para cargar la siguiente.' : 'Cárguelas una por una para revisarlas y guardarlas.') + '</p>' +
+      '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Proveedor</th><th>Factura</th><th>Fecha</th><th class="num">Líneas</th><th class="num">Total</th><th></th></tr></thead><tbody>' +
+      cola.map(function (f, i) {
+        return '<tr><td>' + U.esc(f.proveedor || '—') + '</td><td>' + U.esc(f.numero || '—') + '</td><td>' + U.esc(f.fecha || '') + '</td>' +
+          '<td class="num">' + f.lineas + '</td><td class="num">' + U.dinero(f.total) + '</td><td class="acciones">' +
+          '<button type="button" class="boton boton-texto" data-cargar-cola="' + i + '"' + (ocupado ? ' disabled' : '') + '>Cargar</button>' +
+          '<button type="button" class="boton-icono boton-peligro" data-quitar-cola="' + i + '" aria-label="Quitar">' + U.icono('borrar') + '</button></td></tr>';
+      }).join('') + '</tbody></table></div></section>';
+  }
+
   // ---------- Pantalla ----------
   function render(cont) {
     var proveedores = POS.Proveedores.listar();
@@ -241,9 +264,11 @@
     var porVencer = POS.Compras.proximosAVencer(180);
 
     cont.innerHTML =
-      '<section class="tarjeta">' +
+      '<section class="tarjeta cf-zona" id="cf-zona">' +
       '<h2>' + U.icono('bodega') + ' Cargar factura de compra</h2>' +
-      '<p class="tenue pequeno">Agregue cada producto buscándolo o escaneándolo, o importe la factura. El borrador se guarda solo: puede salir y volver sin perderlo.</p>' +
+      '<p class="tenue pequeno">Agregue cada producto buscándolo o escaneándolo, o importe la factura: <b>suba o arrastre aquí el ZIP</b> que llega al correo ' +
+      '(uno o varios). El borrador se guarda solo: puede salir y volver sin perderlo.</p>' +
+      '<div class="cf-soltar" id="cf-soltar">Suelte aquí los ZIP o XML de las facturas</div>' +
       '<div class="cf-encabezado">' +
       '<label class="campo"><span>Proveedor</span><div class="cf-prov"><select id="cf-proveedor"><option value="">Elija…</option>' +
       proveedores.map(function (p) { return '<option value="' + p.id + '"' + (String(p.id) === String(borrador.proveedorId) ? ' selected' : '') + '>' + U.esc(p.nombre) + '</option>'; }).join('') +
@@ -257,7 +282,7 @@
       '<label class="campo campo-busqueda"><span>Buscar o escanear producto (nombre, código de barras o código del proveedor)</span><div class="con-icono">' + U.icono('buscar') +
       '<input id="cf-buscar" autocomplete="off" placeholder="Ej. aciclovir ungu · 7702418000100 · 1000016141"></div></label>' +
       '<div class="cf-importar">' +
-      '<label class="boton boton-secundario">' + U.icono('subir') + ' Importar XML / archivo<input type="file" id="cf-archivo" accept=".xml,.json,.csv,.txt,.tsv" hidden></label>' +
+      '<label class="boton boton-secundario">' + U.icono('subir') + ' Importar ZIP / XML de la factura<input type="file" id="cf-archivo" accept=".zip,.xml,.json,.csv,.txt,.tsv" multiple hidden></label>' +
       '<button type="button" class="boton boton-secundario" id="cf-pegar">Pegar líneas</button>' +
       '</div></div>' +
       '<div id="cf-resultados" class="lista-resultados cf-resultados"></div>' +
@@ -265,6 +290,7 @@
       '<div id="cf-lineas"></div>' +
       '<div id="cf-pie"></div>' +
       '</section>' +
+      seccionCola() +
 
       (pendientes.length
         ? '<section class="tarjeta"><h2>Facturas a crédito por pagar</h2><div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Proveedor</th><th>Factura</th><th>Vence</th><th class="num">Valor</th><th></th></tr></thead><tbody>' +
@@ -541,31 +567,140 @@
       });
     }
 
+    function yaRegistrada(datos) {
+      if (!datos.numero) return false;
+      return POS.Compras.listar().some(function (c) {
+        return c.estado !== 'ANULADA' && normal(c.numero).replace(/[^a-z0-9]/g, '') === normal(datos.numero).replace(/[^a-z0-9]/g, '') &&
+          (!datos.proveedor || normal(c.proveedor) === normal(datos.proveedor));
+      });
+    }
+
+    // Pasa una factura leída (XML, ZIP, JSON o CSV) al borrador.
+    function importarDatos(datos) {
+      if (!datos.proveedor && !borrador.proveedorId) throw new Error('elija primero el proveedor (así se reconocen sus códigos y bonificaciones)');
+      if (datos.proveedor && !borrador.proveedorId) {
+        var hay = POS.Proveedores.listar().filter(function (x) {
+          return normal(x.nombre) === normal(datos.proveedor) || (datos.nit && x.nit && x.nit.replace(/\D/g, '').indexOf(datos.nit.replace(/\D/g, '').slice(0, 9)) === 0);
+        })[0];
+        if (hay) borrador.proveedorId = String(hay.id);
+        else {
+          var pr = POS.Proveedores.guardar({ nombre: datos.proveedor, nit: datos.nit, codigoSinPrefijo: /roma/i.test(datos.proveedor) });
+          borrador.proveedorId = String(pr.id);
+        }
+      }
+      return incorporar(datos);
+    }
+
     function importar(contenido) {
       try {
-        var datos = leerTexto(contenido);
-        if (!datos.proveedor && !borrador.proveedorId) throw new Error('elija primero el proveedor (así se reconocen sus códigos y bonificaciones)');
-        if (datos.proveedor && !borrador.proveedorId) {
-          var hay = POS.Proveedores.listar().some(function (x) { return normal(x.nombre) === normal(datos.proveedor); });
-          if (!hay) {
-            var pr = POS.Proveedores.guardar({ nombre: datos.proveedor, nit: datos.nit, codigoSinPrefijo: /roma/i.test(datos.proveedor) });
-            borrador.proveedorId = String(pr.id);
-          }
-        }
-        var r = incorporar(datos);
+        var r = importarDatos(leerTexto(contenido));
         U.aviso(r.nuevas + ' línea(s) importadas, ' + r.emparejadas + ' emparejadas automáticamente.', 'ok', 6000);
         render(cont);
       } catch (err) {
         U.aviso('No se pudo importar: ' + err.message, 'error', 7000);
       }
     }
+
+    // Lee los archivos elegidos o soltados: ZIP (también ZIP dentro de ZIP), XML, JSON o CSV.
+    function leerArchivo(archivo) {
+      if (/\.zip$/i.test(archivo.name)) {
+        return archivo.arrayBuffer().then(function (buf) { return extraerZip(buf, archivo.name); });
+      }
+      return archivo.text().then(function (t) { return [{ origen: archivo.name, texto: t }]; });
+    }
+    function extraerZip(buf, origen) {
+      return LectorZip.leer(buf).then(function (entradas) {
+        return Promise.all(entradas.map(function (e) {
+          if (!e.datos) return [];
+          if (/\.zip$/i.test(e.nombre)) return extraerZip(e.datos.slice().buffer, origen);
+          if (/\.xml$/i.test(e.nombre)) return [{ origen: origen + ' › ' + e.nombre, texto: LectorZip.texto(e.datos) }];
+          return []; // el PDF y otros adjuntos no se usan
+        })).then(function (listas) { return [].concat.apply([], listas); });
+      });
+    }
+
+    function procesarArchivos(lista) {
+      lista = Array.prototype.slice.call(lista || []);
+      if (!lista.length) return;
+      Promise.all(lista.map(function (f) {
+        return leerArchivo(f).catch(function (err) { return [{ origen: f.name, error: err.message }]; });
+      })).then(function (grupos) {
+        var docs = [].concat.apply([], grupos);
+        var errores = [], repetidas = [], cargada = null, enCola = 0, sinFactura = 0;
+        var cola = leerCola();
+        docs.forEach(function (d) {
+          if (d.error) { errores.push(d.origen + ': ' + d.error); return; }
+          var datos;
+          try { datos = leerTexto(d.texto); } catch (err) {
+            // Un XML que no es factura (por ejemplo la respuesta de la DIAN) se ignora.
+            if (/^\s*</.test(d.texto)) sinFactura++; else errores.push(d.origen + ': ' + err.message);
+            return;
+          }
+          if (!datos.lineas || !datos.lineas.length) { sinFactura++; return; }
+          if (yaRegistrada(datos)) { repetidas.push(datos.numero); return; }
+          var mismaQueBorrador = borrador.lineas.length && datos.numero && normal(datos.numero) === normal(borrador.numero);
+          var duplicadaEnCola = cola.some(function (c) { return c.numero && normal(c.numero) === normal(datos.numero || '') && normal(c.proveedor || '') === normal(datos.proveedor || ''); });
+          if (mismaQueBorrador || (cargada && normal(cargada.numero || '') === normal(datos.numero || ''))) return;
+          if (!borrador.lineas.length && !cargada) {
+            try { var r = importarDatos(datos); cargada = { numero: datos.numero, lineas: r.nuevas, emparejadas: r.emparejadas }; } catch (err) { errores.push(d.origen + ': ' + err.message); }
+          } else if (!duplicadaEnCola) {
+            cola.push({ proveedor: datos.proveedor || '', numero: datos.numero || '', fecha: POS.Compras.fecha(datos.fecha) || '', lineas: datos.lineas.length,
+              total: Math.round(datos.lineas.reduce(function (a, l) { return a + (Number(l.cantidad) || 0) * (Number(l.costo) || 0); }, 0)), texto: d.texto });
+            enCola++;
+          }
+        });
+        guardarCola(cola);
+        var partes = [];
+        if (cargada) partes.push('Factura ' + (cargada.numero || '') + ' cargada: ' + cargada.lineas + ' líneas, ' + cargada.emparejadas + ' emparejadas automáticamente');
+        if (enCola) partes.push(enCola + ' factura(s) más en "Facturas por cargar"');
+        if (repetidas.length) partes.push('ya registrada(s): ' + repetidas.join(', '));
+        if (!cargada && !enCola && !repetidas.length && !errores.length) partes.push(sinFactura ? 'Los archivos no traen una factura electrónica con productos' : 'No había facturas nuevas');
+        if (errores.length) U.aviso('No se pudo leer: ' + errores.join(' · '), 'error', 9000);
+        if (partes.length) U.aviso(partes.join('. ') + '.', cargada || enCola ? 'ok' : 'alerta', 8000);
+        render(cont);
+      });
+    }
+
     $('#cf-archivo').addEventListener('change', function (e) {
-      var f = e.target.files && e.target.files[0];
+      var archivos = e.target.files;
+      procesarArchivos(archivos);
       e.target.value = '';
-      if (!f) return;
-      var lector = new FileReader();
-      lector.onload = function () { importar(String(lector.result)); };
-      lector.readAsText(f);
+    });
+    // Arrastrar y soltar los ZIP sobre la tarjeta.
+    var zona = $('#cf-zona');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      zona.addEventListener(ev, function (e) {
+        if (!e.dataTransfer || Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') === -1) return;
+        e.preventDefault();
+        zona.classList.add('soltando');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zona.addEventListener(ev, function (e) {
+        if (ev === 'dragleave' && zona.contains(e.relatedTarget)) return;
+        zona.classList.remove('soltando');
+      });
+    });
+    zona.addEventListener('drop', function (e) {
+      if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+      e.preventDefault();
+      procesarArchivos(e.dataTransfer.files);
+    });
+    U.$$('[data-cargar-cola]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var cola = leerCola();
+        var f = cola.splice(Number(b.getAttribute('data-cargar-cola')), 1)[0];
+        guardarCola(cola);
+        if (f) importar(f.texto);
+      });
+    });
+    U.$$('[data-quitar-cola]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var cola = leerCola();
+        cola.splice(Number(b.getAttribute('data-quitar-cola')), 1);
+        guardarCola(cola);
+        render(cont);
+      });
     });
     $('#cf-pegar').addEventListener('click', function () {
       U.modal({
