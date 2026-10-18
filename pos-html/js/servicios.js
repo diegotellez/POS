@@ -51,6 +51,20 @@
     });
   }
 
+  // Sin permiso de vender sin stock, la cantidad no puede superar lo disponible.
+  function validarStock(lineas) {
+    var porProducto = {};
+    lineas.forEach(function (l) { porProducto[l.producto.id] = (porProducto[l.producto.id] || 0) + l.cantidad; });
+    lineas.forEach(function (l) {
+      var pedido = porProducto[l.producto.id];
+      if (pedido > l.producto.stock) {
+        falla(l.producto.stock > 0
+          ? 'Solo hay ' + l.producto.stock + ' unidad(es) de ' + l.producto.nombre + ' en stock'
+          : l.producto.nombre + ' está agotado (stock 0). Registre la compra en Inventario o Compras antes de venderlo.');
+      }
+    });
+  }
+
   function nombreUsuario(db, id) {
     var u = DB.buscarPorId(db, 'usuarios', id);
     return u ? u.nombre_usuario : '—';
@@ -805,6 +819,7 @@
           var precio = item.precioUnitario !== undefined ? Number(item.precioUnitario) : p.precio_venta;
           return { producto: p, cantidad: cantidad, precio: precio, subtotal: U.redondear(cantidad * precio) };
         });
+        if (!db.config.permitirVentaSinStock) validarStock(lineas);
 
         var total = U.redondear(lineas.reduce(function (a, l) { return a + l.subtotal; }, 0));
         var totalPagos = U.redondear(pagos.reduce(function (a, p) { return a + Number(p.monto || 0); }, 0));
@@ -949,6 +964,7 @@
             precio = p.precio_venta;
           }
           lineas.push({ producto: p, cantidad: delta, precio: precio, subtotal: U.redondear(delta * precio) });
+          if (delta > 0 && !db.config.permitirVentaSinStock) validarStock([{ producto: p, cantidad: delta }]);
         });
         if (!lineas.length) falla('No hay cambios: la venta quedó igual');
 
@@ -1786,6 +1802,9 @@
         db.config.whatsapp = String(datos.whatsapp || '').replace(/[^\d]/g, '');
         if (datos.urlApp !== undefined) db.config.urlApp = String(datos.urlApp || '').trim().replace(/#.*$/, '');
         db.config.mensajeTicket = String(datos.mensajeTicket || '');
+        if (datos.permitirVentaSinStock !== undefined) db.config.permitirVentaSinStock = !!datos.permitirVentaSinStock;
+        if (datos.ticketAnchoUtil !== undefined) db.config.ticketAnchoUtil = Math.max(0, Math.min(80, Number(datos.ticketAnchoUtil) || 0));
+        if (datos.ticketMargenIzq !== undefined) db.config.ticketMargenIzq = Math.max(0, Math.min(10, Number(datos.ticketMargenIzq) || 0));
         if (datos.cajonModo !== undefined) {
           db.config.cajonModo = ['ninguno', 'impresion', 'serial'].indexOf(datos.cajonModo) !== -1 ? datos.cajonModo : 'ninguno';
           db.config.cajonBaudios = Number(datos.cajonBaudios) > 0 ? Number(datos.cajonBaudios) : 9600;
@@ -1797,6 +1816,30 @@
   };
 
   // ======================= Documentos imprimibles =======================
+  // Las térmicas no imprimen todo el ancho del papel: una de 58 mm imprime ~48 mm
+  // y una de 80 mm ~72 mm. El ticket se arma de ese ancho para que nada se corte.
+  function medidasTicket(cfg) {
+    var papel = Number(cfg.anchoTicket) === 58 ? 58 : 80;
+    var util = Number(cfg.ticketAnchoUtil) || (papel === 58 ? 48 : 72);
+    var izq = Math.max(0, Number(cfg.ticketMargenIzq) || 0);
+    return { papel: papel, util: util, izq: izq };
+  }
+  // Letra sin serifa y en semi-negrita, todo en negro puro: en papel térmico el
+  // texto delgado y gris sale pálido.
+  function cssTicket(cfg) {
+    var m = medidasTicket(cfg);
+    return '@page{size:' + m.papel + 'mm auto;margin:0}' +
+      'html,body{margin:0;padding:0;background:#fff}' +
+      'body{box-sizing:border-box;width:' + Math.max(30, m.util - m.izq) + 'mm;margin-left:' + m.izq + 'mm;padding:1mm 1mm 2mm 0;' +
+      'font-family:Arial,Helvetica,sans-serif;font-size:' + (m.papel === 58 ? '11.5px' : '12.5px') + ';font-weight:600;line-height:1.25;color:#000;' +
+      '-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'h2{text-align:center;margin:2px 0 4px;font-size:' + (m.papel === 58 ? '14px' : '16px') + ';font-weight:800}' +
+      'b,strong,.total{font-weight:800}.centro{text-align:center}small{font-size:0.9em;font-weight:600}' +
+      'table{width:100%;border-collapse:collapse}td{vertical-align:top;padding:1px 0;color:#000}.der{text-align:right;white-space:nowrap;padding-left:2mm}' +
+      'hr{border:none;border-top:1px dashed #000;margin:3px 0}.total{font-size:1.15em}' +
+      '.fila{display:flex;justify-content:space-between;gap:2mm}.fila span:last-child{white-space:nowrap}' +
+      '.firma{margin-top:24px;border-top:1px solid #000;text-align:center}';
+  }
   function encabezadoNegocio(cfg) {
     return '<h2>' + U.esc(cfg.nombreNegocio) + '</h2>' +
       (cfg.nit ? '<div class="centro">NIT/RUT: ' + U.esc(cfg.nit) + '</div>' : '') +
@@ -1806,7 +1849,6 @@
   var Documentos = {
     ticketHTML: function (venta) {
       var cfg = DB.config();
-      var ancho = cfg.anchoTicket || 80;
       var esCambio = venta.tipo === 'CAMBIO';
       var filas = venta.detalle.map(function (d) {
         if (esCambio && d.cantidad < 0) {
@@ -1825,14 +1867,8 @@
         ? '<div>Cliente: ' + U.esc(venta.cliente_nombre || '') + (venta.cliente_documento ? ' (' + U.esc(venta.cliente_documento) + ')' : '') + '</div>'
         : '';
       return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comprobante #' + venta.id + '</title>' +
-        '<style>' +
-        '@page{size:' + ancho + 'mm auto;margin:0}' +
-        'body{width:' + (ancho - 6) + 'mm;font-family:"Courier New",monospace;font-size:12px;margin:0;padding:3mm;color:#111}' +
-        'h2{text-align:center;margin:4px 0;font-size:15px}.centro{text-align:center}' +
-        'table{width:100%;border-collapse:collapse}td{vertical-align:top;padding:2px 0}.der{text-align:right;white-space:nowrap}' +
-        'hr{border:none;border-top:1px dashed #111}.total{font-weight:bold;font-size:14px}' +
-        '.fila{display:flex;justify-content:space-between}' +
-        (venta.estado === 'ANULADA' ? '.anulada{font-weight:bold;text-align:center;border:2px solid #111;padding:4px;margin:6px 0}' : '') +
+        '<style>' + cssTicket(cfg) +
+        (venta.estado === 'ANULADA' ? '.anulada{font-weight:800;text-align:center;border:2px solid #000;padding:4px;margin:6px 0}' : '') +
         '</style></head><body>' +
         encabezadoNegocio(cfg) +
         '<hr>' + (esCambio
@@ -1851,15 +1887,23 @@
         '</body></html>';
     },
 
+    // Ticket corto para probar la impresora: una regla con números para ver si algo se corta.
+    pruebaHTML: function () {
+      var cfg = DB.config();
+      var m = medidasTicket(cfg);
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Prueba</title><style>' + cssTicket(cfg) + '</style></head><body>' +
+        encabezadoNegocio(cfg) + '<hr><div class="centro"><b>TICKET DE PRUEBA</b></div><div>' + U.esc(U.ahora()) + '</div>' +
+        '<div>Papel ' + m.papel + ' mm · ancho útil ' + m.util + ' mm · margen izq. ' + m.izq + ' mm</div><hr>' +
+        '<div class="fila"><span>Producto de prueba</span><span>$ 23.500</span></div>' +
+        '<div class="fila total"><span>TOTAL</span><span>$ 123.500</span></div><hr>' +
+        '<div class="fila"><span>|izquierda</span><span>derecha|</span></div>' +
+        '<div>Si ve las dos barras | y el valor completo, el ancho está bien.</div></body></html>';
+    },
+
     // Comprobante de egreso (gasto pagado con dinero de la caja); firma de quien recibe.
     egresoHTML: function (g) {
       var cfg = DB.config();
-      var ancho = cfg.anchoTicket || 80;
-      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Egreso #' + g.id + '</title><style>' +
-        '@page{size:' + ancho + 'mm auto;margin:0}' +
-        'body{width:' + (ancho - 6) + 'mm;font-family:"Courier New",monospace;font-size:12px;margin:0;padding:3mm;color:#111}' +
-        'h2{text-align:center;margin:4px 0;font-size:15px}.centro{text-align:center}hr{border:none;border-top:1px dashed #111}' +
-        '.fila{display:flex;justify-content:space-between}.total{font-weight:bold;font-size:14px}.firma{margin-top:28px;border-top:1px solid #111;text-align:center}' +
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Egreso #' + g.id + '</title><style>' + cssTicket(cfg) +
         '</style></head><body>' + encabezadoNegocio(cfg) +
         '<hr><div class="centro"><b>COMPROBANTE DE EGRESO</b></div><div>Egreso #' + g.id + '</div><div>' + U.esc(g.fecha_hora) + '</div>' +
         '<hr><div>' + U.esc(g.tipo) + '</div><div>' + U.esc(g.concepto) + '</div><hr>' +

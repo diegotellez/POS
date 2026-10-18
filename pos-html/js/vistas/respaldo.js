@@ -71,12 +71,7 @@
       });
     });
     U.$('#btn-ticket-prueba', f).addEventListener('click', function () {
-      var c = POS.Config.obtener();
-      var ancho = c.anchoTicket || 80;
-      U.imprimirHTML('<!doctype html><html><head><meta charset="utf-8"><title>Prueba</title><style>@page{size:' + ancho + 'mm auto;margin:0}' +
-        'body{width:' + (ancho - 6) + 'mm;font-family:"Courier New",monospace;font-size:12px;margin:0;padding:3mm}h2{text-align:center;margin:4px 0}</style></head><body>' +
-        '<h2>' + U.esc(c.nombreNegocio) + '</h2><div>TICKET DE PRUEBA</div><div>' + U.esc(U.ahora()) + '</div><div>Papel: ' + ancho + ' mm</div>' +
-        '<div>' + Array(33).join('-') + '</div><div>Si lee esto, la impresora funciona.</div></body></html>', 300);
+      U.imprimirHTML(POS.Documentos.pruebaHTML(), 300);
     });
     U.$('#btn-probar-cajon', f).addEventListener('click', function () {
       var modo = f.cajonModo.value;
@@ -166,6 +161,13 @@
       '</select></label>' +
       '<label class="campo"><span>WhatsApp para reportes</span><input name="whatsapp" value="' + U.esc(cfg.whatsapp) + '" placeholder="Ej. 573001234567"></label>' +
       '</div>' +
+      '<div class="fila-doble">' +
+      '<label class="campo"><span>Ancho que imprime la térmica (mm)</span><input name="ticketAnchoUtil" type="number" min="30" max="80" step="1" value="' + (cfg.ticketAnchoUtil || '') + '" placeholder="Automático: 48 (58 mm) o 72 (80 mm)"></label>' +
+      '<label class="campo"><span>Margen izquierdo del ticket (mm)</span><input name="ticketMargenIzq" type="number" min="0" max="10" step="0.5" value="' + (cfg.ticketMargenIzq || 0) + '"></label>' +
+      '</div>' +
+      '<p class="tenue pequeno">Si el ticket sale cortado a la derecha, baje el ancho (por ejemplo 46); si queda corrido a la izquierda, suba el margen. Pruébelo con "Imprimir ticket de prueba" (Cajón monedero).</p>' +
+      '<label class="check"><input type="checkbox" name="permitirVentaSinStock"' + (cfg.permitirVentaSinStock ? ' checked' : '') + '> Permitir vender productos sin stock (el stock queda negativo)</label>' +
+      '<p class="tenue pequeno">Desmarcado (recomendado): no se puede vender ni entregar en un cambio más de lo que hay en inventario.</p>' +
       '<label class="campo"><span>Enlace de la app para ver cierres</span><input name="urlApp" value="' + U.esc(cfg.urlApp) + '" placeholder="https://..."></label>' +
       '<p class="tenue pequeno">Va al final del mensaje de cierre. Quien lo abra ve el detalle de ese cierre sin iniciar sesión; deja vacío para no incluir enlace.</p>' +
       '<label class="campo"><span>Mensaje al pie del ticket</span><input name="mensajeTicket" value="' + U.esc(cfg.mensajeTicket) + '"></label>' +

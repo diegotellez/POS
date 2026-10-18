@@ -25,6 +25,11 @@
     mensajeTicket: '¡Gracias por su compra!',
     // Cajón monedero: 'ninguno', 'impresion' (el driver de la impresora lo abre al imprimir)
     // o 'serial' (orden ESC/POS directa por Web Serial, Chrome/Edge).
+    // Si es false, no se puede vender (ni entregar en un cambio) más de lo que hay en stock.
+    permitirVentaSinStock: false,
+    // Ticket: ancho útil que imprime el cabezal (58 mm -> 48 mm, 80 mm -> 72 mm) y margen izquierdo.
+    ticketAnchoUtil: 0,
+    ticketMargenIzq: 0,
     cajonModo: 'ninguno',
     cajonBaudios: 9600,
     cajonPin: 0

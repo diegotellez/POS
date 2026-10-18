@@ -189,7 +189,7 @@
           '<span class="item-info">' + (p.categoria_nombre ? '<span class="cat-item">' + U.esc(p.categoria_nombre) + '</span>' : '') +
           '<strong>' + U.esc(p.nombre) + '</strong>' +
           '<small class="tenue">' + U.esc(p.codigo_barras || p.codigo_interno) + ' · ' +
-          '<span class="' + (bajo ? 'alerta' : '') + '">Stock: ' + p.stock + '</span></small></span>' +
+          '<span class="' + (bajo ? 'alerta' : '') + '">' + (p.stock <= 0 && !DB.config().permitirVentaSinStock ? 'AGOTADO' : 'Stock: ' + p.stock) + '</span></small></span>' +
           (p.precio_venta > 0
             ? '<span class="precio">' + U.dinero(p.precio_venta) + '</span>'
             : '<span class="sin-precio">Sin precio</span>') + '</button>';
@@ -222,6 +222,17 @@
       U.$('#btn-cobrar', cont).disabled = !carrito.length;
     }
 
+    // Sin permiso de vender sin stock, no se deja pasar de lo disponible.
+    function puedeLlevar(productoId, cantidad) {
+      if (DB.config().permitirVentaSinStock) return true;
+      var prod = POS.Productos.obtener(productoId);
+      var stock = prod ? prod.stock : 0;
+      if (cantidad <= stock) return true;
+      U.aviso(stock > 0 ? 'Solo hay ' + stock + ' unidad(es) de "' + prod.nombre + '" en stock.' :
+        '"' + (prod ? prod.nombre : 'Producto') + '" está agotado (stock 0). No se puede vender hasta registrar la compra.', 'error', 5000);
+      return false;
+    }
+
     function agregar(p) {
       if (!(p.precio_venta > 0)) {
         U.aviso('"' + p.nombre + '" no tiene precio. Un administrador debe asignarlo en Precios.', 'error', 5000);
@@ -229,6 +240,7 @@
         return;
       }
       var existente = carrito.filter(function (i) { return i.productoId === p.id; })[0];
+      if (!puedeLlevar(p.id, (existente ? existente.cantidad : 0) + 1)) { input.focus(); return; }
       if (existente) existente.cantidad += 1;
       else carrito.push({ productoId: p.id, nombre: p.nombre, precioUnitario: p.precio_venta, cantidad: 1, stockDisponible: p.stock });
       pintarCarrito();
@@ -281,7 +293,7 @@
       if (!btn) return;
       var i = Number(btn.getAttribute('data-i'));
       var accion = btn.getAttribute('data-accion');
-      if (accion === 'mas') carrito[i].cantidad += 1;
+      if (accion === 'mas' && puedeLlevar(carrito[i].productoId, carrito[i].cantidad + 1)) carrito[i].cantidad += 1;
       else if (accion === 'menos') carrito[i].cantidad = Math.max(1, carrito[i].cantidad - 1);
       else if (accion === 'quitar') carrito.splice(i, 1);
       pintarCarrito();
@@ -291,7 +303,12 @@
       if (!e.target.classList.contains('cantidad')) return;
       var i = Number(e.target.getAttribute('data-i'));
       var n = Math.floor(Number(e.target.value));
-      carrito[i].cantidad = n > 0 ? n : 1;
+      n = n > 0 ? n : 1;
+      if (!puedeLlevar(carrito[i].productoId, n)) {
+        var disp = POS.Productos.obtener(carrito[i].productoId);
+        n = Math.max(1, disp ? Math.min(n, disp.stock) : 1);
+      }
+      carrito[i].cantidad = n;
       pintarCarrito();
     });
 
@@ -381,6 +398,12 @@
               }),
               cliente: { nombre: U.$('#cliente-nombre', raiz).value, documento: U.$('#cliente-doc', raiz).value }
             });
+            // Lo primero, en el mismo clic de "Confirmar venta": si hubo efectivo, abrir el cajón
+            // (directo, o imprimiendo el ticket para que la impresora lo abra).
+            var conEfectivo = resultado.venta.pagos.some(function (p) { return p.metodo_pago === 'EFECTIVO' && p.monto > 0; });
+            var impreso = conEfectivo && Cajon.porEfectivo(function () {
+              U.imprimirHTML(POS.Documentos.ticketHTML(resultado.venta), 380);
+            });
             cerrar();
             carrito = [];
             U.aviso('Venta #' + resultado.venta.id + ' registrada', 'ok');
@@ -389,11 +412,6 @@
                 return a.nombre + (a.agotado ? ' (agotado)' : ' (' + a.stock + ')');
               }).join(', '), 'alerta', 7000);
             }
-            // Cobro con efectivo: se abre el cajón (directo o imprimiendo el ticket).
-            var conEfectivo = resultado.venta.pagos.some(function (p) { return p.metodo_pago === 'EFECTIVO' && p.monto > 0; });
-            var impreso = conEfectivo && Cajon.porEfectivo(function () {
-              U.imprimirHTML(POS.Documentos.ticketHTML(resultado.venta), 380);
-            });
             if (!impreso) ofrecerTicket(resultado.venta);
             alTerminar();
           }

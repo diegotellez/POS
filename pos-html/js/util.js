@@ -291,9 +291,12 @@
     ventana.document.write(html);
     ventana.document.close();
     ventana.focus();
+    // print() espera a que termine la impresión (o el diálogo); luego la ventana del
+    // ticket se cierra sola. Con Chrome en modo --kiosk-printing no hay diálogo.
     setTimeout(function () {
       try { ventana.print(); } catch (e) { /* sin impresión disponible */ }
-    }, 250);
+      setTimeout(function () { try { ventana.close(); } catch (e) { /* ya cerrada */ } }, 500);
+    }, 150);
   };
 
   global.U = U;

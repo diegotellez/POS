@@ -151,6 +151,15 @@ h += [tabla(['Modo', 'Cómo funciona', 'Qué configurar'], [
     ['No abrir', 'El cajón se abre a mano o con la llave.', '—'],
 ], [3, 6, 7])]
 h += [figura(C + '/u16b-cajon.jpg', 'Figura 3b. Configuración del cajón monedero.', alto_max=9 * cm)]
+h += [p('<b>Para que el cajón abra en el mismo momento de pulsar "Confirmar venta"</b> (modo "Al imprimir"), Chrome no debe mostrar su '
+        'ventana de impresión. Cree un acceso directo que imprime directo en la impresora predeterminada:')]
+h += [pasos([
+    'Ponga la térmica como <b>impresora predeterminada</b> de Windows (Impresoras y escáneres &gt; la impresora &gt; Establecer como predeterminada).',
+    'Clic derecho en el escritorio &gt; Nuevo &gt; Acceso directo. En la ubicación escriba (ajuste la ruta a donde está la carpeta del POS): '
+    '<code>"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --kiosk-printing --app="file:///C:/POS/pos-html/index.html"</code>',
+    'Cierre <b>todas</b> las ventanas de Chrome y abra el POS siempre con ese acceso directo (si Chrome ya estaba abierto, la opción no se aplica).',
+    'Al confirmar una venta en efectivo, el ticket sale de inmediato y el cajón se abre.',
+])]
 h += [viñetas([
     'Use <b>Probar apertura</b> para comprobar la configuración.',
     'En Ventas aparece el botón <b>Abrir cajón</b> para abrirlo sin una venta (por ejemplo, para dar cambio). Pide confirmación y '
@@ -265,6 +274,8 @@ h += [tabla(['Síntoma', 'Causa probable', 'Solución'], [
     ['No sale la ventana del ticket.', 'Ventanas emergentes bloqueadas.', 'Permita las ventanas emergentes para el sistema.'],
     ['Al elegir la impresora (POS58/POS80) aparece una ventana para guardar un archivo en vez de imprimir.', 'El controlador quedó con el puerto FILE: o "Imprimir a un archivo".', 'Windows: Impresoras y escáneres &gt; la impresora &gt; Propiedades de impresora &gt; Puertos: marque <b>USB001</b> (Puerto de impresora virtual para USB) con la impresora encendida y conectada; desmarque "Imprimir a un archivo". Pruebe con "Imprimir página de prueba" y luego con "Imprimir ticket de prueba" del POS.'],
     ['El cajón no abre al cobrar en efectivo.', 'Modo del cajón o controlador.', 'Revise el modo en Cajón monedero y pulse Probar apertura. Modo "Al imprimir": active Abrir cajón en las preferencias de la impresora. Modo directo: Conectar impresora de nuevo, pin 5 u otra velocidad.'],
+    ['El ticket sale cortado a la derecha (ej. 23.500 sale 23.).', 'El ancho del ticket es mayor al que imprime el cabezal.', 'En Configuración baje "Ancho que imprime la térmica" (48 mm en una de 58 mm; pruebe 46) o el margen izquierdo, y use "Imprimir ticket de prueba".'],
+    ['El ticket sale pálido u opaco.', 'Densidad de la impresora o papel.', 'En Preferencias de impresión del controlador suba la <b>Densidad</b> (Darkness/Print density). Revise que el rollo sea térmico y no esté vencido o expuesto al sol.'],
     ['El ticket sale en hoja carta o con márgenes.', 'Opciones de impresión.', 'Márgenes: Ninguno, sin encabezados; papel de 80/58 mm (sección 4.3).'],
     ['El lector escribe el código pero no agrega el producto.', 'El lector no envía Enter, o el código no está registrado.',
      'Configure el sufijo Enter. Si aparece "No se encontraron productos", asigne el código en Precios o créelo con "Agregar producto nuevo".'],
