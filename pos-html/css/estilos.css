@@ -586,3 +586,6 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .opciones-produccion { border: 1px solid var(--borde); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
 .opciones-produccion legend { font-size: 13px; padding: 0 4px; }
 .numero-turno { width: 70px; text-align: center; }
+
+.aviso-version.aviso-error { background: var(--peligro); }
+.aviso-error .boton-primario { background: #fff; color: var(--peligro); }

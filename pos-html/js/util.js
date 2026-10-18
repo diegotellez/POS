@@ -123,6 +123,8 @@
   };
 
   U.error = function (err) {
+    // Un error de programación (no una validación) también se reporta al proveedor.
+    if (global.Soporte && Soporte.esInesperado(err)) Soporte.registrarError(err, 'Acción del usuario');
     U.aviso(err && err.message ? err.message : String(err), 'error', 5000);
   };
 

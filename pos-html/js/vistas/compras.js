@@ -633,7 +633,12 @@
         var errores = [], repetidas = [], cargada = null, enCola = 0, sinFactura = 0;
         var cola = leerCola();
         docs.forEach(function (d) {
-          if (d.error) { errores.push(d.origen + ': ' + d.error); return; }
+          if (d.error) {
+            errores.push(d.origen + ': ' + d.error);
+            // Un archivo de factura que no se puede abrir se reporta al proveedor.
+            if (window.Soporte) Soporte.registrarError({ message: 'No se pudo leer ' + d.origen + ': ' + d.error }, 'Compras: cargar facturas');
+            return;
+          }
           var datos;
           try { datos = leerTexto(d.texto); } catch (err) {
             // Un XML que no es factura (por ejemplo la respuesta de la DIAN) se ignora.

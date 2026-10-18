@@ -29,6 +29,7 @@ var ARCHIVOS = [
   "js/precios-texto.js",
   "js/servicios.js",
   "js/sha256.js",
+  "js/soporte.js",
   "js/util.js",
   "js/xlsx.js",
   "js/zip-lector.js",
@@ -42,6 +43,7 @@ var ARCHIVOS = [
   "js/vistas/productos.js",
   "js/vistas/reportes.js",
   "js/vistas/respaldo.js",
+  "js/vistas/soporte.js",
   "js/vistas/turno.js",
   "js/vistas/usuarios.js",
   "js/vistas/ventas.js"

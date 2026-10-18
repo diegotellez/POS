@@ -96,6 +96,15 @@
     });
   }
 
+  function seccionSoporte() {
+    var c = Soporte.contacto();
+    return '<section class="tarjeta"><h2>' + U.icono('chat') + ' Soporte y solicitudes</h2>' +
+      '<p class="tenue pequeno">Reporte errores, pida mejoras o reportes nuevos al proveedor y vea cuándo quedan publicados. ' +
+      'Los errores inesperados se registran y se avisan solos.' +
+      (c.whatsapp || c.url || c.correo ? '' : ' <span class="alerta">Aún no hay contacto del proveedor configurado.</span>') + '</p>' +
+      '<div class="acciones-reporte"><a class="boton boton-secundario" href="#/soporte">' + U.icono('chat') + ' Abrir Soporte</a></div></section>';
+  }
+
   function seccionActualizaciones(cfg) {
     var estado = Actualizaciones.estado();
     var html = '<section class="tarjeta actualizaciones"><h2>' + U.icono('descargar') + ' Actualizaciones automáticas</h2>';
@@ -259,7 +268,8 @@
       '</section>' +
       '</div>' +
       '<div class="dos-columnas">' + seccionCajon(cfg) + seccionEmpleados() + '</div>' +
-      seccionActualizaciones(cfg);
+      seccionActualizaciones(cfg) +
+      seccionSoporte();
 
     activarActualizaciones(cont);
 

@@ -12,7 +12,7 @@
     version: VERSION_APP,
     vistas: {},
     // Orden del menú lateral
-    menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'compras', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo'],
+    menu: ['ventas', 'historial', 'turno', 'productos', 'precios', 'categorias', 'compras', 'inventario', 'reportes', 'usuarios', 'auditoria', 'respaldo', 'soporte'],
     limpiezas: []
   };
 
@@ -171,6 +171,7 @@
     } catch (err) {
       contenedor.innerHTML = '<div class="tarjeta"><h2>Error</h2><p>' + U.esc(err.message) + '</p></div>';
       if (global.console) global.console.error(err);
+      if (global.Soporte) Soporte.registrarError(err, 'Pantalla ' + vista.titulo);
     }
   };
 

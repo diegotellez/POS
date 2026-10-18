@@ -1,5 +1,12 @@
 {
   "version": "2.6.1",
   "fecha": "2026-10-18",
-  "notas": "Turnos por usuario con número fijo (Turno 1 admin, Turno 2 cajero), una sola categoría al vender y lectura más robusta del ZIP de facturas."
+  "notas": "Turnos por usuario con número fijo (Turno 1 admin, Turno 2 cajero), una sola categoría al vender y lectura más robusta del ZIP de facturas.",
+  "soporte": {
+    "nombre": "Soporte POS",
+    "whatsapp": "",
+    "correo": "",
+    "url": ""
+  },
+  "atendidas": {}
 }

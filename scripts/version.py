@@ -4,6 +4,7 @@ del service worker (pos-html/sw.js).
 
 Uso:
   python3 scripts/version.py 2.5 --notas "Qué trae la versión"
+  python3 scripts/version.py 2.5 --notas "..." --atiende S-K7Q-0003,E-K7Q-0004
   python3 scripts/version.py --archivos      # solo regenera la lista de sw.js
 
 Actualiza: pos-html/js/app.js (VERSION_APP), pos-html/sw.js (VERSION y
@@ -77,6 +78,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('version', nargs='?', help='por ejemplo 2.5')
     ap.add_argument('--notas', default='', help='novedades que verá el cliente en el aviso de actualización')
+    ap.add_argument('--atiende', default='', help='códigos de solicitudes o errores que resuelve esta versión (separados por coma)')
     ap.add_argument('--archivos', action='store_true', help='solo regenerar la lista de archivos de sw.js')
     a = ap.parse_args()
 
@@ -96,8 +98,16 @@ def main():
     mes = MESES[hoy.month - 1]
     reemplazar(sw, r"var VERSION = '[^']*';", "var VERSION = '%s';" % v)
     reemplazar(os.path.join(APP, 'js', 'app.js'), r"var VERSION_APP = '[^']*';", "var VERSION_APP = '%s';" % v)
-    escribir(os.path.join(APP, 'version.json'), json.dumps(
-        {'version': v, 'fecha': hoy.isoformat(), 'notas': a.notas}, ensure_ascii=False, indent=2) + '\n')
+    # El contacto de soporte y las solicitudes atendidas se conservan de una versión a otra.
+    ruta_v = os.path.join(APP, 'version.json')
+    previo = json.loads(leer(ruta_v)) if os.path.exists(ruta_v) else {}
+    atendidas = previo.get('atendidas') or {}
+    for cod in filter(None, (c.strip().upper() for c in a.atiende.split(','))):
+        atendidas[cod] = v
+    nuevo = {'version': v, 'fecha': hoy.isoformat(), 'notas': a.notas,
+             'soporte': previo.get('soporte') or {'nombre': 'Soporte POS', 'whatsapp': '', 'correo': '', 'url': ''},
+             'atendidas': atendidas}
+    escribir(ruta_v, json.dumps(nuevo, ensure_ascii=False, indent=2) + '\n')
     base = os.path.join(RAIZ, 'scripts', 'manuales', 'base.py')
     reemplazar(base, r"VERSION = '[^']*'", "VERSION = '%s'" % v)
     reemplazar(base, r"FECHA_VERSION = '[^']*'", "FECHA_VERSION = '%s de %d'" % (mes.capitalize(), hoy.year))
