@@ -1,9 +1,14 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.4** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.4.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.4.1
+
+- Ventas lista todas las categorías, también las que aún no tienen productos
+  (se ven con borde punteado y su conteo en 0).
 
 ## Novedades de la versión 2.4
 

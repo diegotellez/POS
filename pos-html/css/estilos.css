@@ -549,3 +549,4 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .cf-resumen strong { font-size: 18px; font-variant-numeric: tabular-nums; }
 .cf-texto { width: 100%; font-family: monospace; font-size: 12px; }
 @media (max-width: 900px) { .cf-encabezado { grid-template-columns: 1fr 1fr; } }
+.chip.chip-vacia:not(.activa) { color: var(--texto-cuerpo); border-style: dashed; }

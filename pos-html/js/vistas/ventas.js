@@ -71,8 +71,8 @@
     var listaActual = [];
     var chips = U.$('#chips-categorias', cont);
 
-    // Todas las categorías con productos activos (principales y subcategorías), en
-    // orden alfabético y a la vista, sin scroll. Una categoría incluye sus subcategorías.
+    // Todas las categorías (principales y subcategorías), en orden alfabético y a la
+    // vista, sin scroll. Una categoría incluye sus subcategorías.
     var categorias = POS.Categorias.listar();
     var porId = {};
     categorias.forEach(function (c) { porId[c.id] = c; });
@@ -89,9 +89,10 @@
     POS.Productos.listar({ soloActivos: true }).forEach(function (p) {
       if (p.categoria_id) cadenaDe(p.categoria_id).forEach(function (id) { conteo[id] = (conteo[id] || 0) + 1; });
     });
-    var chipsCat = categorias.filter(function (c) { return conteo[c.id]; })
+    // Se listan todas las categorías, también las que aún no tienen productos.
+    var chipsCat = categorias.slice()
       .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }); });
-    categoriasVenta = categoriasVenta.filter(function (id) { return conteo[id]; });
+    categoriasVenta = categoriasVenta.filter(function (id) { return porId[id]; });
     var btnTodas = U.$('#btn-todas-cat', cont);
     var resumen = U.$('#resumen-busqueda', cont);
 
@@ -101,8 +102,8 @@
       chips.innerHTML = '<button type="button" class="chip' + (!categoriasVenta.length ? ' activa' : '') + '" data-cat="0" aria-pressed="' + !categoriasVenta.length + '">Todas</button>' +
         chipsCat.map(function (c) {
           var on = elegida(c.id);
-          return '<button type="button" class="chip' + (on ? ' activa' : '') + '" data-cat="' + c.id + '" aria-pressed="' + on + '">' +
-            U.esc(c.nombre) + ' <span class="chip-n">' + conteo[c.id] + '</span></button>';
+          return '<button type="button" class="chip' + (on ? ' activa' : '') + (conteo[c.id] ? '' : ' chip-vacia') + '" data-cat="' + c.id + '" aria-pressed="' + on + '">' +
+            U.esc(c.nombre) + ' <span class="chip-n">' + (conteo[c.id] || 0) + '</span></button>';
         }).join('');
       btnTodas.hidden = !categoriasVenta.length;
     }
