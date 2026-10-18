@@ -1771,6 +1771,44 @@
     }
   };
 
+  // Inicio de la fase productiva: borra el movimiento de prueba y conserva el catálogo.
+  var Mantenimiento = {
+    // Lo que se borraría (para mostrarlo antes de confirmar).
+    resumenPrueba: function () {
+      var db = DB.datos();
+      return {
+        compras: db.compras.length, ventas: db.ventas.filter(function (v) { return v.tipo !== 'CAMBIO'; }).length,
+        cambios: db.ventas.filter(function (v) { return v.tipo === 'CAMBIO'; }).length, turnos: db.turnos.length,
+        gastos: db.gastos.length, movimientos: db.movimientos.length, lotes: db.lotes.length,
+        productosConStock: db.productos.filter(function (p) { return p.stock !== 0; }).length
+      };
+    },
+
+    // opciones: { stockEnCero: bool, borrarCodigosProveedor: bool }
+    iniciarProduccion: function (opciones) {
+      Auth.requerirAdmin();
+      opciones = opciones || {};
+      var usuarioId = usuarioActualId();
+      var r = Mantenimiento.resumenPrueba();
+      DB.tx(function (db) {
+        ['compras', 'ventas', 'turnos', 'gastos', 'movimientos', 'lotes', 'clientes', 'auditoria'].forEach(function (t) {
+          db[t] = [];
+          db.seq[t] = 0; // la numeración (venta #1, turno #1…) empieza de nuevo
+        });
+        if (opciones.borrarCodigosProveedor) { db.codigos_proveedor = []; db.seq.codigos_proveedor = 0; }
+        db.productos.forEach(function (p) {
+          if (opciones.stockEnCero) p.stock = 0;
+          else if (p.stock) movimiento(db, p.id, 'AJUSTE_MANUAL', p.stock, 'Stock al iniciar la fase productiva');
+        });
+        db.config.inicioProduccion = U.ahora();
+        auditar(db, usuarioId, 'InicioProduccion', 'Inicio de la fase productiva. Se borraron ' + r.compras + ' compras, ' + r.ventas + ' ventas, ' +
+          r.cambios + ' cambios, ' + r.turnos + ' turnos y ' + r.gastos + ' gastos de prueba. Stock ' + (opciones.stockEnCero ? 'en cero' : 'conservado') +
+          (opciones.borrarCodigosProveedor ? '; códigos de proveedor borrados' : '') + '.');
+      });
+      return r;
+    }
+  };
+
   var Auditoria = {
     listar: function () {
       Auth.requerirAdmin();
@@ -1982,6 +2020,7 @@
     Usuarios: Usuarios,
     Auditoria: Auditoria,
     Cajon: Cajon,
+    Mantenimiento: Mantenimiento,
     Config: Config,
     Documentos: Documentos,
     etiquetaDiferencia: etiquetaDiferencia

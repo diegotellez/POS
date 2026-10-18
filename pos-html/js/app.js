@@ -198,6 +198,14 @@
       if (e.key === DB.CLAVE || e.key === null) DB.invalidar();
     });
     App.renderizar();
+    // Aviso dejado antes de recargar la página (por ejemplo, al iniciar la fase productiva).
+    try {
+      var pendiente = global.sessionStorage.getItem('pos_aviso_al_cargar');
+      if (pendiente) {
+        global.sessionStorage.removeItem('pos_aviso_al_cargar');
+        U.aviso(pendiente, 'ok', 9000);
+      }
+    } catch (e) { /* sin almacenamiento */ }
   }
 
   global.App = App;

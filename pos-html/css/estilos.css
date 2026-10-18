@@ -579,3 +579,9 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
   border: 3px dashed var(--primario); border-radius: var(--radio); background: color-mix(in srgb, var(--superficie) 88%, transparent);
   font-size: 18px; font-weight: 700; color: var(--secundario);
 }
+
+.peligro-opcion { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--borde); }
+.peligro-opcion p { margin: 2px 0 0; }
+.peligro-opcion .boton { flex-shrink: 0; }
+.opciones-produccion { border: 1px solid var(--borde); border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+.opciones-produccion legend { font-size: 13px; padding: 0 4px; }

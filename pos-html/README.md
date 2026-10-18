@@ -14,6 +14,9 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
   conectado a la impresora cuando el controlador no lo abre. Envía la orden de
   apertura en modo RAW al confirmar un pago en efectivo.
 - Inicio de sesión con el nombre de la droguería y la versión junto al logo.
+- **Iniciar la fase productiva** (Zona de peligro): borra compras, ventas, turnos,
+  gastos y movimientos de prueba; conserva catálogo, precios, usuarios,
+  configuración, proveedores y empleados; la numeración empieza en 1.
 
 ## Novedades de la versión 2.5
 

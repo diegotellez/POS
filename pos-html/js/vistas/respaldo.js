@@ -250,8 +250,12 @@
       '<label class="boton boton-secundario">' + U.icono('subir') + ' Restaurar respaldo<input type="file" id="archivo" accept=".json,application/json" hidden></label>' +
       '</div>' +
       '<h3>Zona de peligro</h3>' +
-      '<p class="tenue">Borra todos los datos de este navegador y vuelve a los datos de ejemplo.</p>' +
-      '<button class="boton boton-secundario boton-peligro" id="btn-reiniciar">Borrar todos los datos</button>' +
+      '<div class="peligro-opcion"><div><b>Iniciar la fase productiva</b><p class="tenue pequeno">Borra las compras, ventas, cambios, turnos, gastos y movimientos de prueba. ' +
+      'Conserva productos, precios, categorías, usuarios, configuración, proveedores y empleados. La numeración vuelve a empezar en 1.' +
+      (cfg.inicioProduccion ? ' <br>Fase productiva iniciada el ' + U.esc(cfg.inicioProduccion) + '.' : '') + '</p></div>' +
+      '<button class="boton boton-secundario boton-peligro" id="btn-produccion">Borrar datos de prueba</button></div>' +
+      '<div class="peligro-opcion"><div><b>Borrar todos los datos</b><p class="tenue pequeno">Borra todo lo de este navegador y vuelve a los datos de ejemplo.</p></div>' +
+      '<button class="boton boton-secundario boton-peligro" id="btn-reiniciar">Borrar todos los datos</button></div>' +
       '</section>' +
       '</div>' +
       '<div class="dos-columnas">' + seccionCajon(cfg) + seccionEmpleados() + '</div>' +
@@ -302,6 +306,50 @@
         U.aviso('No se pudo leer el archivo', 'error');
       };
       lector.readAsText(archivo);
+    });
+
+    U.$('#btn-produccion', cont).addEventListener('click', function () {
+      var r = POS.Mantenimiento.resumenPrueba();
+      U.modal({
+        titulo: 'Iniciar la fase productiva',
+        cuerpo: '<p>Se borrarán de forma definitiva: <strong>' + r.compras + ' compras</strong>, <strong>' + r.ventas + ' ventas</strong>, ' + r.cambios + ' cambios, ' +
+          r.turnos + ' turnos de caja, ' + r.gastos + ' gastos, el historial de inventario y la auditoría de prueba.</p>' +
+          '<p class="tenue pequeno">Se conservan los productos con sus precios de compra y venta, categorías, usuarios y contraseñas, configuración, proveedores y empleados.</p>' +
+          '<p><button type="button" class="boton boton-secundario" id="btn-respaldo-antes">' + U.icono('descargar') + ' Descargar respaldo antes</button></p>' +
+          '<fieldset class="opciones-produccion"><legend>Stock de los productos (' + r.productosConStock + ' tienen stock)</legend>' +
+          '<label class="check"><input type="radio" name="stock" value="cero" checked> Dejar todo en 0 y registrar después el inventario real (recomendado)</label>' +
+          '<label class="check"><input type="radio" name="stock" value="conservar"> Conservar el stock actual (ya es el conteo real)</label></fieldset>' +
+          '<label class="check"><input type="checkbox" name="borrarCodigos"> Borrar también los códigos de proveedor aprendidos (si se asociaron mal en las pruebas)</label>' +
+          '<label class="campo"><span>Escriba <strong>INICIAR</strong> para confirmar</span><input name="confirmacion" autocomplete="off"></label>',
+        alAbrir: function (raiz) {
+          U.$('#btn-respaldo-antes', raiz).addEventListener('click', function () {
+            U.descargar('pos-respaldo-antes-de-produccion-' + U.marcaArchivo() + '.json', DB.exportar(), 'application/json');
+          });
+        },
+        botones: [
+          { texto: 'Cancelar', clase: 'boton-secundario' },
+          {
+            texto: 'Borrar datos de prueba',
+            clase: 'boton-primario boton-peligro-lleno',
+            accion: function (cerrar, raiz) {
+              if (U.$('[name=confirmacion]', raiz).value.trim().toUpperCase() !== 'INICIAR') throw new Error('Escriba INICIAR para confirmar');
+              POS.Mantenimiento.iniciarProduccion({
+                stockEnCero: U.$('[name=stock]:checked', raiz).value === 'cero',
+                borrarCodigosProveedor: U.$('[name=borrarCodigos]', raiz).checked
+              });
+              // Lo que está a medio hacer en este navegador (ticket, factura en borrador, facturas por cargar).
+              ['pos_html_carrito', 'pos_html_borrador_compra', 'pos_html_cola_facturas'].forEach(function (k) {
+                try { window.localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ }
+              });
+              cerrar();
+              // Se recarga para que el ticket o la factura que estaban en pantalla no vuelvan a guardarse.
+              try { window.sessionStorage.setItem('pos_aviso_al_cargar', 'Fase productiva iniciada. Abra el primer turno de caja con la base real.'); } catch (e) { /* sin almacenamiento */ }
+              App.ir('turno');
+              window.location.reload();
+            }
+          }
+        ]
+      });
     });
 
     U.$('#btn-reiniciar', cont).addEventListener('click', function () {

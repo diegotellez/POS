@@ -271,7 +271,17 @@ h += [h2('5.6 Corregir un cierre de caja hecho por error')]
 h += [p('Un administrador puede reabrir el <b>último</b> turno cerrado desde <b>Turno de caja &gt; Reabrir turno</b>, siempre que '
         'no se haya abierto otro turno después. El turno vuelve a quedar abierto con todas sus ventas, se borra el arqueo y '
         'la reapertura queda en Auditoría con los datos del cierre anulado.')]
-h += [h2('5.7 Reiniciar el sistema')]
+h += [h2('5.7 Iniciar la fase productiva')]
+h += [p('Después de las pruebas, en <b>Respaldo y configuración &gt; Zona de peligro &gt; Borrar datos de prueba</b> se borran las compras, ventas, '
+        'cambios, turnos, gastos, el historial de inventario y la auditoría de prueba, y la numeración vuelve a empezar en 1 (venta #1, turno #1). '
+        'Se conservan los productos con sus precios de compra y venta, las categorías, los usuarios, la configuración, los proveedores (con sus '
+        'códigos aprendidos, salvo que marque borrarlos) y los empleados.')]
+h += [pasos([
+    'Pulse <b>Descargar respaldo antes</b> en la ventana de confirmación.',
+    'Elija el stock: <b>dejar todo en 0</b> y registrar después el inventario real (recomendado), o <b>conservar</b> el stock actual si ya es el conteo real.',
+    'Escriba <b>INICIAR</b> y confirme. El POS se recarga en Turno de caja: abra el primer turno con la base real.',
+])]
+h += [h2('5.8 Reiniciar el sistema')]
 h += [p('<b>Respaldo y configuración &gt; Borrar todos los datos</b> elimina toda la información del navegador y vuelve a los datos '
         'de ejemplo. Pide escribir BORRAR para confirmar. <b>No se puede deshacer</b>: descargue antes un respaldo.')]
 
