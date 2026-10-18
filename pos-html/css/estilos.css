@@ -550,3 +550,7 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 .cf-texto { width: 100%; font-family: monospace; font-size: 12px; }
 @media (max-width: 900px) { .cf-encabezado { grid-template-columns: 1fr 1fr; } }
 .chip.chip-vacia:not(.activa) { color: var(--texto-cuerpo); border-style: dashed; }
+.barra-seleccion { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.barra-seleccion:not(:empty) { margin: 0 0 10px; padding: 8px 12px; background: var(--suave); border-radius: 8px; }
+.ganancia-form { margin: -4px 0 12px; font-size: 13.5px; }
+.boton-icono.boton-peligro { color: var(--alerta); }

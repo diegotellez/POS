@@ -11,6 +11,23 @@
     }).join('');
   }
 
+  // Ganancia por unidad = precio de venta - precio de compra.
+  // Margen: sobre el precio de venta. Sobre el costo: lo que se le gana a lo que costó.
+  function ganancia(compra, venta) {
+    compra = Number(compra) || 0;
+    venta = Number(venta) || 0;
+    if (!compra || !venta) return null;
+    var g = venta - compra;
+    var pct = function (x) { return String(Math.round(x * 1000) / 10).replace('.', ','); };
+    return { valor: g, margen: pct(g / venta), sobreCosto: pct(g / compra) };
+  }
+  function celdaGanancia(p) {
+    var g = ganancia(p.costo, p.precio_venta);
+    if (!g) return '<span class="tenue">—</span>';
+    return '<span class="' + (g.valor <= 0 ? 'alerta' : '') + '">' + U.dinero(g.valor) + '</span><br><small class="' + (g.valor <= 0 ? 'alerta' : 'tenue') + '">' + g.margen + '%</small>';
+  }
+  var seleccion = {};
+
   function render(cont) {
     cont.innerHTML =
       '<section class="tarjeta">' +
@@ -20,14 +37,47 @@
       '<label class="campo crece"><span>Filtrar por nombre o código</span><input id="filtro" autocomplete="off"></label>' +
       '<label class="check"><input type="checkbox" id="inactivos"> Mostrar inactivos</label>' +
       '</div>' +
+      '<div class="barra-seleccion" id="barra-sel"></div>' +
       '<div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
-      '<th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">Precio</th><th class="num">Stock</th><th class="num">Mín.</th><th></th>' +
+      '<th><input type="checkbox" id="sel-todos" aria-label="Seleccionar todos" title="Seleccionar todos los de la lista"></th>' +
+      '<th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">P. compra</th><th class="num">P. venta</th><th class="num" title="Precio de venta menos precio de compra; el % es sobre el precio de venta">Ganancia</th>' +
+      '<th class="num">Stock</th><th class="num">Mín.</th><th></th>' +
       '</tr></thead><tbody id="filas"></tbody></table></div>' +
       '</section>';
 
     var inputFiltro = U.$('#filtro', cont);
     inputFiltro.value = filtro;
     U.$('#inactivos', cont).checked = mostrarInactivos;
+
+    var listaVisible = [];
+    function pintarBarra() {
+      var n = Object.keys(seleccion).length;
+      U.$('#barra-sel', cont).innerHTML = n
+        ? '<span>' + n + ' producto(s) seleccionados</span>' +
+          '<button type="button" class="boton boton-secundario boton-peligro" id="btn-eliminar-sel">' + U.icono('borrar') + ' Eliminar seleccionados</button>' +
+          '<button type="button" class="boton boton-texto" id="btn-quitar-sel">Quitar selección</button>'
+        : '';
+      var todos = U.$('#sel-todos', cont);
+      todos.checked = listaVisible.length > 0 && listaVisible.every(function (p) { return seleccion[p.id]; });
+      var bE = U.$('#btn-eliminar-sel', cont);
+      if (bE) bE.addEventListener('click', function () { eliminar(Object.keys(seleccion).map(Number)); });
+      var bQ = U.$('#btn-quitar-sel', cont);
+      if (bQ) bQ.addEventListener('click', function () { seleccion = {}; pintar(); });
+    }
+
+    function eliminar(ids) {
+      var usados = ids.filter(function (id) { return POS.Productos.enUso(id); }).length;
+      var nombre = ids.length === 1 ? '"' + POS.Productos.obtener(ids[0]).nombre + '"' : ids.length + ' productos';
+      U.confirmar('¿Eliminar ' + nombre + '? Esta acción no se puede deshacer.' +
+        (usados ? ' ' + (ids.length === 1 ? 'Este producto tiene' : usados + ' de ellos tienen') + ' ventas o compras registradas: no se borran, se desactivan para conservar el historial.' : ''), function () {
+        try {
+          var r = POS.Productos.eliminar(ids);
+          ids.forEach(function (id) { delete seleccion[id]; });
+          U.aviso((r.eliminados ? r.eliminados + ' producto(s) eliminados. ' : '') + (r.desactivados.length ? r.desactivados.length + ' desactivado(s) por tener historial.' : ''), 'ok', 6000);
+          pintar();
+        } catch (err) { U.error(err); }
+      }, 'Eliminar');
+    }
 
     function pintar() {
       var t = filtro.trim().toLowerCase();
@@ -39,26 +89,44 @@
           p.codigo_interno.indexOf(t) !== -1;
       });
       var tbody = U.$('#filas', cont);
+      listaVisible = lista;
       if (!lista.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="tenue vacio">No hay productos.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="tenue vacio">No hay productos.</td></tr>';
+        pintarBarra();
         return;
       }
       tbody.innerHTML = lista.map(function (p) {
         return '<tr' + (!p.activo ? ' class="fila-anulada"' : '') + '>' +
+          '<td><input type="checkbox" data-sel="' + p.id + '"' + (seleccion[p.id] ? ' checked' : '') + ' aria-label="Seleccionar"></td>' +
           '<td>' + U.esc(p.codigo_barras || p.codigo_interno) + (p.codigo_barras ? '<br><small class="tenue">' + U.esc(p.codigo_interno) + '</small>' : '') + '</td>' +
           '<td>' + U.esc(p.nombre) + (!p.activo ? ' <span class="etiqueta etiqueta-alerta">INACTIVO</span>' : '') + '</td>' +
           '<td>' + U.esc(p.categoria_nombre || '—') + '</td>' +
+          '<td class="num">' + (p.costo ? U.dinero(p.costo) : '<span class="tenue">—</span>') + '</td>' +
           '<td class="num">' + U.dinero(p.precio_venta) + '</td>' +
+          '<td class="num">' + celdaGanancia(p) + '</td>' +
           '<td class="num ' + (POS.Productos.stockBajo(p) ? 'alerta' : '') + '">' + p.stock + '</td>' +
           '<td class="num">' + p.stock_minimo + '</td>' +
           '<td class="acciones">' +
           '<button class="boton-icono" data-editar="' + p.id + '" title="Editar" aria-label="Editar">' + U.icono('editar') + '</button>' +
           (p.activo
-            ? '<button class="boton-icono" data-desactivar="' + p.id + '" title="Desactivar" aria-label="Desactivar">' + U.icono('borrar') + '</button>'
+            ? '<button class="boton boton-texto" data-desactivar="' + p.id + '" title="Ocultar de ventas sin borrarlo">Desactivar</button>'
             : '<button class="boton boton-texto" data-activar="' + p.id + '">Activar</button>') +
+          '<button class="boton-icono boton-peligro" data-eliminar="' + p.id + '" title="Eliminar" aria-label="Eliminar">' + U.icono('borrar') + '</button>' +
           '</td></tr>';
       }).join('');
+      pintarBarra();
     }
+
+    U.$('#sel-todos', cont).addEventListener('change', function (e) {
+      listaVisible.forEach(function (p) { if (e.target.checked) seleccion[p.id] = true; else delete seleccion[p.id]; });
+      pintar();
+    });
+    U.$('#filas', cont).addEventListener('change', function (e) {
+      var id = e.target.getAttribute('data-sel');
+      if (!id) return;
+      if (e.target.checked) seleccion[id] = true; else delete seleccion[id];
+      pintarBarra();
+    });
 
     inputFiltro.addEventListener('input', function () {
       filtro = inputFiltro.value;
@@ -74,7 +142,9 @@
     U.$('#filas', cont).addEventListener('click', function (e) {
       var btn = e.target.closest ? e.target.closest('button') : null;
       if (!btn) return;
-      if (btn.hasAttribute('data-editar')) {
+      if (btn.hasAttribute('data-eliminar')) {
+        eliminar([Number(btn.getAttribute('data-eliminar'))]);
+      } else if (btn.hasAttribute('data-editar')) {
         formulario(POS.Productos.obtener(btn.getAttribute('data-editar')), pintar);
       } else if (btn.hasAttribute('data-desactivar')) {
         var p = POS.Productos.obtener(btn.getAttribute('data-desactivar'));
@@ -114,15 +184,31 @@
         '<label class="campo"><span>Descripción</span><textarea name="descripcion" rows="2">' + U.esc(p.descripcion || '') + '</textarea></label>' +
         '<label class="campo"><span>Categoría</span><select name="categoriaId">' + opcionesCategorias(p.categoria_id) + '</select></label>' +
         '<div class="fila-doble">' +
+        '<label class="campo"><span>Precio de compra</span><input name="precioCompra" type="number" min="0" step="any" value="' + (p.costo ? p.costo : '') + '"></label>' +
         '<label class="campo"><span>Precio de venta</span><input name="precioVenta" type="number" min="0" step="any" value="' + (p.precio_venta !== undefined ? p.precio_venta : '') + '"></label>' +
-        '<label class="campo"><span>Stock mínimo</span><input name="stockMinimo" type="number" min="0" step="1" value="' + (p.stock_minimo !== undefined ? p.stock_minimo : 0) + '"></label>' +
         '</div>' +
+        '<p class="ganancia-form" id="ganancia-form"></p>' +
+        '<label class="campo"><span>Stock mínimo</span><input name="stockMinimo" type="number" min="0" step="1" value="' + (p.stock_minimo !== undefined ? p.stock_minimo : 0) + '"></label>' +
         (!edicion && inicial.sinStock
           ? '<p class="tenue">El stock se suma al registrar la compra.</p>'
           : !edicion
           ? '<label class="campo"><span>Stock inicial</span><input name="stock" type="number" min="0" step="1" value="0"></label>'
           : '<p class="tenue">Stock actual: ' + p.stock + ' (modifícalo desde Inventario).</p>') +
         '</form>',
+      alAbrir: function (raiz) {
+        var fc = U.$('[name=precioCompra]', raiz), fv = U.$('[name=precioVenta]', raiz), out = U.$('#ganancia-form', raiz);
+        function calcular() {
+          var g = ganancia(fc.value, fv.value);
+          out.className = 'ganancia-form' + (g && g.valor <= 0 ? ' alerta' : '');
+          out.innerHTML = g
+            ? 'Ganancia por unidad: <strong>' + U.dinero(g.valor) + '</strong> · ' + g.margen + '% sobre la venta · ' + g.sobreCosto + '% sobre el costo' +
+              (g.valor <= 0 ? ' — <strong>se vende por debajo del costo</strong>' : '')
+            : '<span class="tenue">Escriba el precio de compra y el de venta para ver la ganancia.</span>';
+        }
+        fc.addEventListener('input', calcular);
+        fv.addEventListener('input', calcular);
+        calcular();
+      },
       botones: [
         { texto: 'Cancelar', clase: 'boton-secundario' },
         {
