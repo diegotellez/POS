@@ -21,7 +21,7 @@ const OUT = process.argv[2];
   await ir('Turno de caja'); await page.fill('[name=base]', '100000'); await foto('u06-abrir-turno');
   await page.click('#form-abrir button'); await page.waitForSelector('#busqueda');
   // categorías en ventas
-  await page.click('.chip >> text=Analgésicos y'); await page.click('.chip >> text=Antigripales'); await page.fill('#busqueda', 'dolex'); await foto('u02b-categorias'); await page.fill('#busqueda', ''); await page.click('.chip >> text=Todas');
+  await page.click('.chip >> text=Analgésicos y'); await page.fill('#busqueda', 'dolex'); await foto('u02b-categorias'); await page.fill('#busqueda', ''); await page.click('.chip >> text=Todas');
   // ventas: varias
   const vender = async (codigos, pagos) => {
     for (const c of codigos) { await page.fill('#busqueda', c); await page.press('#busqueda', 'Enter'); }

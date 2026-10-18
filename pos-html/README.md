@@ -15,6 +15,7 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
   el Turno 2 (cada usuario nuevo toma el siguiente; se cambia en Usuarios). Se ve
   así en todas las pantallas, reportes y en el WhatsApp del cierre.
 - ZIP de facturas: descompresor propio de respaldo y solo se abre el XML.
+- Ventas: se elige **una sola categoría** a la vez (al tocar otra, la anterior se desmarca).
 
 ## Novedades de la versión 2.6
 
@@ -214,9 +215,8 @@ Son las mismas de la versión Angular + Express:
   gastos; imprimible y descargable en Excel (hojas Categoría, Método, Día a día
   y Detalle).
 - **Categorías al vender**: arriba de Ventas están todas las categorías en orden
-  alfabético, a la vista sin scroll; debajo, la barra de búsqueda. Se pueden
-  elegir una o varias categorías (cada una incluye sus subcategorías) y la
-  búsqueda se hace solo en ellas; sin ninguna elegida, busca en todas. Encima de
+  alfabético, a la vista sin scroll; debajo, la barra de búsqueda. Se elige una
+  categoría (incluye sus subcategorías) y la búsqueda se hace solo en ella; sin ninguna elegida, busca en todas. Encima de
   los resultados se indica dónde se está buscando. El lector de código de barras
   encuentra el producto sin importar el filtro.
 - **Reportes por turno**: totales, desglose por método de pago, por usuario y

@@ -92,7 +92,7 @@
     // Se listan todas las categorías, también las que aún no tienen productos.
     var chipsCat = categorias.slice()
       .sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }); });
-    categoriasVenta = categoriasVenta.filter(function (id) { return porId[id]; });
+    categoriasVenta = categoriasVenta.filter(function (id) { return porId[id]; }).slice(0, 1);
     var btnTodas = U.$('#btn-todas-cat', cont);
     var resumen = U.$('#resumen-busqueda', cont);
 
@@ -107,14 +107,15 @@
         }).join('');
       btnTodas.hidden = !categoriasVenta.length;
     }
-    // Cada clic marca o desmarca una categoría; se pueden combinar varias. "Todas" quita el filtro.
+    // Una sola categoría a la vez: elegir otra reemplaza la anterior; tocar la elegida
+    // (o "Todas") quita el filtro.
     chips.addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('[data-cat]') : null;
       if (!b) return;
       var id = Number(b.getAttribute('data-cat'));
       if (!id) categoriasVenta = [];
-      else if (elegida(id)) categoriasVenta.splice(categoriasVenta.indexOf(id), 1);
-      else categoriasVenta.push(id);
+      else if (elegida(id)) categoriasVenta = [];
+      else categoriasVenta = [id];
       pintarChips();
       pintarResultados();
       input.focus();
@@ -151,10 +152,10 @@
       var tope = hayCat ? 200 : 60;
       var todos;
       if (termino) {
-        // La búsqueda se hace solo en las categorías elegidas; sin ninguna, en todas.
+        // La búsqueda se hace solo en la categoría elegida; sin ninguna, en todas.
         todos = POS.Productos.buscar(termino).filter(enCategoria);
       } else {
-        // Sin texto: con categorías elegidas se ve todo lo que tienen (primero lo que
+        // Sin texto: con una categoría elegida se ve todo lo que tiene (primero lo que
         // tiene precio); sin categoría, los productos con precio para vender con clics.
         todos = POS.Productos.listar({ soloActivos: true })
           .filter(function (p) { return enCategoria(p) && (hayCat || p.precio_venta > 0); })
@@ -164,7 +165,7 @@
       pintarResumen(termino, listaActual.length, todos.length > tope);
       if (!listaActual.length) {
         if (termino && hayCat && POS.Productos.buscar(termino).length) {
-          resultados.innerHTML = '<div class="vacio"><p class="tenue">No hay "' + U.esc(termino) + '" en las categorías elegidas.</p>' +
+          resultados.innerHTML = '<div class="vacio"><p class="tenue">No hay "' + U.esc(termino) + '" en ' + U.esc(nombresElegidas()[0] || 'la categoría') + '.</p>' +
             '<button type="button" class="boton boton-secundario" id="btn-buscar-todas">Buscar en todas las categorías</button></div>';
           U.$('#btn-buscar-todas', resultados).addEventListener('click', function () {
             categoriasVenta = [];

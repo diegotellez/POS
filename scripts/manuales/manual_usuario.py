@@ -111,13 +111,13 @@ h += [tabla(['Forma', 'Cómo'], [
 h += [p('Si agrega el mismo producto otra vez, se suma una unidad a la línea existente. Cuando el buscador está vacío, la '
         'lista muestra los productos que ya tienen precio para vender con clics.')]
 h += [p('Arriba de la pantalla están <b>todas las categorías</b>, en orden alfabético y a la vista (sin desplazarse). '
-        'Toque una o varias para buscar solo en ellas; una categoría incluye sus subcategorías (por ejemplo, '
-        '<b>Medicamentos</b> incluye Analgésicos, Antigripales, etc.). Tocar de nuevo una categoría la desmarca, y '
+        'Toque una para buscar solo en ella (al tocar otra, la anterior se desmarca); una categoría incluye sus subcategorías (por ejemplo, '
+        '<b>Medicamentos</b> incluye Analgésicos, Antigripales, etc.). Tocar de nuevo la categoría elegida la desmarca, y '
         '<b>Todas</b> o <b>Quitar filtro</b> vuelven a buscar en todo el catálogo. Debajo está la barra de búsqueda, y '
         'encima de los resultados se lee dónde se está buscando, por ejemplo: <i>4 productos para "dolex" en Analgésicos y '
         'antiinflamatorios</i>. Si no hay resultados en las categorías elegidas, el botón <b>Buscar en todas las categorías</b> '
         'repite la búsqueda en todo el catálogo. El lector de código de barras siempre encuentra el producto, sin importar la categoría.')]
-h += [figura(C + '/u02b-categorias.jpg', 'Figura 5. Búsqueda en dos categorías al vender.', alto_max=12 * cm, recorte=(0.18, 0.07, 0.67, 0.95))]
+h += [figura(C + '/u02b-categorias.jpg', 'Figura 5. Búsqueda dentro de una categoría al vender.', alto_max=12 * cm, recorte=(0.18, 0.07, 0.67, 0.95))]
 h += [h2('4.2 Modificar el ticket')]
 h += [viñetas([
     '<b>Cantidad</b>: use los botones <b>–</b> y <b>+</b>, o escriba la cantidad en la casilla del producto.',
