@@ -609,7 +609,11 @@
       return archivo.text().then(function (t) { return [{ origen: archivo.name, texto: t }]; });
     }
     function extraerZip(buf, origen) {
-      return LectorZip.leer(buf).then(function (entradas) {
+      return LectorZip.leer(buf, function (n) { return /\.(xml|zip)$/i.test(n); }).then(function (entradas) {
+        var errores = entradas.filter(function (e) { return e.error && /\.(xml|zip)$/i.test(e.nombre); });
+        if (errores.length && !entradas.some(function (e) { return e.datos && /\.(xml|zip)$/i.test(e.nombre); })) {
+          return [{ origen: origen, error: errores.map(function (e) { return e.nombre + ': ' + e.error; }).join('; ') }];
+        }
         return Promise.all(entradas.map(function (e) {
           if (!e.datos) return [];
           if (/\.zip$/i.test(e.nombre)) return extraerZip(e.datos.slice().buffer, origen);
