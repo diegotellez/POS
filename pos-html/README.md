@@ -5,6 +5,13 @@
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
 
+## En preparación (próxima versión)
+
+- **Turnos por usuario**: cada usuario abre su propio turno con su base, vende,
+  registra gastos y cambios en él y lo cierra con su arqueo (por ejemplo, el
+  administrador en el turno #1 y el cajero en el #2 al mismo tiempo). El
+  administrador ve los turnos abiertos de los demás y puede cerrarlos o reabrirlos.
+
 ## Novedades de la versión 2.6
 
 - **Compras desde el ZIP de la factura electrónica**: subir o arrastrar el ZIP tal

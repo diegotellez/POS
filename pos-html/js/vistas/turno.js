@@ -54,6 +54,21 @@
       }).join('') + '</tbody></table></div></div>';
   }
 
+  // Administrador: los turnos abiertos de los demás usuarios.
+  function panelTurnosAbiertos(usuario, propio) {
+    if (usuario.rol !== 'ADMINISTRADOR') return '';
+    var otros = POS.Turnos.abiertos().filter(function (t) { return !propio || t.id !== propio.id; });
+    if (!otros.length) return '';
+    return '<div class="turnos-otros"><h3>Otros turnos abiertos</h3><div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
+      '<th>Turno</th><th>Usuario</th><th>Apertura</th><th class="num">Base</th><th class="num">Vendido</th><th class="num">Efectivo esperado</th><th></th></tr></thead><tbody>' +
+      otros.map(function (t) {
+        return '<tr><td>#' + t.id + '</td><td>' + U.esc(t.usuario_apertura) + '</td><td>' + U.esc(t.fecha_hora_apertura) + '</td>' +
+          '<td class="num">' + U.dinero(t.base_inicial_efectivo) + '</td><td class="num">' + U.dinero(t.vendido) + ' <small class="tenue">(' + t.cantidadVentas + ')</small></td>' +
+          '<td class="num">' + U.dinero(t.efectivoEsperado) + '</td>' +
+          '<td class="acciones"><button type="button" class="boton boton-texto" data-cerrar-otro="' + t.id + '">Cerrar</button></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+  }
+
   function render(cont, usuario) {
     if (ultimoCierre && ultimoCierreUsuarioId !== usuario.id) ultimoCierre = null;
     var turno = POS.Turnos.actual();
@@ -68,7 +83,7 @@
       var totalGastos = gastosActivos.reduce(function (a, g) { return a + g.monto; }, 0);
       var esAdmin = usuario.rol === 'ADMINISTRADOR';
       html +=
-        '<h2>' + U.icono('abierto', 'ok') + ' Turno abierto #' + turno.id + '</h2>' +
+        '<h2>' + U.icono('abierto', 'ok') + ' Tu turno #' + turno.id + ' <small class="tenue">· ' + U.esc(usuario.nombreUsuario) + '</small></h2>' +
         '<div class="metricas">' +
         '<div class="metrica"><span>Apertura</span><strong>' + U.esc(turno.fecha_hora_apertura) + '</strong></div>' +
         '<div class="metrica"><span>Base inicial</span><strong>' + U.dinero(turno.base_inicial_efectivo) + '</strong></div>' +
@@ -114,23 +129,28 @@
     } else {
       html +=
         '<h2>' + U.icono('candado') + ' Abrir turno de caja</h2>' +
-        '<p class="tenue">No hay un turno abierto. Registra la base inicial de efectivo (el dinero con el que empieza la caja). ' +
-        'Si el administrador no está, cualquier cajero puede abrir el turno; la base se puede corregir después.</p>' +
+        '<p class="tenue">No tienes un turno abierto, <b>' + U.esc(usuario.nombreUsuario) + '</b>. Cada usuario trabaja en su propio turno: registra tu base inicial de efectivo ' +
+        '(el dinero con el que empiezas). Tus ventas, cambios y gastos quedan en tu turno y al final lo cierras con tu arqueo. La base se puede corregir después.</p>' +
         '<form id="form-abrir" class="form-linea">' +
         '<label class="campo"><span>Base inicial de efectivo</span><input name="base" type="number" min="0" step="any" value="0" required></label>' +
         '<button class="boton boton-primario" type="submit">' + U.icono('abierto') + ' Abrir turno</button>' +
         '</form>';
-      var cerrado = usuario.rol === 'ADMINISTRADOR' ? POS.Turnos.ultimoCerrado() : null;
-      if (cerrado) {
-        html +=
-          '<div class="bloque-reabrir">' +
-          '<h3>¿Cerraste la caja por error?</h3>' +
-          '<p class="tenue">Puedes reabrir el turno #' + cerrado.id + ' (cerrado el ' + U.esc(cerrado.fecha_hora_cierre) + '). ' +
-          'Vuelve a quedar abierto con todas sus ventas y se borra el arqueo; queda registrado en Auditoría.</p>' +
-          '<button type="button" class="boton boton-secundario" id="btn-reabrir">' + U.icono('historial') + ' Reabrir turno #' + cerrado.id + '</button>' +
-          '</div>';
+    }
+    // Reabrir (administrador): el último turno de cada usuario, si lo cerró y no ha abierto otro.
+    if (usuario.rol === 'ADMINISTRADOR') {
+      var abiertosIds = POS.Turnos.abiertos().map(function (t) { return t.usuario_apertura_id; });
+      var cerrados = POS.Turnos.ultimosCerrados().filter(function (t) { return abiertosIds.indexOf(t.usuario_apertura_id) === -1; });
+      if (cerrados.length) {
+        html += '<div class="bloque-reabrir"><h3>¿Se cerró un turno por error?</h3>' +
+          '<p class="tenue">Puedes reabrir el último turno cerrado de cada usuario. Vuelve a quedar abierto con todas sus ventas y se borra el arqueo; queda registrado en Auditoría.</p>' +
+          cerrados.map(function (c) {
+            return '<p><button type="button" class="boton boton-secundario" data-reabrir="' + c.id + '">' + U.icono('historial') + ' Reabrir turno #' + c.id + ' de ' + U.esc(c.usuario_apertura) + '</button> ' +
+              '<small class="tenue">cerrado el ' + U.esc(c.fecha_hora_cierre) + '</small></p>';
+          }).join('') + '</div>';
       }
     }
+
+    html += panelTurnosAbiertos(usuario, turno);
 
     if (ultimoCierre) {
       var c = ultimoCierre;
@@ -177,18 +197,36 @@
       fAbrir.base.select();
     }
 
-    var btnReabrir = U.$('#btn-reabrir', cont);
-    if (btnReabrir) {
-      btnReabrir.addEventListener('click', function () {
-        var t = POS.Turnos.ultimoCerrado();
-        U.confirmar('¿Reabrir el turno #' + t.id + '? Se deshace el cierre y su arqueo, y podrás seguir vendiendo en ese turno.', function () {
-          POS.Turnos.reabrir(t.id);
+    U.$$('[data-reabrir]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = Number(b.getAttribute('data-reabrir'));
+        U.confirmar('¿Reabrir el turno #' + id + '? Se deshace el cierre y su arqueo, y su dueño podrá seguir vendiendo en ese turno.', function () {
+          POS.Turnos.reabrir(id);
           ultimoCierre = null;
-          U.aviso('Turno #' + t.id + ' reabierto', 'ok');
+          U.aviso('Turno #' + id + ' reabierto', 'ok');
           render(cont, usuario);
         }, 'Reabrir turno');
       });
-    }
+    });
+
+    // Administrador: cerrar el turno de otro usuario (por ejemplo, si se fue sin cerrar).
+    U.$$('[data-cerrar-otro]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = Number(b.getAttribute('data-cerrar-otro'));
+        var t = POS.Turnos.abiertos().filter(function (x) { return x.id === id; })[0];
+        U.modal({
+          titulo: 'Cerrar el turno #' + id + ' de ' + t.usuario_apertura,
+          cuerpo: '<p class="tenue">Efectivo esperado: <strong>' + U.dinero(t.efectivoEsperado) + '</strong>. Cuente el efectivo de ese turno e ingréselo.</p>' +
+            '<label class="campo"><span>Efectivo contado</span><input name="efectivo" type="number" min="0" step="any"></label>',
+          botones: [{ texto: 'Cancelar', clase: 'boton-secundario' }, { texto: 'Cerrar turno', clase: 'boton-primario', accion: function (cerrar, raiz) {
+            var r = POS.Turnos.cerrar(id, U.$('[name=efectivo]', raiz).value);
+            cerrar();
+            U.aviso('Turno #' + id + ' cerrado. Diferencia: ' + U.dinero(r.diferencia_arqueo), 'ok', 6000);
+            render(cont, usuario);
+          } }]
+        });
+      });
+    });
 
     var fBase = U.$('#form-base', cont);
     if (fBase) {

@@ -47,7 +47,7 @@
       '<h3>Reporte consolidado de cierre de turno</h3>' +
       '<label class="campo campo-turno"><span>Turno</span><select id="sel-turno">' +
       turnos.map(function (t) {
-        return '<option value="' + t.id + '"' + (t.id === seleccionado ? ' selected' : '') + '>Turno #' + t.id + ' — ' +
+        return '<option value="' + t.id + '"' + (t.id === seleccionado ? ' selected' : '') + '>Turno #' + t.id + ' · ' + U.esc(t.usuario_apertura) + ' — ' +
           U.esc(t.fecha_hora_apertura) + ' (' + t.estado + ')</option>';
       }).join('') +
       '</select></label>' +

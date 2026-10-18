@@ -7,16 +7,18 @@
   function render(cont, usuario) {
     var turnos = POS.Turnos.listar();
     var actual = POS.Turnos.actual();
+    // Sin turno propio abierto, "Mi turno actual" estaría vacío: se muestran todos.
+    if (filtros.turnoId === 'actual' && !actual) filtros.turnoId = '';
 
     cont.innerHTML =
       '<section class="tarjeta">' +
       '<h2>Historial de ventas</h2>' +
       '<div class="filtros">' +
       '<label class="campo"><span>Turno</span><select id="f-turno">' +
-      '<option value="actual">Turno actual' + (actual ? ' (#' + actual.id + ')' : ' (ninguno)') + '</option>' +
+      '<option value="actual">Mi turno actual' + (actual ? ' (#' + actual.id + ')' : ' (ninguno)') + '</option>' +
       '<option value="">Todos</option>' +
       turnos.map(function (t) {
-        return '<option value="' + t.id + '">Turno #' + t.id + ' — ' + U.esc(t.fecha_hora_apertura) + ' (' + t.estado + ')</option>';
+        return '<option value="' + t.id + '">Turno #' + t.id + ' · ' + U.esc(t.usuario_apertura) + ' — ' + U.esc(t.fecha_hora_apertura) + ' (' + t.estado + ')</option>';
       }).join('') +
       '</select></label>' +
       '<label class="campo"><span>Estado</span><select id="f-estado"><option value="">Todos</option><option>COMPLETADA</option><option>ANULADA</option></select></label>' +

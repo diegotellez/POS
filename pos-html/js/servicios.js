@@ -649,21 +649,47 @@
     return U.redondear(total);
   }
 
+  // Cada usuario tiene su propio turno: abre con su base, vende en él y lo cierra con su arqueo.
+  function turnoAbiertoDe(db, usuarioId) {
+    for (var i = db.turnos.length - 1; i >= 0; i--) {
+      if (db.turnos[i].estado === 'ABIERTO' && db.turnos[i].usuario_apertura_id === usuarioId) return db.turnos[i];
+    }
+    return null;
+  }
+  // El turno lo maneja su dueño; el administrador puede cerrar o corregir el de cualquiera.
+  function puedeManejarTurno(db, t, usuarioId) {
+    var u = DB.buscarPorId(db, 'usuarios', usuarioId);
+    return t.usuario_apertura_id === usuarioId || (u && u.rol === 'ADMINISTRADOR');
+  }
+
   var Turnos = {
+    // Turno abierto del usuario que inició sesión.
     actual: function () {
+      var u = Auth.usuario();
+      if (!u) return null;
+      var t = turnoAbiertoDe(DB.datos(), u.id);
+      return t ? copia(t) : null;
+    },
+
+    // Todos los turnos abiertos (uno por usuario), con lo vendido y el efectivo esperado.
+    abiertos: function () {
       var db = DB.datos();
-      for (var i = db.turnos.length - 1; i >= 0; i--) {
-        if (db.turnos[i].estado === 'ABIERTO') return copia(db.turnos[i]);
-      }
-      return null;
+      return db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; }).map(function (t) {
+        var r = copia(t);
+        r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id);
+        var ventas = db.ventas.filter(function (v) { return v.turno_caja_id === t.id && v.estado === 'COMPLETADA'; });
+        r.vendido = U.redondear(ventas.reduce(function (a, v) { return a + v.total; }, 0));
+        r.cantidadVentas = ventas.filter(function (v) { return v.tipo !== 'CAMBIO'; }).length;
+        r.efectivoEsperado = efectivoEsperadoTurno(db, t);
+        return r;
+      });
     },
 
     abrir: function (baseInicial) {
       var usuarioId = usuarioActualId();
       return DB.tx(function (db) {
-        if (db.turnos.some(function (t) { return t.estado === 'ABIERTO'; })) {
-          falla('Ya hay un turno de caja abierto. Ciérralo antes de abrir uno nuevo.');
-        }
+        var propio = turnoAbiertoDe(db, usuarioId);
+        if (propio) falla('Ya tienes abierto el turno #' + propio.id + '. Ciérralo antes de abrir uno nuevo.');
         var t = DB.insertar(db, 'turnos', {
           usuario_apertura_id: usuarioId,
           fecha_hora_apertura: U.ahora(),
@@ -688,6 +714,7 @@
         var t = DB.buscarPorId(db, 'turnos', id);
         if (!t) falla('Turno no encontrado');
         if (t.estado !== 'ABIERTO') falla('El turno ya está cerrado');
+        if (!puedeManejarTurno(db, t, usuarioId)) falla('Solo puedes cerrar tu propio turno');
         var esperado = efectivoEsperadoTurno(db, t);
         t.usuario_cierre_id = usuarioId;
         t.fecha_hora_cierre = U.ahora();
@@ -702,7 +729,8 @@
     },
 
     listar: function () {
-      return copia(DB.datos().turnos).reverse();
+      var db = DB.datos();
+      return db.turnos.map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); return r; }).reverse();
     },
 
     // Corrige la base del turno abierto (p. ej. el cajero la abrió sin el admin y contó mal).
@@ -713,6 +741,7 @@
         var t = DB.buscarPorId(db, 'turnos', id);
         if (!t) falla('Turno no encontrado');
         if (t.estado !== 'ABIERTO') falla('Solo se puede ajustar la base de un turno abierto');
+        if (!puedeManejarTurno(db, t, usuarioId)) falla('Solo puedes corregir la base de tu propio turno');
         var anterior = t.base_inicial_efectivo;
         t.base_inicial_efectivo = U.redondear(nuevaBase);
         auditar(db, usuarioId, 'AjusteBaseTurno', 'Turno #' + t.id + ': base ' + anterior + ' -> ' + t.base_inicial_efectivo +
@@ -721,11 +750,13 @@
       });
     },
 
-    // Último turno si está cerrado y no hay otro abierto después: es el único que se puede reabrir.
-    ultimoCerrado: function () {
-      var turnos = DB.datos().turnos;
-      var ultimo = turnos[turnos.length - 1];
-      return ultimo && ultimo.estado === 'CERRADO' ? copia(ultimo) : null;
+    // Por usuario: su último turno, si está cerrado y no abrió otro después. Es el que se puede reabrir.
+    ultimosCerrados: function () {
+      var db = DB.datos();
+      var ultimo = {};
+      db.turnos.forEach(function (t) { ultimo[t.usuario_apertura_id] = t; });
+      return Object.keys(ultimo).map(function (k) { return ultimo[k]; }).filter(function (t) { return t.estado === 'CERRADO'; })
+        .map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); return r; });
     },
 
     // Deshace un cierre hecho por error: el turno vuelve a quedar abierto con sus
@@ -737,9 +768,8 @@
         var t = DB.buscarPorId(db, 'turnos', id);
         if (!t) falla('Turno no encontrado');
         if (t.estado !== 'CERRADO') falla('El turno no está cerrado');
-        if (db.turnos[db.turnos.length - 1].id !== t.id) {
-          falla('Solo se puede reabrir el último turno. Después de este ya se abrió otro.');
-        }
+        var posterior = db.turnos.some(function (x) { return x.usuario_apertura_id === t.usuario_apertura_id && x.id > t.id; });
+        if (posterior) falla('Solo se puede reabrir el último turno de ' + nombreUsuario(db, t.usuario_apertura_id) + '. Después de este ya abrió otro.');
         auditar(db, usuarioId, 'ReaperturaTurno', 'Turno #' + t.id + ' reabierto. Cierre anulado: ' + t.fecha_hora_cierre +
           ' por ' + nombreUsuario(db, t.usuario_cierre_id) + ', contado ' + t.efectivo_contado + ', diferencia ' + t.diferencia_arqueo);
         t.estado = 'ABIERTO';
@@ -810,6 +840,7 @@
       var idVenta = DB.tx(function (db) {
         var turno = DB.buscarPorId(db, 'turnos', datos.turnoCajaId);
         if (!turno || turno.estado !== 'ABIERTO') falla('El turno de caja indicado no está abierto');
+        if (turno.usuario_apertura_id !== usuarioId) falla('El turno #' + turno.id + ' es de ' + nombreUsuario(db, turno.usuario_apertura_id) + '. Abre tu propio turno para vender.');
 
         var lineas = items.map(function (item) {
           var p = DB.buscarPorId(db, 'productos', item.productoId);
@@ -932,8 +963,8 @@
         if (!origen) falla('Venta no encontrada');
         if (origen.tipo === 'CAMBIO') origen = DB.buscarPorId(db, 'ventas', origen.venta_origen_id);
         if (origen.estado !== 'COMPLETADA') falla('Solo se pueden cambiar productos de una venta completada');
-        var turno = db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; })[0];
-        if (!turno) falla('Abre un turno de caja para registrar el cambio');
+        var turno = turnoAbiertoDe(db, usuario.id);
+        if (!turno) falla('Abre tu turno de caja para registrar el cambio');
 
         var actual = {};
         composicionDe(db, origen).forEach(function (l) { actual[l.productoId] = l; });
@@ -1334,8 +1365,8 @@
       if (METODOS_PAGO.indexOf(metodo) === -1) falla('Método de pago inválido');
       var claseSueldo = null, semana = null, empleado = null;
       return DB.tx(function (db) {
-        var turno = db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; })[0];
-        if (!turno) falla('Abre un turno de caja para registrar gastos');
+        var turno = turnoAbiertoDe(db, usuarioId);
+        if (!turno) falla('Abre tu turno de caja para registrar gastos');
         if (esSueldo) {
           empleado = DB.buscarPorId(db, 'empleados', datos.empleadoId);
           if (!empleado) falla('Elige el empleado al que se le paga');

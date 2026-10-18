@@ -51,15 +51,19 @@ h += [caja('Consejo', 'Cierre la sesión cuando entregue la caja a otra persona,
 
 # ------------------------------------------------------------------ 3
 h += [h1('3. Turno de caja: apertura, base y gastos')]
-h += [p('El turno de caja define el "día de trabajo": todas las ventas quedan asociadas al turno abierto. <b>No se puede vender '
-        'sin un turno abierto.</b> Solo puede haber un turno abierto a la vez.')]
+h += [p('El turno de caja es <b>de cada usuario</b>: cada uno (administrador o cajero) abre su propio turno con su base, vende en él, '
+        'registra allí sus gastos y cambios, y lo cierra con su propio arqueo. Por ejemplo, el administrador trabaja en el turno #1 y el '
+        'cajero en el turno #2 al mismo tiempo. <b>No se puede vender sin tener su turno abierto.</b>')]
 h += [pasos([
     'En el menú, entre a <b>Turno de caja</b>.',
     'Escriba la <b>base inicial de efectivo</b>: el dinero con el que empieza la caja para dar cambio (si no hay, deje 0). '
-    'Si el administrador no está, <b>cualquier cajero puede abrir el turno</b> y poner la base.',
+    'Cada usuario abre el suyo; el cajero no necesita al administrador para abrirlo.',
     'Pulse <b>Abrir turno</b>. El sistema lo lleva a Ventas.',
 ])]
 h += [figura(C + '/u06-abrir-turno.jpg', 'Figura 2. Apertura del turno con la base de efectivo.', alto_max=8 * cm, recorte=(0.18, 0.07, 0.72, 0.42))]
+h += [p('El administrador ve en <b>Turno de caja &gt; Otros turnos abiertos</b> los turnos de los demás usuarios (base, lo vendido y el '
+        'efectivo esperado) y puede <b>cerrar</b> el de alguien que se fue sin cerrarlo, contando ese efectivo. También puede reabrir el último '
+        'turno cerrado de cada usuario.')]
 h += [h2('3.1 Corregir la base')]
 h += [p('Si la base quedó mal (se contó mal o se abrió con un valor equivocado), en <b>Turno de caja</b> despliegue '
         '<b>¿La base quedó mal? Corregir la base inicial</b>, escriba el valor correcto y el motivo, y pulse <b>Guardar base</b>. '
@@ -189,7 +193,7 @@ h += [tabla(['Diferencia', 'Qué hace el sistema'], [
     ['Caso excepcional', 'Un <b>administrador</b> puede marcar "devolver el dinero", indicando el método y el <b>motivo</b> (obligatorio). Queda en Auditoría.'],
     ['Sin diferencia', 'Solo se ajusta el inventario.'],
 ], [5, 11])]
-h += [p('El cambio queda registrado en el <b>turno abierto</b> (el del día en que se hace), no en el de la venta original, para que la caja '
+h += [p('El cambio queda registrado en el <b>turno de quien lo hace</b> (el del día en que se hace), no en el de la venta original, para que la caja '
         'cuadre con el dinero real. Lo devuelto vuelve al inventario y lo nuevo sale de él. En el cierre y en el mensaje de WhatsApp '
         'aparecen la cantidad de cambios, el saldo no devuelto y el dinero devuelto, si hubo.')]
 h += [caja('Atención', 'Anular una venta no se puede deshacer. Si se equivocó de producto antes de cobrar, corrija el ticket en '
@@ -387,7 +391,7 @@ h += [tabla(['Tecla', 'Acción'], [
 ], [5, 11])]
 h += [h2('14.2 Preguntas frecuentes')]
 faq = [
-    ('No puedo vender: dice que no hay turno abierto.', 'Abra el turno en Turno de caja (sección 3). Un cajero lo puede abrir aunque no esté el administrador.'),
+    ('No puedo vender: dice que no tengo turno abierto.', 'Cada usuario vende en su propio turno: abra el suyo en Turno de caja (sección 3).'),
     ('Pagué un pedido con plata de la caja.', 'Regístrelo en Turno de caja > Gastos y pedidos pagados (sección 3.2) para que el cierre cuadre.'),
     ('Escaneo un producto y no pasa nada.', 'Verifique que el cursor esté en el buscador. Si aparece "No se encontraron productos", el código no está registrado: el administrador lo puede asignar en Precios o crear el producto.'),
     ('El producto dice "Sin precio".', 'El administrador debe asignarle precio en Precios.'),

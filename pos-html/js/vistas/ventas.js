@@ -47,9 +47,9 @@
       '</label>' +
       (!turno
         ? '<div class="aviso-inline">' + U.icono('alerta', 'alerta') +
-          '<span>No hay un turno de caja abierto.</span>' +
-          '<a class="boton boton-texto" href="#/turno">Abrir turno</a></div>'
-        : '<p class="tenue pequeno">Turno #' + turno.id + ' abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
+          '<span>No tienes un turno de caja abierto. Cada usuario vende en su propio turno.</span>' +
+          '<a class="boton boton-texto" href="#/turno">Abrir mi turno</a></div>'
+        : '<p class="tenue pequeno">Tu turno #' + turno.id + ' · abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
       (esAdmin ? '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-producto">' + U.icono('mas') + ' Agregar producto nuevo</button>' : '') +
       '<p id="resumen-busqueda" class="resumen-busqueda" aria-live="polite"></p>' +
       '<div id="resultados" class="lista-resultados"></div>' +
@@ -329,7 +329,7 @@
       if (!carrito.length) return;
       var t = POS.Turnos.actual();
       if (!t) {
-        U.aviso('No hay un turno de caja abierto. Ábrelo antes de vender.', 'error', 4000);
+        U.aviso('No tienes un turno de caja abierto. Abre tu turno antes de vender.', 'error', 4000);
         return;
       }
       abrirDialogoPago(t, totalCarrito(), function () {
