@@ -49,7 +49,7 @@
         ? '<div class="aviso-inline">' + U.icono('alerta', 'alerta') +
           '<span>No tienes un turno de caja abierto. Cada usuario vende en su propio turno.</span>' +
           '<a class="boton boton-texto" href="#/turno">Abrir mi turno</a></div>'
-        : '<p class="tenue pequeno">Tu turno #' + turno.id + ' · abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
+        : '<p class="tenue pequeno">Tu ' + POS.Turnos.nombre(turno) + ' · abierto desde ' + U.esc(turno.fecha_hora_apertura) + '</p>') +
       (esAdmin ? '<button type="button" class="boton boton-texto enlace-nuevo" id="btn-nuevo-producto">' + U.icono('mas') + ' Agregar producto nuevo</button>' : '') +
       '<p id="resumen-busqueda" class="resumen-busqueda" aria-live="polite"></p>' +
       '<div id="resultados" class="lista-resultados"></div>' +

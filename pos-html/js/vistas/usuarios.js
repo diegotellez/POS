@@ -10,7 +10,7 @@
       (cfg.primerUso
         ? '<div class="aviso-inline">' + U.icono('alerta', 'alerta') + '<span>Aún se usan las contraseñas de ejemplo (admin123 / cajero123). Cámbialas antes de operar.</span></div>'
         : '') +
-      '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Usuario</th><th>Rol</th><th>Activo</th><th></th></tr></thead>' +
+      '<div class="tabla-contenedor"><table class="tabla"><thead><tr><th>Usuario</th><th>Rol</th><th title="Número fijo del turno de caja de este usuario">Turno</th><th>Activo</th><th></th></tr></thead>' +
       '<tbody id="filas"></tbody></table></div>' +
       '<h3>Nuevo usuario</h3>' +
       '<form id="form-usuario" class="form-linea" autocomplete="off">' +
@@ -30,6 +30,7 @@
           '<option value="CAJERO"' + (u.rol === 'CAJERO' ? ' selected' : '') + '>Cajero</option>' +
           '<option value="ADMINISTRADOR"' + (u.rol === 'ADMINISTRADOR' ? ' selected' : '') + '>Administrador</option>' +
           '</select></td>' +
+          '<td><input class="numero-turno" type="number" min="1" max="99" step="1" data-numero-turno="' + u.id + '" value="' + (u.numero_turno || '') + '" aria-label="Número de turno"></td>' +
           '<td><label class="interruptor"><input type="checkbox" data-activo="' + u.id + '"' + (u.activo ? ' checked' : '') + (yo ? ' disabled' : '') + '><span></span></label></td>' +
           '<td class="acciones"><button class="boton boton-texto" data-password="' + u.id + '" data-nombre="' + U.esc(u.nombre_usuario) + '">' +
           U.icono('llave') + ' Cambiar contraseña</button></td>' +
@@ -43,6 +44,7 @@
       try {
         if (el.hasAttribute('data-activo')) POS.Usuarios.actualizar(el.getAttribute('data-activo'), { activo: el.checked });
         else if (el.hasAttribute('data-rol')) POS.Usuarios.actualizar(el.getAttribute('data-rol'), { rol: el.value });
+        else if (el.hasAttribute('data-numero-turno')) POS.Usuarios.actualizar(el.getAttribute('data-numero-turno'), { numeroTurno: el.value });
         U.aviso('Usuario actualizado', 'ok');
       } catch (err) {
         U.error(err);

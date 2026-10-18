@@ -11,6 +11,10 @@ compilar ni instalar nada, y no necesita Node, servidor ni internet.
   registra gastos y cambios en él y lo cierra con su arqueo (por ejemplo, el
   administrador en el turno #1 y el cajero en el #2 al mismo tiempo). El
   administrador ve los turnos abiertos de los demás y puede cerrarlos o reabrirlos.
+- **Número de turno fijo por usuario**: el administrador es el Turno 1 y el cajero
+  el Turno 2 (cada usuario nuevo toma el siguiente; se cambia en Usuarios). Se ve
+  así en todas las pantallas, reportes y en el WhatsApp del cierre.
+- ZIP de facturas: descompresor propio de respaldo y solo se abre el XML.
 
 ## Novedades de la versión 2.6
 

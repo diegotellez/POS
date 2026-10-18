@@ -296,9 +296,23 @@
     return true;
   }
 
+  // Cada usuario tiene un número de turno fijo (Turno 1, Turno 2…), como el número de una caja.
+  function asignarNumerosTurno(db) {
+    var usados = {};
+    db.usuarios.forEach(function (u) { if (u.numero_turno) usados[u.numero_turno] = true; });
+    db.usuarios.slice().sort(function (a, b) { return a.id - b.id; }).forEach(function (u) {
+      if (u.numero_turno) return;
+      var n = 1;
+      while (usados[n]) n++;
+      u.numero_turno = n;
+      usados[n] = true;
+    });
+  }
+
   function sembrar() {
     if (DB.existe()) {
       var d = DB.datos();
+      if (d.usuarios.some(function (u) { return !u.numero_turno; })) DB.tx(asignarNumerosTurno);
       if (d.config.catalogoDemo !== VERSION_CATALOGO) {
         DB.tx(function (db) {
           migrarCatalogoDemo(db);
@@ -309,8 +323,8 @@
       return false;
     }
     DB.tx(function (db) {
-      DB.insertar(db, 'usuarios', { nombre_usuario: 'admin', password_hash: hashPassword('admin123'), rol: 'ADMINISTRADOR', activo: 1 });
-      DB.insertar(db, 'usuarios', { nombre_usuario: 'cajero', password_hash: hashPassword('cajero123'), rol: 'CAJERO', activo: 1 });
+      DB.insertar(db, 'usuarios', { nombre_usuario: 'admin', password_hash: hashPassword('admin123'), rol: 'ADMINISTRADOR', activo: 1, numero_turno: 1 });
+      DB.insertar(db, 'usuarios', { nombre_usuario: 'cajero', password_hash: hashPassword('cajero123'), rol: 'CAJERO', activo: 1, numero_turno: 2 });
       cargarCatalogoDemo(db);
       agregarCatalogoBase(db);
       db.config.catalogoDemo = VERSION_CATALOGO;
@@ -656,6 +670,15 @@
     }
     return null;
   }
+  // "Turno 1", "Turno 2": el número fijo del usuario (los turnos viejos sin número usan el del usuario).
+  function numeroTurno(db, t) {
+    if (!t) return '';
+    if (t.numero) return t.numero;
+    var u = DB.buscarPorId(db, 'usuarios', t.usuario_apertura_id);
+    return u && u.numero_turno ? u.numero_turno : t.id;
+  }
+  function nombreTurno(db, t) { return 'Turno ' + numeroTurno(db, t); }
+
   // El turno lo maneja su dueño; el administrador puede cerrar o corregir el de cualquiera.
   function puedeManejarTurno(db, t, usuarioId) {
     var u = DB.buscarPorId(db, 'usuarios', usuarioId);
@@ -663,6 +686,17 @@
   }
 
   var Turnos = {
+    // Nombre para mostrar: "Turno 1". Con fecha: "Turno 1 · 18/10/2026".
+    nombre: function (t) {
+      if (typeof t !== 'object') t = DB.buscarPorId(DB.datos(), 'turnos', t);
+      return nombreTurno(DB.datos(), t);
+    },
+    nombreConFecha: function (t) {
+      if (typeof t !== 'object') t = DB.buscarPorId(DB.datos(), 'turnos', t);
+      if (!t) return '';
+      var f = String(t.fecha_hora_apertura || '');
+      return nombreTurno(DB.datos(), t) + ' · ' + f.slice(8, 10) + '/' + f.slice(5, 7) + '/' + f.slice(0, 4) + ' ' + f.slice(11, 16);
+    },
     // Turno abierto del usuario que inició sesión.
     actual: function () {
       var u = Auth.usuario();
@@ -677,6 +711,7 @@
       return db.turnos.filter(function (t) { return t.estado === 'ABIERTO'; }).map(function (t) {
         var r = copia(t);
         r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id);
+        r.numero = numeroTurno(db, t);
         var ventas = db.ventas.filter(function (v) { return v.turno_caja_id === t.id && v.estado === 'COMPLETADA'; });
         r.vendido = U.redondear(ventas.reduce(function (a, v) { return a + v.total; }, 0));
         r.cantidadVentas = ventas.filter(function (v) { return v.tipo !== 'CAMBIO'; }).length;
@@ -689,9 +724,11 @@
       var usuarioId = usuarioActualId();
       return DB.tx(function (db) {
         var propio = turnoAbiertoDe(db, usuarioId);
-        if (propio) falla('Ya tienes abierto el turno #' + propio.id + '. Ciérralo antes de abrir uno nuevo.');
+        if (propio) falla('Ya tienes abierto tu ' + nombreTurno(db, propio) + '. Ciérralo antes de abrir uno nuevo.');
+        var dueno = DB.buscarPorId(db, 'usuarios', usuarioId);
         var t = DB.insertar(db, 'turnos', {
           usuario_apertura_id: usuarioId,
+          numero: dueno && dueno.numero_turno ? dueno.numero_turno : usuarioId,
           fecha_hora_apertura: U.ahora(),
           base_inicial_efectivo: U.numero(baseInicial),
           usuario_cierre_id: null,
@@ -700,7 +737,7 @@
           diferencia_arqueo: null,
           estado: 'ABIERTO'
         });
-        auditar(db, usuarioId, 'AperturaTurno', 'Turno #' + t.id + ', base ' + t.base_inicial_efectivo);
+        auditar(db, usuarioId, 'AperturaTurno', nombreTurno(db, t) + ' (registro #' + t.id + '), base ' + t.base_inicial_efectivo);
         return t;
       });
     },
@@ -721,7 +758,7 @@
         t.efectivo_contado = Number(efectivoContado);
         t.diferencia_arqueo = U.redondear(t.efectivo_contado - esperado);
         t.estado = 'CERRADO';
-        auditar(db, usuarioId, 'CierreTurno', 'Turno #' + t.id + ', diferencia ' + t.diferencia_arqueo);
+        auditar(db, usuarioId, 'CierreTurno', nombreTurno(db, t) + ' de ' + nombreUsuario(db, t.usuario_apertura_id) + ' (registro #' + t.id + '), diferencia ' + t.diferencia_arqueo);
         var r = copia(t);
         r.efectivoEsperado = esperado;
         return r;
@@ -730,7 +767,7 @@
 
     listar: function () {
       var db = DB.datos();
-      return db.turnos.map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); return r; }).reverse();
+      return db.turnos.map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); r.numero = numeroTurno(db, t); return r; }).reverse();
     },
 
     // Corrige la base del turno abierto (p. ej. el cajero la abrió sin el admin y contó mal).
@@ -744,7 +781,7 @@
         if (!puedeManejarTurno(db, t, usuarioId)) falla('Solo puedes corregir la base de tu propio turno');
         var anterior = t.base_inicial_efectivo;
         t.base_inicial_efectivo = U.redondear(nuevaBase);
-        auditar(db, usuarioId, 'AjusteBaseTurno', 'Turno #' + t.id + ': base ' + anterior + ' -> ' + t.base_inicial_efectivo +
+        auditar(db, usuarioId, 'AjusteBaseTurno', nombreTurno(db, t) + ' (registro #' + t.id + '): base ' + anterior + ' -> ' + t.base_inicial_efectivo +
           (String(motivo || '').trim() ? '. Motivo: ' + String(motivo).trim() : ''));
         return copia(t);
       });
@@ -756,7 +793,7 @@
       var ultimo = {};
       db.turnos.forEach(function (t) { ultimo[t.usuario_apertura_id] = t; });
       return Object.keys(ultimo).map(function (k) { return ultimo[k]; }).filter(function (t) { return t.estado === 'CERRADO'; })
-        .map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); return r; });
+        .map(function (t) { var r = copia(t); r.usuario_apertura = nombreUsuario(db, t.usuario_apertura_id); r.numero = numeroTurno(db, t); return r; });
     },
 
     // Deshace un cierre hecho por error: el turno vuelve a quedar abierto con sus
@@ -770,7 +807,7 @@
         if (t.estado !== 'CERRADO') falla('El turno no está cerrado');
         var posterior = db.turnos.some(function (x) { return x.usuario_apertura_id === t.usuario_apertura_id && x.id > t.id; });
         if (posterior) falla('Solo se puede reabrir el último turno de ' + nombreUsuario(db, t.usuario_apertura_id) + '. Después de este ya abrió otro.');
-        auditar(db, usuarioId, 'ReaperturaTurno', 'Turno #' + t.id + ' reabierto. Cierre anulado: ' + t.fecha_hora_cierre +
+        auditar(db, usuarioId, 'ReaperturaTurno', nombreTurno(db, t) + ' (registro #' + t.id + ') reabierto. Cierre anulado: ' + t.fecha_hora_cierre +
           ' por ' + nombreUsuario(db, t.usuario_cierre_id) + ', contado ' + t.efectivo_contado + ', diferencia ' + t.diferencia_arqueo);
         t.estado = 'ABIERTO';
         t.usuario_cierre_id = null;
@@ -840,7 +877,7 @@
       var idVenta = DB.tx(function (db) {
         var turno = DB.buscarPorId(db, 'turnos', datos.turnoCajaId);
         if (!turno || turno.estado !== 'ABIERTO') falla('El turno de caja indicado no está abierto');
-        if (turno.usuario_apertura_id !== usuarioId) falla('El turno #' + turno.id + ' es de ' + nombreUsuario(db, turno.usuario_apertura_id) + '. Abre tu propio turno para vender.');
+        if (turno.usuario_apertura_id !== usuarioId) falla('El ' + nombreTurno(db, turno) + ' es de ' + nombreUsuario(db, turno.usuario_apertura_id) + '. Abre tu propio turno para vender.');
 
         var lineas = items.map(function (item) {
           var p = DB.buscarPorId(db, 'productos', item.productoId);
@@ -1577,6 +1614,7 @@
 
       var efectivoVentas = efectivoVentasTurno(db, turno.id);
       var t = copia(turno);
+      t.numero = numeroTurno(db, turno);
       t.usuario_apertura = nombreUsuario(db, turno.usuario_apertura_id);
       t.usuario_cierre = turno.usuario_cierre_id ? nombreUsuario(db, turno.usuario_cierre_id) : null;
 
@@ -1620,7 +1658,7 @@
       var cfg = DB.config();
       var a = r.arqueo;
       var lineas = [
-        '*' + cfg.nombreNegocio + '* — Cierre de caja #' + r.turno.id,
+        '*' + cfg.nombreNegocio + '* — Cierre de caja · Turno ' + (r.turno.numero || r.turno.id) + (r.turno.usuario_apertura ? ' (' + r.turno.usuario_apertura + ')' : ''),
         (r.turno.fecha_hora_cierre || 'En curso') + (r.turno.usuario_cierre ? ' · ' + r.turno.usuario_cierre : ''),
         '',
         'Vendido: *' + U.dinero(r.totalVentas) + '* (' + r.cantidadVentas + ' venta' + (r.cantidadVentas === 1 ? '' : 's') +
@@ -1686,7 +1724,7 @@
     return aBase64Url(JSON.stringify({
       v: 1,
       n: cfg.nombreNegocio, m: cfg.moneda, dc: cfg.decimales,
-      t: r.turno.id, ap: r.turno.fecha_hora_apertura, ci: r.turno.fecha_hora_cierre,
+      t: r.turno.id, tn: r.turno.numero, ap: r.turno.fecha_hora_apertura, ci: r.turno.fecha_hora_cierre,
       ua: r.turno.usuario_apertura, uc: r.turno.usuario_cierre,
       tv: r.totalVentas, cv: r.cantidadVentas, an: r.cantidadAnuladas,
       mp: r.porMetodoPago.map(function (x) { return [x.metodo_pago, x.total]; }),
@@ -1705,7 +1743,7 @@
     if (!d || d.v !== 1) throw new Error('Enlace de cierre no válido');
     return {
       negocio: d.n, moneda: d.m, decimales: d.dc,
-      turno: { id: d.t, fecha_hora_apertura: d.ap, fecha_hora_cierre: d.ci, usuario_apertura: d.ua, usuario_cierre: d.uc },
+      turno: { id: d.t, numero: d.tn, fecha_hora_apertura: d.ap, fecha_hora_cierre: d.ci, usuario_apertura: d.ua, usuario_cierre: d.uc },
       totalVentas: d.tv, cantidadVentas: d.cv, cantidadAnuladas: d.an,
       porMetodoPago: d.mp.map(function (x) { return { metodo_pago: x[0], total: x[1] }; }),
       porUsuario: d.pu.map(function (x) { return { nombre_usuario: x[0], total: x[1], cantidad_ventas: x[2] }; }),
@@ -1724,7 +1762,7 @@
 
   // ======================= Usuarios =======================
   function usuarioPublico(u) {
-    return { id: u.id, nombre_usuario: u.nombre_usuario, rol: u.rol, activo: u.activo };
+    return { id: u.id, nombre_usuario: u.nombre_usuario, rol: u.rol, activo: u.activo, numero_turno: u.numero_turno };
   }
 
   var Usuarios = {
@@ -1747,6 +1785,7 @@
           falla('Ya existe un usuario con ese nombre');
         }
         var u = DB.insertar(db, 'usuarios', { nombre_usuario: nombre, password_hash: hashPassword(datos.password), rol: datos.rol, activo: 1 });
+        asignarNumerosTurno(db);
         auditar(db, adminId, 'CreacionUsuario', 'Usuario ' + nombre + ' (' + datos.rol + ')');
         return usuarioPublico(u);
       });
@@ -1770,9 +1809,16 @@
         if ((!activo || rol !== 'ADMINISTRADOR') && u.rol === 'ADMINISTRADOR' && !adminsActivos) {
           falla('Debe quedar al menos un administrador activo');
         }
+        if (datos.numeroTurno !== undefined) {
+          var nt = Math.floor(Number(datos.numeroTurno));
+          if (!(nt >= 1 && nt <= 99)) falla('El número de turno debe estar entre 1 y 99');
+          var otro = db.usuarios.filter(function (x) { return x.id !== u.id && x.numero_turno === nt; })[0];
+          if (otro) falla('El turno ' + nt + ' ya es de ' + otro.nombre_usuario);
+          u.numero_turno = nt;
+        }
         u.rol = rol;
         u.activo = activo;
-        auditar(db, adminId, 'ActualizacionUsuario', 'Usuario ' + u.nombre_usuario + ': rol ' + rol + ', activo ' + activo);
+        auditar(db, adminId, 'ActualizacionUsuario', 'Usuario ' + u.nombre_usuario + ': rol ' + rol + ', activo ' + activo + ', turno ' + u.numero_turno);
         return usuarioPublico(u);
       });
     },
@@ -1988,14 +2034,14 @@
         return items.length ? '<ul>' + items.map(fn).join('') + '</ul>' : '<p class="tenue">Sin datos</p>';
       }
       var a = r.arqueo;
-      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte turno #' + r.turno.id + '</title>' +
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte turno ' + (r.turno.numero || r.turno.id) + '</title>' +
         '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:24px;font-size:13px}' +
         'h1{font-size:20px;text-align:center;margin:0 0 4px}h2{font-size:15px;border-bottom:1px solid #ccc;padding-bottom:4px;margin-top:22px}' +
         '.tenue{color:#666}.centro{text-align:center}table{border-collapse:collapse;width:100%}' +
         'th,td{text-align:left;padding:4px 6px;border-bottom:1px solid #eee}td.num,th.num{text-align:right}' +
         '.alerta{color:#c62828;font-weight:bold}@media print{body{margin:10mm}}</style></head><body>' +
         '<h1>' + U.esc(cfg.nombreNegocio) + '</h1>' +
-        '<div class="centro">Reporte de cierre de turno #' + r.turno.id + '</div>' +
+        '<div class="centro">Reporte de cierre · Turno ' + (r.turno.numero || r.turno.id) + (r.turno.usuario_apertura ? ' (' + U.esc(r.turno.usuario_apertura) + ')' : '') + '</div>' +
         '<p class="tenue centro">Apertura: ' + U.esc(r.turno.fecha_hora_apertura) + ' (' + U.esc(r.turno.usuario_apertura) + ') · ' +
         'Cierre: ' + U.esc(r.turno.fecha_hora_cierre || 'En curso') + (r.turno.usuario_cierre ? ' (' + U.esc(r.turno.usuario_cierre) + ')' : '') + '</p>' +
         '<h2>Resumen de ventas</h2>' +

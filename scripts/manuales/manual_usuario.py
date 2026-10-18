@@ -52,8 +52,8 @@ h += [caja('Consejo', 'Cierre la sesión cuando entregue la caja a otra persona,
 # ------------------------------------------------------------------ 3
 h += [h1('3. Turno de caja: apertura, base y gastos')]
 h += [p('El turno de caja es <b>de cada usuario</b>: cada uno (administrador o cajero) abre su propio turno con su base, vende en él, '
-        'registra allí sus gastos y cambios, y lo cierra con su propio arqueo. Por ejemplo, el administrador trabaja en el turno #1 y el '
-        'cajero en el turno #2 al mismo tiempo. <b>No se puede vender sin tener su turno abierto.</b>')]
+        'registra allí sus gastos y cambios, y lo cierra con su propio arqueo. Cada usuario tiene un número de turno fijo: el administrador es el '
+        '<b>Turno 1</b> y el cajero el <b>Turno 2</b> (se cambia en Usuarios), y pueden estar abiertos al mismo tiempo. <b>No se puede vender sin tener su turno abierto.</b>')]
 h += [pasos([
     'En el menú, entre a <b>Turno de caja</b>.',
     'Escriba la <b>base inicial de efectivo</b>: el dinero con el que empieza la caja para dar cambio (si no hay, deje 0). '

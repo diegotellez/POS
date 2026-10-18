@@ -25,7 +25,7 @@
     raiz.innerHTML =
       '<section class="tarjeta cierre-publico">' +
       '<p class="eyebrow">' + U.esc(r.negocio) + '</p>' +
-      '<h1>Cierre de caja #' + r.turno.id + '</h1>' +
+      '<h1>Cierre de caja · Turno ' + U.esc(r.turno.numero || r.turno.id) + '</h1>' +
       '<p class="tenue">' + U.esc(r.turno.fecha_hora_apertura) + ' → ' + U.esc(r.turno.fecha_hora_cierre || 'en curso') +
       (r.turno.usuario_cierre ? ' · cerró ' + U.esc(r.turno.usuario_cierre) : '') + '</p>' +
       '<div class="cifra-principal"><span>Vendido</span><strong>' + $(r.totalVentas) + '</strong>' +

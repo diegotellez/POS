@@ -62,7 +62,7 @@
     return '<div class="turnos-otros"><h3>Otros turnos abiertos</h3><div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
       '<th>Turno</th><th>Usuario</th><th>Apertura</th><th class="num">Base</th><th class="num">Vendido</th><th class="num">Efectivo esperado</th><th></th></tr></thead><tbody>' +
       otros.map(function (t) {
-        return '<tr><td>#' + t.id + '</td><td>' + U.esc(t.usuario_apertura) + '</td><td>' + U.esc(t.fecha_hora_apertura) + '</td>' +
+        return '<tr><td>' + POS.Turnos.nombre(t) + '</td><td>' + U.esc(t.usuario_apertura) + '</td><td>' + U.esc(t.fecha_hora_apertura) + '</td>' +
           '<td class="num">' + U.dinero(t.base_inicial_efectivo) + '</td><td class="num">' + U.dinero(t.vendido) + ' <small class="tenue">(' + t.cantidadVentas + ')</small></td>' +
           '<td class="num">' + U.dinero(t.efectivoEsperado) + '</td>' +
           '<td class="acciones"><button type="button" class="boton boton-texto" data-cerrar-otro="' + t.id + '">Cerrar</button></td></tr>';
@@ -83,7 +83,7 @@
       var totalGastos = gastosActivos.reduce(function (a, g) { return a + g.monto; }, 0);
       var esAdmin = usuario.rol === 'ADMINISTRADOR';
       html +=
-        '<h2>' + U.icono('abierto', 'ok') + ' Tu turno #' + turno.id + ' <small class="tenue">· ' + U.esc(usuario.nombreUsuario) + '</small></h2>' +
+        '<h2>' + U.icono('abierto', 'ok') + ' Tu ' + POS.Turnos.nombre(turno) + ' <small class="tenue">· ' + U.esc(usuario.nombreUsuario) + '</small></h2>' +
         '<div class="metricas">' +
         '<div class="metrica"><span>Apertura</span><strong>' + U.esc(turno.fecha_hora_apertura) + '</strong></div>' +
         '<div class="metrica"><span>Base inicial</span><strong>' + U.dinero(turno.base_inicial_efectivo) + '</strong></div>' +
@@ -144,7 +144,7 @@
         html += '<div class="bloque-reabrir"><h3>¿Se cerró un turno por error?</h3>' +
           '<p class="tenue">Puedes reabrir el último turno cerrado de cada usuario. Vuelve a quedar abierto con todas sus ventas y se borra el arqueo; queda registrado en Auditoría.</p>' +
           cerrados.map(function (c) {
-            return '<p><button type="button" class="boton boton-secundario" data-reabrir="' + c.id + '">' + U.icono('historial') + ' Reabrir turno #' + c.id + ' de ' + U.esc(c.usuario_apertura) + '</button> ' +
+            return '<p><button type="button" class="boton boton-secundario" data-reabrir="' + c.id + '">' + U.icono('historial') + ' Reabrir ' + POS.Turnos.nombre(c) + ' de ' + U.esc(c.usuario_apertura) + '</button> ' +
               '<small class="tenue">cerrado el ' + U.esc(c.fecha_hora_cierre) + '</small></p>';
           }).join('') + '</div>';
       }
@@ -158,7 +158,7 @@
       var reporte = POS.Reportes.construir(c.id);
       html +=
         '<div class="resumen-cierre">' +
-        '<h3>Resumen del cierre #' + c.id + '</h3>' +
+        '<h3>Resumen del cierre · ' + POS.Turnos.nombre(c) + '</h3>' +
         '<p>Efectivo esperado: ' + U.dinero(c.efectivoEsperado) + '</p>' +
         '<p>Efectivo contado: ' + U.dinero(c.efectivo_contado) + '</p>' +
         '<p class="' + (c.diferencia_arqueo < 0 ? 'alerta' : '') + '">Diferencia: ' + U.dinero(c.diferencia_arqueo) + POS.etiquetaDiferencia(c.diferencia_arqueo) + '</p>' +
@@ -188,7 +188,7 @@
         try {
           var t = POS.Turnos.abrir(fAbrir.base.value);
           ultimoCierre = null;
-          U.aviso('Turno #' + t.id + ' abierto', 'ok');
+          U.aviso(POS.Turnos.nombre(t) + ' abierto', 'ok');
           App.ir('ventas');
         } catch (err) {
           U.error(err);
@@ -200,10 +200,10 @@
     U.$$('[data-reabrir]', cont).forEach(function (b) {
       b.addEventListener('click', function () {
         var id = Number(b.getAttribute('data-reabrir'));
-        U.confirmar('¿Reabrir el turno #' + id + '? Se deshace el cierre y su arqueo, y su dueño podrá seguir vendiendo en ese turno.', function () {
+        U.confirmar('¿Reabrir el ' + POS.Turnos.nombre(id) + '? Se deshace el cierre y su arqueo, y su dueño podrá seguir vendiendo en ese turno.', function () {
           POS.Turnos.reabrir(id);
           ultimoCierre = null;
-          U.aviso('Turno #' + id + ' reabierto', 'ok');
+          U.aviso(POS.Turnos.nombre(id) + ' reabierto', 'ok');
           render(cont, usuario);
         }, 'Reabrir turno');
       });
@@ -215,13 +215,13 @@
         var id = Number(b.getAttribute('data-cerrar-otro'));
         var t = POS.Turnos.abiertos().filter(function (x) { return x.id === id; })[0];
         U.modal({
-          titulo: 'Cerrar el turno #' + id + ' de ' + t.usuario_apertura,
+          titulo: 'Cerrar el ' + POS.Turnos.nombre(t) + ' de ' + t.usuario_apertura,
           cuerpo: '<p class="tenue">Efectivo esperado: <strong>' + U.dinero(t.efectivoEsperado) + '</strong>. Cuente el efectivo de ese turno e ingréselo.</p>' +
             '<label class="campo"><span>Efectivo contado</span><input name="efectivo" type="number" min="0" step="any"></label>',
           botones: [{ texto: 'Cancelar', clase: 'boton-secundario' }, { texto: 'Cerrar turno', clase: 'boton-primario', accion: function (cerrar, raiz) {
             var r = POS.Turnos.cerrar(id, U.$('[name=efectivo]', raiz).value);
             cerrar();
-            U.aviso('Turno #' + id + ' cerrado. Diferencia: ' + U.dinero(r.diferencia_arqueo), 'ok', 6000);
+            U.aviso(POS.Turnos.nombre(id) + ' cerrado. Diferencia: ' + U.dinero(r.diferencia_arqueo), 'ok', 6000);
             render(cont, usuario);
           } }]
         });
@@ -234,7 +234,7 @@
         e.preventDefault();
         try {
           var t = POS.Turnos.ajustarBase(turno.id, fBase.base.value, fBase.motivo.value);
-          U.aviso('Base del turno #' + t.id + ' corregida a ' + U.dinero(t.base_inicial_efectivo), 'ok');
+          U.aviso('Base del ' + POS.Turnos.nombre(t) + ' corregida a ' + U.dinero(t.base_inicial_efectivo), 'ok');
           render(cont, usuario);
         } catch (err) { U.error(err); }
       });
@@ -309,10 +309,10 @@
       fCerrar.addEventListener('submit', function (e) {
         e.preventDefault();
         var valor = fCerrar.efectivo.value;
-        U.confirmar('¿Cerrar el turno #' + turno.id + ' con ' + U.dinero(valor) + ' contados? Después no podrás registrar ventas en este turno.', function () {
+        U.confirmar('¿Cerrar tu ' + POS.Turnos.nombre(turno) + ' con ' + U.dinero(valor) + ' contados? Después no podrás registrar ventas en este turno.', function () {
           ultimoCierre = POS.Turnos.cerrar(turno.id, valor);
           ultimoCierreUsuarioId = usuario.id;
-          U.aviso('Turno #' + turno.id + ' cerrado', 'ok');
+          U.aviso(POS.Turnos.nombre(turno) + ' cerrado', 'ok');
           // Abre WhatsApp con el número configurado y el resumen escrito (falta tocar "Enviar").
           // Si el navegador bloquea la ventana, queda el botón en el resumen.
           var numero = DB.config().whatsapp;
