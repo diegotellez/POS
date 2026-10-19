@@ -69,11 +69,11 @@
       var usados = ids.filter(function (id) { return POS.Productos.enUso(id); }).length;
       var nombre = ids.length === 1 ? '"' + POS.Productos.obtener(ids[0]).nombre + '"' : ids.length + ' productos';
       U.confirmar('¿Eliminar ' + nombre + '? Esta acción no se puede deshacer.' +
-        (usados ? ' ' + (ids.length === 1 ? 'Este producto tiene' : usados + ' de ellos tienen') + ' ventas o compras registradas: no se borran, se desactivan para conservar el historial.' : ''), function () {
+        (usados ? ' ' + (ids.length === 1 ? 'Este producto tiene' : usados + ' de ellos tienen') + ' ventas registradas: no se puede' + (ids.length === 1 ? '' : 'n') + ' eliminar; se desactiva' + (ids.length === 1 ? '' : 'n') + ' para conservar el historial de ventas.' : ''), function () {
         try {
           var r = POS.Productos.eliminar(ids);
           ids.forEach(function (id) { delete seleccion[id]; });
-          U.aviso((r.eliminados ? r.eliminados + ' producto(s) eliminados. ' : '') + (r.desactivados.length ? r.desactivados.length + ' desactivado(s) por tener historial.' : ''), 'ok', 6000);
+          U.aviso((r.eliminados ? r.eliminados + ' producto(s) eliminados. ' : '') + (r.desactivados.length === 1 ? '1 producto tiene ventas: no se eliminó, quedó desactivado.' : r.desactivados.length ? r.desactivados.length + ' productos tienen ventas: no se eliminaron, quedaron desactivados.' : ''), 'ok', 6000);
           pintar();
         } catch (err) { U.error(err); }
       }, 'Eliminar');

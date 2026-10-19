@@ -538,13 +538,10 @@
       return Productos.actualizar(id, { activo: false });
     },
 
-    // Un producto con ventas o compras no se puede borrar (se perdería el historial):
-    // en ese caso se desactiva. Sin historial, se elimina por completo.
+    // Un producto con ventas (o cambios) no se puede borrar: se perdería el historial
+    // de ventas, así que se desactiva. Sin ventas se elimina aunque tenga compras.
     enUso: function (id) {
-      var db = DB.datos();
-      id = Number(id);
-      return db.ventas.some(function (v) { return v.detalle.some(function (d) { return d.producto_id === id; }); }) ||
-        db.compras.some(function (c) { return c.lineas.some(function (l) { return l.producto_id === id; }); });
+      return tieneVentas(DB.datos(), Number(id));
     },
 
     eliminar: function (ids) {
@@ -556,13 +553,15 @@
         ids.forEach(function (id) {
           var p = DB.buscarPorId(db, 'productos', id);
           if (!p) return;
-          var usado = db.ventas.some(function (v) { return v.detalle.some(function (d) { return d.producto_id === id; }); }) ||
-            db.compras.some(function (c) { return c.lineas.some(function (l) { return l.producto_id === id; }); });
-          if (usado) {
+          if (tieneVentas(db, id)) {
             p.activo = 0;
             desactivados.push(p.nombre);
             return;
           }
+          // Las facturas de compra conservan el nombre del producto borrado.
+          db.compras.forEach(function (c) {
+            c.lineas.forEach(function (l) { if (l.producto_id === id) { l.producto_nombre = p.nombre; l.producto_id = null; } });
+          });
           db.productos = db.productos.filter(function (x) { return x.id !== id; });
           db.movimientos = db.movimientos.filter(function (m) { return m.producto_id !== id; });
           db.codigos_proveedor = db.codigos_proveedor.filter(function (m) { return m.producto_id !== id; });
@@ -570,7 +569,7 @@
           borrados.push(p.nombre);
         });
         if (borrados.length) auditar(db, usuarioId, 'EliminacionProducto', borrados.length + ' producto(s) eliminados: ' + borrados.slice(0, 20).join(', ') + (borrados.length > 20 ? '…' : ''));
-        if (desactivados.length) auditar(db, usuarioId, 'DesactivacionProducto', desactivados.length + ' producto(s) con historial desactivados: ' + desactivados.slice(0, 20).join(', '));
+        if (desactivados.length) auditar(db, usuarioId, 'DesactivacionProducto', desactivados.length + ' producto(s) con ventas desactivados: ' + desactivados.slice(0, 20).join(', '));
         return { eliminados: borrados.length, desactivados: desactivados };
       });
     },
@@ -579,6 +578,10 @@
       return Productos.listar({ soloActivos: true }).filter(stockBajo);
     }
   };
+
+  function tieneVentas(db, id) {
+    return db.ventas.some(function (v) { return v.detalle.some(function (d) { return d.producto_id === id; }); });
+  }
 
   // ======================= Inventario =======================
   var Inventario = {

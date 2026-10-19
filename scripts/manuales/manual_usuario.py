@@ -237,7 +237,7 @@ h += [viñetas([
     'El <b>precio de compra</b> también se actualiza solo al cargar una factura en Compras.',
     '<b>Editar</b> (lápiz): cambia los datos. El stock no se edita aquí: se modifica con compras o ajustes en Inventario.',
     '<b>Desactivar</b>: el producto deja de aparecer en ventas, pero se conserva. Con <i>Mostrar inactivos</i> se puede reactivar.',
-    '<b>Eliminar</b> (papelera roja): borra el producto. Si ya tiene ventas o compras, no se borra sino que se desactiva, para conservar el historial. '
+    '<b>Eliminar</b> (papelera roja): borra el producto. Se puede borrar aunque tenga compras (la factura conserva el nombre). Si ya tiene ventas, no se borra sino que se desactiva, para conservar el historial de ventas. '
     'Con las casillas de la izquierda se pueden <b>eliminar varios</b> a la vez (por ejemplo, productos del catálogo base que no maneja).',
     '<b>Stock mínimo</b>: cuando el stock llega a ese número, el sistema avisa. Con 0 no se generan alertas.',
 ])]
