@@ -589,3 +589,5 @@ details.cliente summary { cursor: pointer; color: var(--texto-cuerpo); font-size
 
 .aviso-version.aviso-error { background: var(--peligro); }
 .aviso-error .boton-primario { background: #fff; color: var(--peligro); }
+.stock-editable { width: 84px; min-height: 34px; padding: 5px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.stock-editable.alerta { color: var(--alerta); border-color: var(--alerta-borde); font-weight: 600; }

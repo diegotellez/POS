@@ -41,7 +41,7 @@
       '<div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
       '<th><input type="checkbox" id="sel-todos" aria-label="Seleccionar todos" title="Seleccionar todos los de la lista"></th>' +
       '<th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">P. compra</th><th class="num">P. venta</th><th class="num" title="Precio de venta menos precio de compra; el % es sobre el precio de venta">Ganancia</th>' +
-      '<th class="num">Stock</th><th class="num">Mín.</th><th></th>' +
+      '<th class="num" title="Escriba las unidades y pulse Enter o Tab; queda registrado como ajuste de inventario">Disponibles</th><th class="num">Mín.</th><th></th>' +
       '</tr></thead><tbody id="filas"></tbody></table></div>' +
       '</section>';
 
@@ -104,7 +104,8 @@
           '<td class="num">' + (p.costo ? U.dinero(p.costo) : '<span class="tenue">—</span>') + '</td>' +
           '<td class="num">' + U.dinero(p.precio_venta) + '</td>' +
           '<td class="num">' + celdaGanancia(p) + '</td>' +
-          '<td class="num ' + (POS.Productos.stockBajo(p) ? 'alerta' : '') + '">' + p.stock + '</td>' +
+          '<td class="num"><input class="stock-editable' + (POS.Productos.stockBajo(p) ? ' alerta' : '') + '" type="number" min="0" step="1" data-stock="' + p.id + '" value="' + p.stock + '"' +
+          ' aria-label="Unidades disponibles de ' + U.esc(p.nombre) + '" title="Escriba las unidades y pulse Enter para pasar al siguiente"></td>' +
           '<td class="num">' + p.stock_minimo + '</td>' +
           '<td class="acciones">' +
           '<button class="boton-icono" data-editar="' + p.id + '" title="Editar" aria-label="Editar">' + U.icono('editar') + '</button>' +
@@ -121,7 +122,44 @@
       listaVisible.forEach(function (p) { if (e.target.checked) seleccion[p.id] = true; else delete seleccion[p.id]; });
       pintar();
     });
+    // Unidades disponibles editables en la tabla: Enter guarda y pasa al siguiente producto,
+    // Tab o clic afuera también guarda (ajuste de inventario), Esc deshace.
+    function guardarStock(input) {
+      var p = POS.Productos.obtener(input.getAttribute('data-stock'));
+      if (!p) return;
+      var valor = input.value.trim();
+      if (valor === '' || Number(valor) === p.stock) { input.value = p.stock; return; }
+      if (!/^\d+$/.test(valor)) {
+        U.aviso('Las unidades deben ser un número entero, 0 o más.', 'error');
+        input.value = p.stock;
+        return;
+      }
+      try {
+        var r = POS.Inventario.ajustarManual({ productoId: p.id, nuevoStock: Number(valor), motivo: 'Ajuste desde Productos' });
+        input.value = r.stock;
+        input.classList.toggle('alerta', POS.Productos.stockBajo(r));
+        U.aviso(r.nombre + ': ' + p.stock + ' → ' + r.stock + ' unidades', 'ok');
+      } catch (err) {
+        input.value = p.stock;
+        U.error(err);
+      }
+    }
+    U.$('#filas', cont).addEventListener('keydown', function (e) {
+      if (!e.target.hasAttribute('data-stock')) return;
+      if (e.key === 'Enter') {
+        // Como en una hoja de cálculo: guarda y baja al producto siguiente.
+        e.preventDefault();
+        var todos = U.$$('[data-stock]', cont), sig = todos[todos.indexOf(e.target) + 1];
+        if (sig) { sig.focus(); sig.select(); } else e.target.blur();
+      }
+      else if (e.key === 'Escape') { e.target.value = POS.Productos.obtener(e.target.getAttribute('data-stock')).stock; e.target.blur(); }
+    });
+    // Que la rueda del ratón no cambie las unidades sin querer.
+    U.$('#filas', cont).addEventListener('wheel', function (e) {
+      if (e.target.hasAttribute && e.target.hasAttribute('data-stock') && document.activeElement === e.target) e.target.blur();
+    }, { passive: true });
     U.$('#filas', cont).addEventListener('change', function (e) {
+      if (e.target.hasAttribute('data-stock')) { guardarStock(e.target); return; }
       var id = e.target.getAttribute('data-sel');
       if (!id) return;
       if (e.target.checked) seleccion[id] = true; else delete seleccion[id];
@@ -193,7 +231,10 @@
           ? '<p class="tenue">El stock se suma al registrar la compra.</p>'
           : !edicion
           ? '<label class="campo"><span>Stock inicial</span><input name="stock" type="number" min="0" step="1" value="0"></label>'
-          : '<p class="tenue">Stock actual: ' + p.stock + ' (modifícalo desde Inventario).</p>') +
+          : '<div class="fila-doble">' +
+            '<label class="campo"><span>Unidades disponibles</span><input name="stock" type="number" min="0" step="1" value="' + p.stock + '"></label>' +
+            '<label class="campo"><span>Motivo del cambio (opcional)</span><input name="motivoStock" placeholder="Ej. conteo físico"></label></div>' +
+            '<p class="tenue pequeno">Si cambia las unidades, queda registrado como ajuste de inventario.</p>') +
         '</form>',
       alAbrir: function (raiz) {
         var fc = U.$('[name=precioCompra]', raiz), fv = U.$('[name=precioVenta]', raiz), out = U.$('#ganancia-form', raiz);
@@ -216,7 +257,12 @@
           clase: 'boton-primario',
           accion: function (cerrar, raiz) {
             var datos = U.leerForm(raiz);
+            var cambiaStock = edicion && String(datos.stock).trim() !== '' && Number(datos.stock) !== p.stock;
+            if (cambiaStock && !/^\d+$/.test(String(datos.stock).trim())) throw new Error('Las unidades disponibles deben ser un número entero, 0 o más.');
             var guardado = edicion ? POS.Productos.actualizar(p.id, datos) : POS.Productos.crear(datos);
+            if (cambiaStock) {
+              POS.Inventario.ajustarManual({ productoId: p.id, nuevoStock: Number(datos.stock), motivo: String(datos.motivoStock || '').trim() || 'Ajuste desde Productos' });
+            }
             cerrar();
             U.aviso('Producto guardado', 'ok');
             if (alGuardar) alGuardar(POS.Productos.obtener(guardado.id));

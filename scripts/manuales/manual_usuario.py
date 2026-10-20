@@ -235,7 +235,9 @@ h += [viñetas([
     'Mientras escribe los precios se muestra la <b>ganancia por unidad</b> (venta menos compra) con el porcentaje sobre la venta y sobre el costo. '
     'El <b>código interno</b> se genera solo (2000xx).',
     'El <b>precio de compra</b> también se actualiza solo al cargar una factura en Compras.',
-    '<b>Editar</b> (lápiz): cambia los datos. El stock no se edita aquí: se modifica con compras o ajustes en Inventario.',
+    '<b>Disponibles</b>: las unidades se corrigen escribiendo directamente en la columna. <b>Enter</b> guarda y pasa al producto siguiente; '
+    '<b>Esc</b> deshace. Cada cambio queda como ajuste de inventario (Inventario &gt; Movimientos y Auditoría).',
+    '<b>Editar</b> (lápiz): cambia los datos, incluidas las unidades disponibles con un motivo opcional (por ejemplo, conteo físico).',
     '<b>Desactivar</b>: el producto deja de aparecer en ventas, pero se conserva. Con <i>Mostrar inactivos</i> se puede reactivar.',
     '<b>Eliminar</b> (papelera roja): borra el producto. Se puede borrar aunque tenga compras (la factura conserva el nombre). Si ya tiene ventas, no se borra sino que se desactiva, para conservar el historial de ventas. '
     'Con las casillas de la izquierda se pueden <b>eliminar varios</b> a la vez (por ejemplo, productos del catálogo base que no maneja).',
