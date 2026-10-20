@@ -1,7 +1,7 @@
 {
-  "version": "2.6.1",
-  "fecha": "2026-10-18",
-  "notas": "Turnos por usuario con número fijo (Turno 1 admin, Turno 2 cajero), una sola categoría al vender y lectura más robusta del ZIP de facturas.",
+  "version": "2.7",
+  "fecha": "2026-10-20",
+  "notas": "Nuevo menú Soporte para reportar errores y pedir mejoras, errores avisados al proveedor, productos sin ventas se pueden eliminar, unidades editables en Productos y ayudas en pantalla.",
   "soporte": {
     "nombre": "Soporte POS",
     "whatsapp": "",

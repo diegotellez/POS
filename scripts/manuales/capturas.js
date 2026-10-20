@@ -9,7 +9,7 @@ const OUT = process.argv[2];
   await ctx.route('https://wa.me/**', r => r.fulfill({ body: '<html><body style="font:16px sans-serif;padding:40px">WhatsApp</body></html>', contentType: 'text/html' }));
   const url = 'file://' + require('path').resolve(__dirname, '../../pos-html/index.html');
   const limpiar = () => page.evaluate(() => { document.getElementById('avisos').innerHTML = ''; });
-  const foto = async (n, opts) => { await limpiar(); await page.waitForTimeout(150); await page.screenshot(Object.assign({ path: OUT + '/' + n + '.jpg', type: 'jpeg', quality: 82 }, opts || {})); };
+  const foto = async (n, opts) => { await limpiar(); await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(150); await page.screenshot(Object.assign({ path: OUT + '/' + n + '.jpg', type: 'jpeg', quality: 82 }, opts || {})); };
   const ir = async (t) => { await page.click('.lateral-item >> text=' + t); await page.waitForTimeout(150); };
   await page.goto(url);
   await foto('u01-login');

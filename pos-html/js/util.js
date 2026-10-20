@@ -399,6 +399,8 @@
         U.ayuda.presentar(document); // la siguiente novedad de la pantalla, si hay
       });
       globo.appendChild(b);
+      // Un clic en cualquier parte del globo también lo cierra (no debe tapar nada).
+      globo.addEventListener('click', function () { b.click(); });
       el.classList.add('ayuda-destacada');
     }
     document.body.appendChild(globo);

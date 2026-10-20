@@ -1,9 +1,23 @@
 # Sistema POS — versión HTML/CSS/JS
 
-**Versión 2.6.1** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
+**Versión 2.7** (octubre de 2026). La versión aparece en la pantalla de inicio de sesión y en *Respaldo*.
 
 Versión del punto de venta hecha solo con HTML, CSS y JavaScript. No hay que
 compilar ni instalar nada, y no necesita Node, servidor ni internet.
+
+## Novedades de la versión 2.7
+
+- **Soporte** (menú para cajero y administrador): reportar errores, pedir mejoras
+  o reportes nuevos al proveedor. Cada envío lleva un código (S-K7Q-0003) y queda
+  como *Publicada en 2.x* cuando sale la versión que lo atiende.
+- **Errores automáticos**: los fallos inesperados quedan registrados y se avisan
+  al proveedor (buzón en línea o WhatsApp con un toque).
+- **Eliminar productos**: se borran si no tienen ventas, aunque tengan compras;
+  con ventas, se desactivan para conservar el historial.
+- **Unidades disponibles editables** en Productos (Enter guarda y pasa al
+  siguiente) y en el formulario, como ajuste de inventario.
+- **Ayudas en pantalla**: íconos "?" y globos con la etiqueta NUEVO que guían en
+  las funciones nuevas (nunca en Ventas).
 
 ## Novedades de la versión 2.6.1
 

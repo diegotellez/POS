@@ -8,7 +8,7 @@
  * La lista de archivos la genera scripts/version.py: no editarla a mano.
  */
 /* VERSION-INICIO */
-var VERSION = '2.6.1';
+var VERSION = '2.7';
 /* VERSION-FIN */
 /* ARCHIVOS-INICIO */
 var ARCHIVOS = [
