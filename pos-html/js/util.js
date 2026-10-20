@@ -301,5 +301,173 @@
     }, 150);
   };
 
+  // ---------- Ayudas (tooltips) ----------
+  // Cualquier elemento con data-ayuda="texto" (y opcional data-ayuda-titulo) muestra
+  // un globo al pasar el ratón, al recibir el foco con el teclado o al tocar el
+  // ícono "?". Con data-ayuda-nuevo="clave" el globo se presenta solo la primera vez
+  // (una novedad por pantalla) hasta que el usuario pulse "Entendido".
+  var CLAVE_AYUDAS = 'pos_ayudas_vistas';
+  var globo = null, objetivo = null, temporizador = null, fijo = false, abiertoEn = 0, porRaton = false;
+
+  function vistas() {
+    try { return JSON.parse(global.localStorage.getItem(CLAVE_AYUDAS) || '{}'); } catch (e) { return {}; }
+  }
+  function marcarVista(clave) {
+    var v = vistas();
+    v[clave] = 1;
+    try { global.localStorage.setItem(CLAVE_AYUDAS, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ }
+  }
+
+  function visible(el) {
+    if (!el || !el.isConnected) return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < global.innerHeight && r.right > 0 && r.left < global.innerWidth;
+  }
+
+  function ubicar(el) {
+    var r = el.getBoundingClientRect();
+    var g = globo.getBoundingClientRect();
+    var margen = 8, top, left, lado;
+    var lateral = el.closest && el.closest('.lateral');
+    if (lateral) {
+      lado = 'derecha';
+      left = r.right + 12;
+      top = r.top + r.height / 2 - g.height / 2;
+    } else if (r.bottom + g.height + 14 < global.innerHeight) {
+      lado = 'abajo';
+      top = r.bottom + 10;
+      left = r.left + r.width / 2 - g.width / 2;
+    } else {
+      lado = 'arriba';
+      top = r.top - g.height - 10;
+      left = r.left + r.width / 2 - g.width / 2;
+    }
+    left = Math.max(margen, Math.min(left, global.innerWidth - g.width - margen));
+    top = Math.max(margen, Math.min(top, global.innerHeight - g.height - margen));
+    globo.style.left = left + 'px';
+    globo.style.top = top + 'px';
+    globo.setAttribute('data-lado', lado);
+    // La flecha apunta al centro del elemento.
+    var flecha = lado === 'derecha' ? r.top + r.height / 2 - top : r.left + r.width / 2 - left;
+    globo.style.setProperty('--flecha', Math.max(14, Math.min(flecha, (lado === 'derecha' ? g.height : g.width) - 14)) + 'px');
+  }
+
+  function ocultar() {
+    clearTimeout(temporizador);
+    if (globo && globo.parentNode) globo.parentNode.removeChild(globo);
+    if (objetivo) { objetivo.classList.remove('ayuda-destacada'); objetivo.removeAttribute('aria-describedby'); }
+    globo = null; objetivo = null; fijo = false;
+  }
+
+  function mostrar(el, nuevo, raton) {
+    var texto = el.getAttribute('data-ayuda');
+    if (!texto) return;
+    ocultar();
+    objetivo = el;
+    fijo = !!nuevo;
+    abiertoEn = Date.now();
+    porRaton = !!raton;
+    globo = document.createElement('div');
+    globo.id = 'globo-ayuda';
+    globo.className = 'globo-ayuda' + (nuevo ? ' globo-nuevo' : '');
+    globo.setAttribute('role', 'tooltip');
+    var titulo = el.getAttribute('data-ayuda-titulo');
+    if (nuevo) {
+      var etq = document.createElement('span');
+      etq.className = 'globo-etiqueta';
+      etq.textContent = 'Nuevo';
+      globo.appendChild(etq);
+    }
+    if (titulo) {
+      var t = document.createElement('strong');
+      t.textContent = titulo;
+      globo.appendChild(t);
+    }
+    var p = document.createElement('span');
+    p.className = 'globo-texto';
+    p.textContent = texto;
+    globo.appendChild(p);
+    if (nuevo) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'globo-ok';
+      b.textContent = 'Entendido';
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        marcarVista(el.getAttribute('data-ayuda-nuevo'));
+        ocultar();
+        U.ayuda.presentar(document); // la siguiente novedad de la pantalla, si hay
+      });
+      globo.appendChild(b);
+      el.classList.add('ayuda-destacada');
+    }
+    document.body.appendChild(globo);
+    el.setAttribute('aria-describedby', 'globo-ayuda');
+    ubicar(el);
+  }
+
+  function ayudaDe(e) {
+    return e.target && e.target.closest ? e.target.closest('[data-ayuda]') : null;
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    var el = ayudaDe(e);
+    if (fijo || el === objetivo) return;
+    clearTimeout(temporizador);
+    // Solo se cierra al salir con el ratón lo que se abrió con el ratón (no lo tocado o enfocado).
+    if (!el) { if (globo && porRaton) temporizador = setTimeout(ocultar, 120); return; }
+    temporizador = setTimeout(function () { mostrar(el, false, true); }, 300);
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = ayudaDe(e);
+    if (el && !fijo && el !== objetivo) mostrar(el);
+  });
+  document.addEventListener('focusout', function (e) {
+    if (!fijo && ayudaDe(e) === objetivo) ocultar();
+  });
+  // En pantallas táctiles el ícono "?" abre y cierra el globo.
+  document.addEventListener('click', function (e) {
+    var icono = e.target.closest ? e.target.closest('.ayuda-icono') : null;
+    if (icono) {
+      e.preventDefault();
+      // El foco del mismo toque ya pudo abrirlo: solo un segundo toque lo cierra.
+      if (objetivo !== icono) mostrar(icono);
+      else if (Date.now() - abiertoEn > 400) ocultar();
+    } else if (globo && !(e.target.closest && e.target.closest('#globo-ayuda'))) {
+      // Un clic en otra parte cierra el globo; si era una novedad, cuenta como vista.
+      if (fijo && objetivo) marcarVista(objetivo.getAttribute('data-ayuda-nuevo'));
+      ocultar();
+    }
+  }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && globo && !fijo) ocultar(); });
+  global.addEventListener('scroll', function () { if (globo && objetivo) { if (visible(objetivo)) ubicar(objetivo); else ocultar(); } }, true);
+  global.addEventListener('resize', function () { if (globo && objetivo) ubicar(objetivo); });
+
+  U.ayuda = {
+    ocultar: ocultar,
+    // Presenta la primera novedad aún no vista de la pantalla.
+    // En Ventas no se presenta nada: no debe estorbar mientras se cobra.
+    presentar: function (raiz) {
+      setTimeout(function () {
+        if (fijo || (global.App && App.rutaActual && App.rutaActual() === 'ventas')) return;
+        var v = vistas();
+        var el = U.$$('[data-ayuda-nuevo]', raiz || document).filter(function (x) {
+          return !v[x.getAttribute('data-ayuda-nuevo')] && visible(x);
+        })[0];
+        if (el) mostrar(el, true);
+      }, 400);
+    },
+    // Ícono "?" con su explicación, para encabezados y etiquetas.
+    icono: function (texto, titulo) {
+      return '<span class="ayuda-icono" tabindex="0" role="button" aria-label="Ayuda" data-ayuda="' + U.esc(texto) + '"' +
+        (titulo ? ' data-ayuda-titulo="' + U.esc(titulo) + '"' : '') + '>?</span>';
+    },
+    // Atributos para poner en un elemento: data-ayuda (+ título y clave de novedad).
+    attr: function (texto, titulo, nuevo) {
+      return ' data-ayuda="' + U.esc(texto) + '"' + (titulo ? ' data-ayuda-titulo="' + U.esc(titulo) + '"' : '') +
+        (nuevo ? ' data-ayuda-nuevo="' + U.esc(nuevo) + '"' : '');
+    }
+  };
+
   global.U = U;
 })(window);

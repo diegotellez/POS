@@ -245,7 +245,8 @@
     div.setAttribute('role', 'alert');
     div.innerHTML = '<div><strong>Ocurrió un error inesperado (' + U.esc(e.codigo) + ').</strong> <span>' + U.esc(e.mensaje) + '</span>' +
       ' <small>Avise al proveedor para que lo corrija.</small></div>' +
-      '<div class="aviso-version-botones"><button type="button" class="boton boton-primario" id="btn-error-avisar">' +
+      '<div class="aviso-version-botones"><button type="button" class="boton boton-primario" id="btn-error-avisar"' +
+      U.ayuda.attr('Envía el error al proveedor con la información técnica para que lo corrija en la próxima versión.') + '>' +
       (c.whatsapp ? 'Avisar por WhatsApp' : c.correo ? 'Avisar por correo' : 'Copiar el reporte') + '</button>' +
       '<button type="button" class="boton boton-texto" id="btn-error-cerrar">Cerrar</button></div>';
     document.body.appendChild(div);

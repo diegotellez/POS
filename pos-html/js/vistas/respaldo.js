@@ -102,7 +102,7 @@
       '<p class="tenue pequeno">Reporte errores, pida mejoras o reportes nuevos al proveedor y vea cuándo quedan publicados. ' +
       'Los errores inesperados se registran y se avisan solos.' +
       (c.whatsapp || c.url || c.correo ? '' : ' <span class="alerta">Aún no hay contacto del proveedor configurado.</span>') + '</p>' +
-      '<div class="acciones-reporte"><a class="boton boton-secundario" href="#/soporte">' + U.icono('chat') + ' Abrir Soporte</a></div></section>';
+      '<div class="acciones-reporte"><a class="boton boton-secundario" href="#/soporte"' + U.ayuda.attr('Abre la pantalla para reportar errores, pedir mejoras o reportes nuevos y ver su estado.', null, 'config-soporte') + '>' + U.icono('chat') + ' Abrir Soporte</a></div></section>';
   }
 
   function seccionActualizaciones(cfg) {

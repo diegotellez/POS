@@ -41,7 +41,7 @@
       '<div class="tabla-contenedor"><table class="tabla"><thead><tr>' +
       '<th><input type="checkbox" id="sel-todos" aria-label="Seleccionar todos" title="Seleccionar todos los de la lista"></th>' +
       '<th>Código</th><th>Nombre</th><th>Categoría</th><th class="num">P. compra</th><th class="num">P. venta</th><th class="num" title="Precio de venta menos precio de compra; el % es sobre el precio de venta">Ganancia</th>' +
-      '<th class="num" title="Escriba las unidades y pulse Enter o Tab; queda registrado como ajuste de inventario">Disponibles</th><th class="num">Mín.</th><th></th>' +
+      '<th class="num"><span' + U.ayuda.attr('Escriba las unidades directamente en la columna. Enter guarda y pasa al producto siguiente; Esc deshace. Cada cambio queda como ajuste de inventario.', 'Unidades editables', 'productos-disponibles') + '>Disponibles</span>' + U.ayuda.icono('Escriba las unidades y pulse Enter para guardar y pasar al siguiente. Esc deshace. Queda registrado en Inventario > Movimientos.', 'Unidades disponibles') + '</th><th class="num">Mín.</th><th></th>' +
       '</tr></thead><tbody id="filas"></tbody></table></div>' +
       '</section>';
 
@@ -105,14 +105,14 @@
           '<td class="num">' + U.dinero(p.precio_venta) + '</td>' +
           '<td class="num">' + celdaGanancia(p) + '</td>' +
           '<td class="num"><input class="stock-editable' + (POS.Productos.stockBajo(p) ? ' alerta' : '') + '" type="number" min="0" step="1" data-stock="' + p.id + '" value="' + p.stock + '"' +
-          ' aria-label="Unidades disponibles de ' + U.esc(p.nombre) + '" title="Escriba las unidades y pulse Enter para pasar al siguiente"></td>' +
+          ' aria-label="Unidades disponibles de ' + U.esc(p.nombre) + '"></td>' +
           '<td class="num">' + p.stock_minimo + '</td>' +
           '<td class="acciones">' +
-          '<button class="boton-icono" data-editar="' + p.id + '" title="Editar" aria-label="Editar">' + U.icono('editar') + '</button>' +
+          '<button class="boton-icono" data-editar="' + p.id + '" aria-label="Editar"' + U.ayuda.attr('Editar nombre, precios, categoría y unidades disponibles.') + '>' + U.icono('editar') + '</button>' +
           (p.activo
-            ? '<button class="boton boton-texto" data-desactivar="' + p.id + '" title="Ocultar de ventas sin borrarlo">Desactivar</button>'
+            ? '<button class="boton boton-texto" data-desactivar="' + p.id + '"' + U.ayuda.attr('Oculta el producto en Ventas sin borrarlo. Se puede volver a activar con "Mostrar inactivos".') + '>Desactivar</button>'
             : '<button class="boton boton-texto" data-activar="' + p.id + '">Activar</button>') +
-          '<button class="boton-icono boton-peligro" data-eliminar="' + p.id + '" title="Eliminar" aria-label="Eliminar">' + U.icono('borrar') + '</button>' +
+          '<button class="boton-icono boton-peligro" data-eliminar="' + p.id + '" aria-label="Eliminar"' + U.ayuda.attr('Se borra si no tiene ventas (aunque tenga compras). Si ya se vendió, queda desactivado para conservar el historial.', 'Eliminar') + '>' + U.icono('borrar') + '</button>' +
           '</td></tr>';
       }).join('');
       pintarBarra();
@@ -232,8 +232,8 @@
           : !edicion
           ? '<label class="campo"><span>Stock inicial</span><input name="stock" type="number" min="0" step="1" value="0"></label>'
           : '<div class="fila-doble">' +
-            '<label class="campo"><span>Unidades disponibles</span><input name="stock" type="number" min="0" step="1" value="' + p.stock + '"></label>' +
-            '<label class="campo"><span>Motivo del cambio (opcional)</span><input name="motivoStock" placeholder="Ej. conteo físico"></label></div>' +
+            '<label class="campo"><span>Unidades disponibles' + U.ayuda.icono('Corrija aquí las unidades si el conteo físico no coincide. El cambio queda como ajuste de inventario.') + '</span><input name="stock" type="number" min="0" step="1" value="' + p.stock + '"></label>' +
+            '<label class="campo"><span>Motivo del cambio (opcional)' + U.ayuda.icono('Se guarda en Inventario > Movimientos y en Auditoría para saber por qué cambió el stock.') + '</span><input name="motivoStock" placeholder="Ej. conteo físico"></label></div>' +
             '<p class="tenue pequeno">Si cambia las unidades, queda registrado como ajuste de inventario.</p>') +
         '</form>',
       alAbrir: function (raiz) {

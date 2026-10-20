@@ -60,6 +60,7 @@
   function rutaActual() {
     return rutaCompleta().split('?')[0] || 'ventas';
   }
+  App.rutaActual = rutaActual;
 
   function renderLogin() {
     var raiz = document.getElementById('app');
@@ -111,7 +112,7 @@
         return v && (!v.soloAdmin || esAdmin);
       }).map(function (n) {
         var v = App.vistas[n];
-        return '<a href="#/' + n + '" class="lateral-item' + (n === ruta ? ' activo' : '') + '">' +
+        return '<a href="#/' + n + '" class="lateral-item' + (n === ruta ? ' activo' : '') + '"' + (v.ayuda ? U.ayuda.attr(v.ayuda, v.titulo, v.nuevo) : '') + '>' +
           U.icono(v.icono) + '<span>' + U.esc(v.titulo) + '</span></a>';
       }).join('') +
       '</nav></aside>' +
@@ -141,6 +142,7 @@
   }
 
   App.renderizar = function () {
+    U.ayuda.ocultar();
     while (App.limpiezas.length) {
       try { App.limpiezas.pop()(); } catch (e) { /* ignorar */ }
     }
@@ -173,6 +175,8 @@
       if (global.console) global.console.error(err);
       if (global.Soporte) Soporte.registrarError(err, 'Pantalla ' + vista.titulo);
     }
+    // Novedades: el globo se presenta solo la primera vez.
+    U.ayuda.presentar(document);
   };
 
   function iniciar() {

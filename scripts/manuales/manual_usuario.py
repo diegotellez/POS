@@ -42,7 +42,7 @@ h += [pasos([
 h += [figura(C + '/u01-login.jpg', 'Figura 1. Inicio de sesión.', ancho=UTIL * 0.42, recorte=(0.33, 0.22, 0.67, 0.78))]
 h += [h2('2.1 La pantalla principal')]
 h += [viñetas([
-    '<b>Menú lateral</b> (izquierda): las pantallas del sistema. El cajero ve Ventas, Historial de ventas y Turno de caja; el administrador ve todas.',
+    '<b>Menú lateral</b> (izquierda): las pantallas del sistema. El cajero ve Ventas, Historial de ventas, Turno de caja y Soporte; el administrador ve todas.',
     '<b>Barra superior</b>: nombre del negocio, usuario conectado y su rol, y el botón para <b>cerrar sesión</b> (icono de salida, a la derecha).',
     'Los <b>avisos</b> aparecen abajo al centro durante unos segundos: verde para operaciones exitosas, rojo para errores y naranja para alertas.',
     'En celular o pantallas pequeñas, el menú se abre con el botón de tres líneas de la barra superior.',
@@ -364,6 +364,19 @@ h += [viñetas([
 ])]
 h += [caja('Respaldo diario', 'Los datos viven en el navegador de la caja. Si alguien borra el historial del navegador, solo el '
            'respaldo permite recuperarlos. Detalles en el Manual de instalación, configuración y mantenimiento.', 'aviso')]
+h += [h2('12.4 Soporte: errores y solicitudes al proveedor')]
+h += [p('En el menú <b>Soporte</b> (cajero y administrador) se reporta un error, se pide una mejora o un reporte nuevo. '
+        'Cada envío recibe un código, por ejemplo <b>S-K7Q-0003</b>, y se abre WhatsApp con el mensaje listo para el proveedor.')]
+h += [viñetas([
+    '<b>Mis solicitudes</b> muestra el estado: <i>Enviada</i>, <i>Lista en 2.x</i> (ya está hecha: actualice el POS) y <i>Publicada</i> (ya está en este equipo).',
+    '<b>Errores detectados automáticamente</b> (administrador): si algo falla, el POS lo anota solo con la pantalla y la versión, y avisa al proveedor. '
+    'Si aparece el aviso rojo "Ocurrió un error inesperado", toque <b>Avisar</b>.',
+    '<b>Información técnica</b>: versión, navegador y configuración. Nunca se envían ventas, clientes ni contraseñas.',
+])]
+h += [h2('12.5 Ayudas en pantalla')]
+h += [p('Los círculos verdes con <b>?</b> explican cada opción: pase el ratón por encima o tóquelos en el celular. '
+        'Cuando llega una función nueva, aparece un globo con la etiqueta <b>NUEVO</b> la primera vez; pulse <b>Entendido</b> para cerrarlo. '
+        'En la pantalla de Ventas no aparecen globos automáticos para no estorbar al cobrar.')]
 
 # ------------------------------------------------------------------ 13
 h += [PageBreak(), h1('13. Para el dueño: el cierre en WhatsApp')]
